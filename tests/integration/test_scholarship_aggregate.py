@@ -1,6 +1,6 @@
 """Tests for Scholarship aggregate persistence (M3.0)."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -45,6 +45,7 @@ def reference_data(db_session):
 @pytest.fixture
 def extracted_scholarship(reference_data):
     country, provider, source = reference_data
+    today = date.today()
     return ExtractedScholarship(
         scholarship_name="MEXT Scholarship 2027 (Test)",
         provider_name=provider.provider_name,
@@ -57,11 +58,11 @@ def extracted_scholarship(reference_data):
         application_url="https://example.com/apply",
         official_source="https://example.com",
         timeline=Timeline(
-            application_open="2026-04-01",
-            application_deadline="2026-05-31",
+            application_open=(today - timedelta(days=30)).isoformat(),
+            application_deadline=(today + timedelta(days=300)).isoformat(),
             interview_date=None,
             result_date=None,
-            study_start="2027-04-01",
+            study_start=(today + timedelta(days=400)).isoformat(),
         ),
         eligibility=Eligibility(
             minimum_gpa=3.5,
@@ -153,6 +154,11 @@ class TestScholarshipAggregate:
 
     def test_timeline_child(self, db_session, reference_data, extracted_scholarship):
         country, provider, source = reference_data
+        today = date.today()
+        expected_open = today - timedelta(days=30)
+        expected_deadline = today + timedelta(days=300)
+        expected_start = today + timedelta(days=400)
+
         mapper = ScholarshipMapper(db_session)
         repo = ScholarshipRepository(db_session)
 
@@ -162,9 +168,9 @@ class TestScholarshipAggregate:
 
         tl = loaded.timeline
         assert tl is not None
-        assert tl.application_open == date(2026, 4, 1)
-        assert tl.application_deadline == date(2026, 5, 31)
-        assert tl.study_start == date(2027, 4, 1)
+        assert tl.application_open == expected_open
+        assert tl.application_deadline == expected_deadline
+        assert tl.study_start == expected_start
 
         db_session.delete(loaded)
         db_session.commit()

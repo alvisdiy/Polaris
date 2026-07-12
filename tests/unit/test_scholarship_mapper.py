@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -58,6 +58,7 @@ def _mock_university(name: str = "University of Tokyo") -> MagicMock:
 
 
 def _make_extracted(**overrides) -> ExtractedScholarship:
+    today = date.today()
     defaults = dict(
         scholarship_name="MEXT Scholarship",
         provider_name="MEXT",
@@ -70,8 +71,8 @@ def _make_extracted(**overrides) -> ExtractedScholarship:
         application_url="https://example.com/apply",
         official_source="https://example.com",
         timeline=Timeline(
-            application_open="2025-04-01",
-            application_deadline="2025-06-30",
+            application_open=(today - timedelta(days=30)).isoformat(),
+            application_deadline=(today + timedelta(days=300)).isoformat(),
         ),
         eligibility=Eligibility(
             minimum_gpa=3.0,
@@ -125,9 +126,10 @@ def test_to_orm_creates_scholarship_with_children():
     assert result.benefit.tuition_fee is True
     assert result.benefit.monthly_allowance is True
 
+    today = date.today()
     assert result.timeline is not None
-    assert result.timeline.application_open == date(2025, 4, 1)
-    assert result.timeline.application_deadline == date(2025, 6, 30)
+    assert result.timeline.application_open == today - timedelta(days=30)
+    assert result.timeline.application_deadline == today + timedelta(days=300)
 
 
 def test_to_orm_with_university():
@@ -209,11 +211,13 @@ def test_to_orm_timeline_with_none_dates():
         country,
     ]
 
+    today = date.today()
+    expected_deadline = today + timedelta(days=300)
     mapper = ScholarshipMapper(session)
     extracted = _make_extracted(
         timeline=Timeline(
             application_open=None,
-            application_deadline="2025-06-30",
+            application_deadline=expected_deadline.isoformat(),
             interview_date=None,
             result_date=None,
             study_start=None,
@@ -222,7 +226,7 @@ def test_to_orm_timeline_with_none_dates():
     result = mapper.to_orm(extracted, source_id="src-123")
 
     assert result.timeline.application_open is None
-    assert result.timeline.application_deadline == date(2025, 6, 30)
+    assert result.timeline.application_deadline == expected_deadline
     assert result.timeline.interview_date is None
     assert result.timeline.result_date is None
     assert result.timeline.study_start is None
