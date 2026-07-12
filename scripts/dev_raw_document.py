@@ -1,5 +1,6 @@
-from database.session import SessionLocal
 from sqlalchemy import text
+
+from database.session import SessionLocal
 
 with SessionLocal() as session:
     result = session.execute(

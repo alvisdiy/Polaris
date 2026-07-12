@@ -2,12 +2,15 @@ import abc
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 # --- Exceptions ---
 
+
 class ConnectorException(Exception):
     """Base exception for all connector errors."""
+
     def __init__(self, message: str, source_id: Optional[uuid.UUID] = None) -> None:
         super().__init__(message)
         self.source_id = source_id
@@ -15,11 +18,13 @@ class ConnectorException(Exception):
 
 class ConnectorTimeoutException(ConnectorException):
     """Raised when the crawler/fetcher times out."""
+
     pass
 
 
 class ConnectorHTTPException(ConnectorException):
     """Raised when an HTTP error (e.g., 404, 403, 429) occurs."""
+
     def __init__(self, message: str, status_code: int, source_id: Optional[uuid.UUID] = None) -> None:
         super().__init__(message, source_id=source_id)
         self.status_code = status_code
@@ -27,16 +32,19 @@ class ConnectorHTTPException(ConnectorException):
 
 class ConnectorSecurityException(ConnectorException):
     """Raised when SSL validation fails or certificate issue occurs."""
+
     pass
 
 
 class ConnectorParsingException(ConnectorException):
     """Raised when basic preprocessing or extraction fails."""
+
     pass
 
 
 class ConnectorRateLimitException(ConnectorHTTPException):
     """Raised on HTTP 429 Too Many Requests."""
+
     def __init__(self, message: str, retry_after: Optional[int] = None, source_id: Optional[uuid.UUID] = None) -> None:
         super().__init__(message, status_code=429, source_id=source_id)
         self.retry_after = retry_after
@@ -44,8 +52,10 @@ class ConnectorRateLimitException(ConnectorHTTPException):
 
 # --- Models ---
 
+
 class ConnectorConfig(BaseModel):
     """Configuration for a specific connector task."""
+
     model_config = ConfigDict(frozen=True)
 
     source_id: uuid.UUID
@@ -61,6 +71,7 @@ class ConnectorConfig(BaseModel):
 
 class FetchResult(BaseModel):
     """Result returned by a connector after successfully crawling a source."""
+
     model_config = ConfigDict(frozen=True)
 
     source_id: uuid.UUID
@@ -80,6 +91,7 @@ class FetchResult(BaseModel):
 
 
 # --- Base Connector ---
+
 
 class BaseConnector(abc.ABC):
     """Abstract base class that all Polaris connectors must implement."""

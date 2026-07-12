@@ -1,13 +1,15 @@
 import time
 from datetime import datetime, timezone
+
 from playwright.async_api import async_playwright
+
 from services.ingestion.connectors.base_connector import (
     BaseConnector,
     ConnectorConfig,
-    FetchResult,
-    ConnectorTimeoutException,
     ConnectorHTTPException,
     ConnectorSecurityException,
+    ConnectorTimeoutException,
+    FetchResult,
 )
 
 

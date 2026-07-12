@@ -26,7 +26,8 @@ class RawDocumentRepository:
 
     def get_by_source_and_checksum(self, source_id, checksum: str) -> Optional[RawDocument]:
         """Fetch a RawDocument by its source_id and checksum."""
-        return self.session.query(RawDocument).filter(
-            RawDocument.source_id == source_id,
-            RawDocument.checksum == checksum
-        ).first()
+        return (
+            self.session.query(RawDocument)
+            .filter(RawDocument.source_id == source_id, RawDocument.checksum == checksum)
+            .first()
+        )

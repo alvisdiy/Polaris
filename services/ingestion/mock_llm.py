@@ -4,7 +4,6 @@ from typing import Any, Dict
 
 from services.ingestion.extractor import LLMClient
 
-
 MOCK_SCHOLARSHIP: Dict[str, Any] = {
     "scholarship_name": "MEXT Scholarship 2027",
     "provider_name": "Ministry of Education, Culture, Sports, Science and Technology",

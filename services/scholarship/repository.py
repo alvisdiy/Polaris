@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from database.models.scholarship import Scholarship
 
@@ -16,18 +16,39 @@ class ScholarshipRepository:
         self.session = session
 
     def save(self, scholarship: Scholarship) -> Scholarship:
-        """Persist a Scholarship entity and return the refreshed instance."""
+        """Persist a Scholarship entity (with children) and return the refreshed instance."""
         self.session.add(scholarship)
         self.session.commit()
         self.session.refresh(scholarship)
         return scholarship
 
     def get_by_id(self, scholarship_id) -> Optional[Scholarship]:
-        """Fetch a Scholarship by its scholarship_id."""
+        """Fetch a Scholarship by its scholarship_id, eager-loading children."""
         return (
             self.session.query(Scholarship)
+            .options(
+                joinedload(Scholarship.requirement),
+                joinedload(Scholarship.benefit),
+                joinedload(Scholarship.timeline),
+                joinedload(Scholarship.versions),
+            )
             .filter(Scholarship.scholarship_id == scholarship_id)
             .first()
+        )
+
+    def get_all_approved(self) -> list[Scholarship]:
+        """Fetch all approved scholarships with children eager-loaded."""
+        return (
+            self.session.query(Scholarship)
+            .options(
+                joinedload(Scholarship.requirement),
+                joinedload(Scholarship.benefit),
+                joinedload(Scholarship.timeline),
+                joinedload(Scholarship.country),
+                joinedload(Scholarship.provider),
+            )
+            .filter(Scholarship.extraction_status == "approved")
+            .all()
         )
 
     def find_duplicate(
@@ -47,10 +68,13 @@ class ScholarshipRepository:
             Scholarship.provider_id == provider_id,
             Scholarship.source_id == source_id,
         )
+        # application_cycle now lives on ScholarshipTimeline
+        from database.models.scholarship_timeline import ScholarshipTimeline
+
         if application_cycle is None:
-            query = query.filter(Scholarship.application_cycle.is_(None))
+            query = query.join(ScholarshipTimeline).filter(ScholarshipTimeline.application_cycle.is_(None))
         else:
-            query = query.filter(Scholarship.application_cycle == application_cycle)
+            query = query.join(ScholarshipTimeline).filter(ScholarshipTimeline.application_cycle == application_cycle)
 
         return query.first()
 

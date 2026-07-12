@@ -8,6 +8,7 @@ from services.ingestion.repositories import RawDocumentRepository
 
 class LoadedDocument(BaseModel):
     """Document ready for cleaning."""
+
     model_config = ConfigDict(frozen=True)
 
     document_id: str

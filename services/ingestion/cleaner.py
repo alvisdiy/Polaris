@@ -7,6 +7,7 @@ from services.ingestion.loader import LoadedDocument
 
 class CleanedDocument(BaseModel):
     """Cleaned text ready for LLM extraction."""
+
     model_config = ConfigDict(frozen=True)
 
     document_id: str

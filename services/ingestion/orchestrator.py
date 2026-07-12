@@ -1,20 +1,25 @@
 """Execute the complete extraction pipeline flow."""
 
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Dict
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from services.ingestion.cleaner import clean
-from services.ingestion.extractor import LLMClient, extract, ExtractedDocument
+from services.ingestion.extractor import ExtractedDocument, LLMClient, extract
 from services.ingestion.loader import load
 from services.ingestion.repositories import RawDocumentRepository
-from services.ingestion.validator import validate, ValidationReport
-from services.scholarship import ScholarshipMapper, ScholarshipRepository
+from services.ingestion.validator import ValidationReport, validate
+
+if TYPE_CHECKING:
+    from database.models.scholarship import Scholarship
 
 
 class PipelineResult(BaseModel):
     """Encapsulates the output of a pipeline run."""
+
     model_config = ConfigDict(frozen=True)
 
     document_id: str
@@ -64,7 +69,7 @@ def persist_scholarship(
     data. Returns the saved Scholarship entity, or None if validation
     failed.
     """
-    from database.models.scholarship import Scholarship
+    from services.scholarship import ScholarshipMapper, ScholarshipRepository
 
     if not result.is_valid or result.raw_extraction.scholarship is None:
         return None

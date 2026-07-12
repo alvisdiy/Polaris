@@ -1,9 +1,7 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
 # Alembic Config object
 config = context.config
@@ -13,13 +11,19 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import all models so they register with Base.metadata
-from database.models import Base  # noqa: E402
-from database.models import Country  # noqa: E402, F401
-from database.models import Provider  # noqa: E402, F401
-from database.models import RawDocument  # noqa: E402, F401
-from database.models import SourceRegistry  # noqa: E402, F401
-from database.models import University  # noqa: E402, F401
-from database.models import Scholarship  # noqa: E402, F401
+from database.models import (  # noqa: E402
+    Base,
+    Country,  # noqa: F401
+    Provider,  # noqa: F401
+    RawDocument,  # noqa: F401
+    Scholarship,  # noqa: F401
+    ScholarshipBenefit,  # noqa: F401
+    ScholarshipRequirement,  # noqa: F401
+    ScholarshipTimeline,  # noqa: F401
+    ScholarshipVersion,  # noqa: F401
+    SourceRegistry,  # noqa: F401
+    University,  # noqa: F401
+)
 
 target_metadata = Base.metadata
 

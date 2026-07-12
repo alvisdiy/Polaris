@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from services.ingestion.cleaner import CleanedDocument
 
-
 # --- Extraction Schema ---
+
 
 class Timeline(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -54,6 +54,7 @@ class Benefits(BaseModel):
 
 class ExtractedScholarship(BaseModel):
     """Structured scholarship data extracted by LLM."""
+
     model_config = ConfigDict(frozen=True)
 
     scholarship_name: str
@@ -74,6 +75,7 @@ class ExtractedScholarship(BaseModel):
 
 class ExtractedDocument(BaseModel):
     """Extraction result with metadata."""
+
     model_config = ConfigDict(frozen=True)
 
     document_id: str
@@ -83,6 +85,7 @@ class ExtractedDocument(BaseModel):
 
 
 # --- Abstract LLM Client ---
+
 
 class LLMClient(abc.ABC):
     """Provider-agnostic interface for LLM calls."""
@@ -94,6 +97,7 @@ class LLMClient(abc.ABC):
 
 
 # --- Extraction Logic ---
+
 
 def extract(doc: CleanedDocument, client: LLMClient) -> ExtractedDocument:
     """Extract structured scholarship data from cleaned text using LLM client."""

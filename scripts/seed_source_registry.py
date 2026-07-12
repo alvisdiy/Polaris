@@ -1,9 +1,9 @@
-import uuid
-from database.session import SessionLocal
 from database.models.country import Country
-from database.models.provider import Provider
 from database.models.enums import ProviderType
+from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
+from database.session import SessionLocal
+
 
 def seed_data():
     session = SessionLocal()
@@ -19,11 +19,7 @@ def seed_data():
         for c_data in countries_data:
             country = session.query(Country).filter_by(iso3=c_data["iso3"]).first()
             if not country:
-                country = Country(
-                    iso2=c_data["iso2"],
-                    iso3=c_data["iso3"],
-                    name=c_data["name"]
-                )
+                country = Country(iso2=c_data["iso2"], iso3=c_data["iso3"], name=c_data["name"])
                 session.add(country)
                 session.flush()
             countries[c_data["iso3"]] = country
@@ -35,28 +31,28 @@ def seed_data():
                 "provider_name": "Ministry of Education, Culture, Sports, Science and Technology",
                 "provider_type": ProviderType.GOVERNMENT,
                 "country_iso3": "JPN",
-                "official_url": "https://www.mext.go.jp/en/"
+                "official_url": "https://www.mext.go.jp/en/",
             },
             {
                 "provider_code": "DAAD",
                 "provider_name": "Deutscher Akademischer Austauschdienst",
                 "provider_type": ProviderType.GOVERNMENT,
                 "country_iso3": "DEU",
-                "official_url": "https://www.daad.de/en/"
+                "official_url": "https://www.daad.de/en/",
             },
             {
                 "provider_code": "CHEVENING",
                 "provider_name": "Foreign, Commonwealth & Development Office",
                 "provider_type": ProviderType.GOVERNMENT,
                 "country_iso3": "GBR",
-                "official_url": "https://www.chevening.org/"
+                "official_url": "https://www.chevening.org/",
             },
             {
                 "provider_code": "LPDP",
                 "provider_name": "Lembaga Pengelola Dana Pendidikan",
                 "provider_type": ProviderType.GOVERNMENT,
                 "country_iso3": "IDN",
-                "official_url": "https://lpdp.kemenkeu.go.id/"
+                "official_url": "https://lpdp.kemenkeu.go.id/",
             },
         ]
         providers = {}
@@ -69,7 +65,7 @@ def seed_data():
                     provider_name=p_data["provider_name"],
                     provider_type=p_data["provider_type"],
                     country_id=country.country_id,
-                    official_url=p_data["official_url"]
+                    official_url=p_data["official_url"],
                 )
                 session.add(provider)
                 session.flush()
@@ -89,7 +85,7 @@ def seed_data():
                 "priority": 1,
                 "robots_allowed": True,
                 "requires_login": False,
-                "status": "Active"
+                "status": "Active",
             },
             {
                 "source_name": "DAAD Scholarship Database",
@@ -103,7 +99,7 @@ def seed_data():
                 "priority": 1,
                 "robots_allowed": True,
                 "requires_login": False,
-                "status": "Active"
+                "status": "Active",
             },
             {
                 "source_name": "Chevening Scholarships",
@@ -117,7 +113,7 @@ def seed_data():
                 "priority": 1,
                 "robots_allowed": True,
                 "requires_login": False,
-                "status": "Active"
+                "status": "Active",
             },
             {
                 "source_name": "LPDP Beasiswa",
@@ -131,7 +127,7 @@ def seed_data():
                 "priority": 1,
                 "robots_allowed": True,
                 "requires_login": False,
-                "status": "Active"
+                "status": "Active",
             },
         ]
 
@@ -152,7 +148,7 @@ def seed_data():
                     priority=s_data["priority"],
                     robots_allowed=s_data["robots_allowed"],
                     requires_login=s_data["requires_login"],
-                    status=s_data["status"]
+                    status=s_data["status"],
                 )
                 session.add(source)
                 print(f"[SEED] Created SourceRegistry: {s_data['source_name']}")
@@ -180,6 +176,7 @@ def seed_data():
         raise e
     finally:
         session.close()
+
 
 if __name__ == "__main__":
     seed_data()

@@ -14,3 +14,33 @@ polaris-knowledge = "knowledge_pipeline.cli:main"
 [tool.setuptools.packages.find]
 include = ["knowledge_pipeline*"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = "--strict-markers -v"
+markers = [
+    "unit: Unit tests (mock-based, no DB)",
+    "integration: Integration tests (DB-dependent)",
+    "api: API endpoint tests (TestClient)",
+    "slow: Slow tests (network or heavy IO)",
+]
+
+[tool.coverage.run]
+source = ["services", "api", "database"]
+omit = [
+    "database/migrations/*",
+    "services/ingestion/*",
+]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+

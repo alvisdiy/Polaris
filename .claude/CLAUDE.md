@@ -132,6 +132,14 @@ Polaris/
 │   ├── CLAUDE.md
 │   ├── commands/               # Operational playbooks
 │   └── context/                # Engineering references
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # CI pipeline (Ruff + Pytest + Coverage)
+├── api/                        # FastAPI application
+│   ├── app.py                  # App factory, middleware, exception handlers
+│   ├── schemas.py              # Pydantic request/response models
+│   └── routers/
+│       └── recommendations.py  # POST /recommendations
 ├── database/                   # Database layer
 │   ├── config.py               # DATABASE_URL from env
 │   ├── session.py              # Engine + SessionLocal
@@ -140,10 +148,19 @@ Polaris/
 │   │   └── __init__.py
 │   └── migrations/
 │       └── env.py              # Alembic env
+├── services/                   # Business logic
+│   ├── matching/               # SIE matching engine
+│   ├── scholarship/            # Scholarship aggregate
+│   └── ingestion/              # Connectors + extraction
+├── tests/                      # pytest test suite
+│   ├── conftest.py             # Shared fixtures
+│   ├── unit/                   # Mock-based tests (marker: unit)
+│   ├── integration/            # DB-dependent tests (marker: integration)
+│   └── api/                    # FastAPI endpoint tests (marker: api)
 ├── docs/v0.1/                  # Project specifications
 ├── examples/                   # Sample data
-├── scripts/                    # Utility scripts
-├── pyproject.toml              # Package config
+├── scripts/                    # Utility scripts (legacy verify scripts)
+├── pyproject.toml              # Package config + pytest + coverage + ruff
 ├── alembic.ini                 # Alembic config
 └── .env.example                # Environment template
 ```
@@ -300,16 +317,72 @@ Every migration must be independently reversible.
 
 Migration files should remain small and focused.
 
-## Verification Rule
+## Testing Standard
 
-Milestone verification uses standalone verification scripts.
+All tests use **pytest**. Do not create standalone `verify_milestone_X.py` scripts.
 
-Do not introduce pytest unless explicitly requested.
+### Test Structure
 
-Do not rename utility scripts solely to satisfy pytest discovery.
+```
+tests/
+    conftest.py              # Shared fixtures (client, sample_request)
+    unit/                    # Mock-based, no DB dependency
+        test_filter_engine.py
+        test_ranking_engine.py
+        test_connectors.py
+        test_user_profile.py
+    integration/             # DB-dependent tests
+        test_scoring_engine.py
+        test_explanation_engine.py
+        test_orchestrator.py
+        test_scholarship_aggregate.py
+        test_models.py
+    api/                     # FastAPI endpoint tests (TestClient)
+        test_recommendations.py
+```
 
-Verification command:
+### Pytest Markers
 
-PYTHONPATH=. .venv/Scripts/python scripts/verify_milestone_X_Y.py
+Every test file must declare its marker:
+
+| Marker | Directory | Description |
+|--------|-----------|-------------|
+| `unit` | `tests/unit/` | Mock-based, no DB |
+| `integration` | `tests/integration/` | Requires DB connection |
+| `api` | `tests/api/` | FastAPI TestClient |
+| `slow` | any | Long-running tests |
+
+### Rules
+
+- One responsibility per test file.
+- Every test file declares `pytestmark = pytest.mark.<category>`.
+- Use pytest fixtures for setup, not duplicated code.
+- Use `TestClient` for FastAPI endpoint tests.
+- Use `unittest.mock.MagicMock` for unit tests that don't need a real DB.
+- Use real DB sessions for integration tests (scholarship aggregate, scoring, etc.).
+- Separate unit tests (mock-based) from integration tests (DB-dependent).
+- Target coverage: **90% minimum** (enforced by `pytest-cov`).
+
+### Running Tests
+
+```bash
+# All tests
+PYTHONPATH=. python -m pytest tests/ -v
+
+# By category
+PYTHONPATH=. python -m pytest tests/unit/ -v -m unit
+PYTHONPATH=. python -m pytest tests/integration/ -v -m integration
+PYTHONPATH=. python -m pytest tests/api/ -v -m api
+
+# With coverage
+PYTHONPATH=. python -m pytest tests/ -v --cov --cov-report=term-missing --cov-fail-under=90
+```
+
+### CI Pipeline
+
+GitHub Actions workflow at `.github/workflows/ci.yml` runs on push/PR:
+
+1. **Ruff Lint** — code style and import sorting
+2. **Pytest + Coverage** — unit tests first, then full suite with 90% gate
 
 ****
