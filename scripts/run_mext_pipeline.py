@@ -93,11 +93,13 @@ def run_extraction(document_id: str, session):
     scholarship = persist_scholarship(result, document_id, session)
 
     if scholarship:
+        # Auto-approve for MVP (no human review UI yet)
+        scholarship.extraction_status = "approved"
+        session.commit()
         logger.info(
-            "Scholarship persisted: id={} name='{}' status={}",
+            "Scholarship persisted & approved: id={} name='{}'",
             scholarship.scholarship_id,
             scholarship.scholarship_name,
-            scholarship.extraction_status,
         )
     else:
         logger.warning("persist_scholarship returned None")

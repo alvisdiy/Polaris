@@ -255,3 +255,51 @@ class TestMextConnectorPipeline:
         sch_repo = ScholarshipRepository(db_session)
         all_approved = sch_repo.get_all_approved()
         assert any(s.scholarship_id == scholarship.scholarship_id for s in all_approved)
+
+    def test_recommendations_api_returns_pipeline_scholarship(self, db_session, fetch_result, seed_mext_source):
+        """POST /recommendations returns scholarship from the pipeline."""
+        from fastapi.testclient import TestClient
+
+        from api.app import app
+
+        # 1. Run full pipeline
+        mapper = RawDocumentMapper()
+        raw_doc = mapper.to_orm(fetch_result)
+        repo = RawDocumentRepository(db_session)
+        saved = repo.save(raw_doc)
+
+        llm_client = MockLLMClient()
+        result = run_pipeline(str(saved.document_id), db_session, llm_client)
+        scholarship = persist_scholarship(result, str(saved.document_id), db_session)
+
+        # 2. Auto-approve
+        scholarship.extraction_status = "approved"
+        db_session.commit()
+
+        # 3. Call API
+        client = TestClient(app)
+        response = client.post(
+            "/recommendations",
+            json={
+                "target_country": "Japan",
+                "degree": "Master",
+                "field_of_study": ["Computer Science"],
+                "current_gpa": 3.8,
+                "ielts_score": 7.5,
+                "research_experience": "Preferred",
+                "work_experience": "Optional",
+                "publication": "Not Required",
+                "leadership": True,
+                "funding_preference": "Fully Funded",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "recommendations" in data
+        recommendations = data["recommendations"]
+        assert len(recommendations) > 0
+
+        # Verify MEXT scholarship is in results
+        names = [r["scholarship_name"] for r in recommendations]
+        assert "MEXT Scholarship 2027" in names
