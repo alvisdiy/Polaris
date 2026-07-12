@@ -17,7 +17,7 @@ MOCK_SCHOLARSHIP: Dict[str, Any] = {
     "official_source": "https://www.studyinjapan.go.jp/en/",
     "timeline": {
         "application_open": "2026-04-01",
-        "application_deadline": "2026-05-31",
+        "application_deadline": "2027-05-31",
         "interview_date": None,
         "result_date": None,
         "study_start": "2027-04-01",

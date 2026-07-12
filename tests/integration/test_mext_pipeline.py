@@ -2,6 +2,10 @@
 
 Uses a real HTML fixture and the MockLLMClient to verify the full
 pipeline from raw HTML to persisted Scholarship.
+
+Transaction isolation: each test runs inside a connection-level
+transaction that is rolled back after the test, ensuring zero
+cross-test contamination.
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ import pytest
 from database.models.country import Country
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
-from database.session import SessionLocal
+from database.session import get_engine, get_session_local
 from services.ingestion.connectors.base_connector import FetchResult
 from services.ingestion.mock_llm import MockLLMClient
 from services.ingestion.orchestrator import persist_scholarship, run_pipeline
@@ -67,15 +71,33 @@ Apply Now</a></p>
 </html>"""
 
 
-@pytest.fixture
-def db_session():
-    session = SessionLocal()
+@pytest.fixture()
+def db_connection():
+    """Yield a connection inside a transaction; rollback after each test."""
+    engine = get_engine()
+    connection = engine.connect()
+    transaction = connection.begin()
+    yield connection
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture()
+def db_session(db_connection):
+    """Session bound to the connection transaction.
+
+    begin_nested() creates a SAVEPOINT so that session.commit() releases
+    the savepoint instead of committing the outer transaction.
+    """
+    from sqlalchemy.orm import Session
+
+    session = Session(bind=db_connection)
+    session.begin_nested()
     yield session
-    session.rollback()
     session.close()
 
 
-@pytest.fixture
+@pytest.fixture()
 def seed_mext_source(db_session):
     """Ensure MEXT source exists in Source Registry."""
     country = db_session.query(Country).filter_by(iso3="JPN").first()
@@ -118,7 +140,7 @@ def seed_mext_source(db_session):
     return source
 
 
-@pytest.fixture
+@pytest.fixture()
 def fetch_result(seed_mext_source):
     """Create a FetchResult from the HTML fixture."""
     return FetchResult(
@@ -137,6 +159,15 @@ def fetch_result(seed_mext_source):
         retry_count=0,
         headers={},
     )
+
+
+@pytest.fixture()
+def override_get_db(db_session, monkeypatch):
+    """Patch SessionLocal in the recommendations module to use test session."""
+    import api.routers.recommendations as mod
+
+    monkeypatch.setattr(mod, "SessionLocal", lambda: db_session)
+    yield
 
 
 class TestMextConnectorPipeline:
@@ -250,13 +281,15 @@ class TestMextConnectorPipeline:
 
         # Change status to approved for retrieval
         scholarship.extraction_status = "approved"
-        db_session.commit()
+        db_session.flush()
 
         sch_repo = ScholarshipRepository(db_session)
         all_approved = sch_repo.get_all_approved()
         assert any(s.scholarship_id == scholarship.scholarship_id for s in all_approved)
 
-    def test_recommendations_api_returns_pipeline_scholarship(self, db_session, fetch_result, seed_mext_source):
+    def test_recommendations_api_returns_pipeline_scholarship(
+        self, db_session, fetch_result, seed_mext_source, override_get_db
+    ):
         """POST /recommendations returns scholarship from the pipeline."""
         from fastapi.testclient import TestClient
 
@@ -274,7 +307,7 @@ class TestMextConnectorPipeline:
 
         # 2. Auto-approve
         scholarship.extraction_status = "approved"
-        db_session.commit()
+        db_session.flush()
 
         # 3. Call API
         client = TestClient(app)
@@ -296,10 +329,10 @@ class TestMextConnectorPipeline:
 
         assert response.status_code == 200
         data = response.json()
-        assert "recommendations" in data
-        recommendations = data["recommendations"]
-        assert len(recommendations) > 0
+        assert "results" in data
+        results = data["results"]
+        assert len(results) > 0
 
         # Verify MEXT scholarship is in results
-        names = [r["scholarship_name"] for r in recommendations]
+        names = [r["scholarship_name"] for r in results]
         assert "MEXT Scholarship 2027" in names
