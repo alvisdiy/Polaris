@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "alembic>=1.13",
     "psycopg2-binary>=2.9",
+    "loguru>=0.7",
 ]
 
 [project.optional-dependencies]
