@@ -1,0 +1,44 @@
+{
+  "scholarship_name": "Example Scholarship",
+  "provider_name": "Example Ministry",
+  "scholarship_type": "Government",
+  "country": "Japan",
+  "university": null,
+  "degree": "Master",
+  "funding_type": "Fully Funded",
+  "field_of_study": ["Computer Science"],
+  "application_url": "https://example.gov/apply",
+  "official_source": "https://example.gov/scholarship",
+  "timeline": {
+    "application_open": null,
+    "application_deadline": "2027-05-31",
+    "interview_date": null,
+    "result_date": null,
+    "study_start": null
+  },
+  "eligibility": {
+    "minimum_gpa": 3.25,
+    "ielts_required": true,
+    "minimum_ielts": 6.5,
+    "toefl_required": false,
+    "minimum_toefl": null,
+    "gre_required": false,
+    "age_limit": null,
+    "work_experience": "Optional",
+    "research_experience": "Preferred",
+    "publication": "Not Required",
+    "recommendation_letter": true,
+    "motivation_letter": true,
+    "cv_required": true,
+    "passport_required": true
+  },
+  "benefits": {
+    "tuition_fee": true,
+    "monthly_allowance": true,
+    "accommodation": false,
+    "health_insurance": true,
+    "travel_ticket": true,
+    "research_grant": false
+  },
+  "verification_status": "pending_review"
+}
