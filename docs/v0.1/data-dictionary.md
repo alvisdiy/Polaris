@@ -75,6 +75,53 @@ Scholarship
 
 ---
 
+# Core Entity : SourceRegistry
+
+| Field | Type | Required | Example | Description |
+|---|---|---|---|---|
+| source_id | UUID | ✅ | - | Unique source identifier |
+| source_name | String | ✅ | Study in Japan | Official source catalog name |
+| country_id | UUID | ❌ | - | Reference to Country model |
+| provider_id | UUID | ❌ | - | Reference to Provider model |
+| official_url | URL | ✅ | https://www.studyinjapan.go.jp/ | Homepage URL of official source |
+| crawl_entry_url | URL | ✅ | https://... | Specific URL crawler starts at |
+| crawl_method | String | ✅ | Playwright | API / Playwright / Crawl4AI |
+| connector_name | String | ❌ | mext_connector | Custom connector module name |
+| crawl_frequency | String | ✅ | Monthly | Daily / Weekly / Monthly / Manual |
+| priority | Integer | ✅ | 1 | Crawl queue priority (1-5) |
+| language | String | ❌ | English | Primary language of content |
+| timezone | String | ❌ | Asia/Tokyo | Timezone of site publication |
+| robots_allowed | Boolean | ✅ | true | Flag to respect robots.txt |
+| requires_login | Boolean | ✅ | false | Flag if crawling requires auth |
+| status | String | ✅ | Active | Active / Maintenance / Deprecated / Blocked |
+| last_crawled_at | Timestamp | ❌ | - | Timestamp of last crawler run |
+| last_verified_at| Timestamp | ❌ | - | Timestamp of last human audit |
+| created_at | Timestamp | ✅ | - | Date added to registry |
+| updated_at | Timestamp | ✅ | - | Date metadata was last modified |
+
+---
+
+# Core Entity : RawDocument
+
+| Field | Type | Required | Example | Description |
+|---|---|---|---|---|
+| document_id | UUID | ✅ | - | Unique ID |
+| source_id | UUID | ✅ | - | Reference to SourceRegistry |
+| source_url | URL | ✅ | https://... | Actual URL fetched |
+| content_type | String | ✅ | html | html / pdf / json / markdown |
+| raw_content | Text | ✅ | - | Raw downloaded content |
+| checksum | String | ✅ | - | SHA256 of raw_content |
+| status_code | Integer | ❌ | 200 | HTTP status |
+| fetched_at | Timestamp | ✅ | - | Date fetched |
+| etag | String | ❌ | - | HTTP ETag header |
+| last_modified | String | ❌ | - | HTTP Last-Modified header |
+| crawl_duration_ms | Integer | ❌ | - | Crawl duration in ms |
+| processing_status| String | ✅ | pending | pending / processing / completed / failed |
+| created_at | Timestamp | ✅ | - | Date created |
+| updated_at | Timestamp | ✅ | - | Date updated |
+
+---
+
 # Eligibility Requirements
 
 | Field                 | Type    | Required | Example      |

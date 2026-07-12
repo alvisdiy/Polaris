@@ -86,21 +86,20 @@ Setiap sumber data direpresentasikan sebagai satu record.
 | Field | Type | Required | Description |
 |--------|------|----------|-------------|
 | source_id | UUID | ✅ | Unique identifier |
-| source_name | String | ✅ | Official source name |
-| provider_name | String | ✅ | Organization |
-| country | Enum | ✅ | Source country |
-| source_type | Enum | ✅ | Government, University, Foundation, NGO |
-| official_url | URL | ✅ | Root website |
-| crawl_entry_url | URL | ✅ | First page to crawl |
-| crawl_method | Enum | ✅ | API, Playwright, Crawl4AI |
-| connector_name | String | ❌ | Custom connector |
-| crawl_frequency | Enum | ✅ | Daily, Weekly, Monthly |
-| priority | Integer | ✅ | Crawl priority |
-| language | Enum | ❌ | Source language |
-| timezone | String | ❌ | Timezone |
+| source_name | String(255) | ✅ | Official source name |
+| country_id | UUID (FK) | ❌ | Reference to Country table |
+| provider_id | UUID (FK) | ❌ | Reference to Provider table |
+| official_url | String(2048) | ✅ | Root website |
+| crawl_entry_url | String(2048) | ✅ | First page to crawl |
+| crawl_method | String(50) | ✅ | API, Playwright, Crawl4AI |
+| connector_name | String(255) | ❌ | Custom connector |
+| crawl_frequency | String(50) | ✅ | Daily, Weekly, Monthly |
+| priority | Integer | ✅ | Crawl priority (1-5) |
+| language | String(50) | ❌ | Source language |
+| timezone | String(100) | ❌ | Timezone |
 | robots_allowed | Boolean | ✅ | robots.txt status |
 | requires_login | Boolean | ✅ | Authentication required |
-| status | Enum | ✅ | Active, Maintenance, Deprecated |
+| status | String(50) | ✅ | Active, Maintenance, Deprecated, Blocked |
 | last_crawled_at | Timestamp | ❌ | Last crawl |
 | last_verified_at | Timestamp | ❌ | Human verification |
 | created_at | Timestamp | ✅ | Creation time |
@@ -214,7 +213,6 @@ Sebelum source dapat digunakan:
 
 - official_url harus valid,
 - crawl_entry_url harus dapat diakses,
-- source_type harus valid,
 - crawl_method harus didukung,
 - priority harus tersedia,
 - status harus Active.
@@ -259,13 +257,12 @@ api_connector.py
 
 ```json
 {
-  "source_id": "SRC-000001",
+  "source_id": "d3b07384-d113-4956-be64-6df457c12345",
   "source_name": "Study in Japan",
-  "provider_name": "Ministry of Education, Culture, Sports, Science and Technology",
-  "country": "Japan",
-  "source_type": "Government",
+  "country_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+  "provider_id": "f8e7d6c5-b4a3-2f1e-0d9c-8b7a6f5e4d3c",
   "official_url": "https://www.studyinjapan.go.jp/",
-  "crawl_entry_url": "https://www.studyinjapan.go.jp/en/smap-stopj-applications-scholarships.html",
+  "crawl_entry_url": "https://www.studyinjapan.go.jp/en/",
   "crawl_method": "Playwright",
   "connector_name": "mext_connector",
   "crawl_frequency": "Monthly",

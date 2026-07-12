@@ -274,15 +274,19 @@ Seluruh website yang menjadi sumber data harus terdaftar dalam **Source Registry
 
 Source Registry berfungsi sebagai pusat konfigurasi Knowledge Pipeline.
 
-Minimal setiap sumber memiliki informasi berikut:
+Setiap sumber memiliki informasi berikut:
 
 - Source ID
-- Provider Name
-- Official Website
-- Country
-- Source Category
+- Source Name
+- Country ID (relasi ke Country)
+- Provider ID (relasi ke Provider)
+- Official URL
+- Crawl Entry URL
 - Crawl Frequency
 - Crawl Method
+- Priority
+- Robots Allowed
+- Requires Login
 - Status
 - Last Crawl Time
 - Last Verification Time

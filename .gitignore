@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+.env.local
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
+.coverage
+.mypy_cache/
+
+# Type Checking
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Logs
+logs/
+*.log
+*_output.txt
+
+# Alembic
+database/migrations/__pycache__/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+htmlcov/
+dist/
+build/
