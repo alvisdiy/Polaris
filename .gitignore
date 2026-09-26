@@ -45,3 +45,12 @@ htmlcov/
 dist/
 build/
 graphify-out/
+
+# Python packaging / build artifacts
+*.egg-info/
+
+# Frontend
+frontend/node_modules/
+
+# Claude Code local settings (project commands/context stay tracked)
+.claude/settings.local.json
