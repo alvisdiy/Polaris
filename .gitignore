@@ -44,3 +44,4 @@ Thumbs.db
 htmlcov/
 dist/
 build/
+graphify-out/

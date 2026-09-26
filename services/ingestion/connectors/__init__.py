@@ -9,8 +9,9 @@ from .base_connector import (
     ConnectorTimeoutException,
     FetchResult,
 )
+from .generic_connector import GenericHTTPConnector
+from .generic_playwright import GenericPlaywrightConnector
 from .government.mext_connector import MEXTConnector
-from .government.study_in_japan import StudyInJapanConnector
 
 __all__ = [
     "BaseConnector",
@@ -22,6 +23,7 @@ __all__ = [
     "ConnectorSecurityException",
     "ConnectorParsingException",
     "ConnectorRateLimitException",
-    "StudyInJapanConnector",
     "MEXTConnector",
+    "GenericHTTPConnector",
+    "GenericPlaywrightConnector",
 ]

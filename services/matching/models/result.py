@@ -2,7 +2,28 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pydantic import BaseModel, ConfigDict, Field
+
+
+@dataclass(frozen=True)
+class CriterionResult:
+    """Result of scoring a single criterion.
+
+    Attributes:
+        criterion: Name of the criterion (e.g. "country", "gpa").
+        score: Partial score awarded (0 to weight).
+        weight: Maximum possible score for this criterion.
+        matched: Whether the criterion is fully satisfied.
+        reason: Human-readable explanation of the score.
+    """
+
+    criterion: str
+    score: float
+    weight: float
+    matched: bool
+    reason: str
 
 
 class CriteriaScores(BaseModel):
@@ -20,6 +41,7 @@ class CriteriaScores(BaseModel):
     work: float = 0.0
     leadership: float = 0.0
     total: float = 0.0
+    details: list[CriterionResult] = Field(default_factory=list)
 
 
 class GapReport(BaseModel):
@@ -33,6 +55,17 @@ class GapReport(BaseModel):
     gap_description: str
 
 
+class MatchExplanation(BaseModel):
+    """Value object describing why a scholarship matches a profile."""
+
+    model_config = ConfigDict(frozen=True)
+
+    summary: str
+    strengths: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    next_steps: list[str] = Field(default_factory=list)
+
+
 class MatchResult(BaseModel):
     """Complete match result for a single scholarship."""
 
@@ -43,17 +76,5 @@ class MatchResult(BaseModel):
     match_score: float
     recommendation_category: str
     criteria_scores: CriteriaScores
-    strengths: list[str] = Field(default_factory=list)
-    gaps: list[GapReport] = Field(default_factory=list)
+    explanation: MatchExplanation
     official_url: str
-
-
-class Explanation(BaseModel):
-    """Human-readable explanation for a match result."""
-
-    model_config = ConfigDict(frozen=True)
-
-    summary: str
-    strengths: list[str] = Field(default_factory=list)
-    gaps: list[str] = Field(default_factory=list)
-    next_steps: list[str] = Field(default_factory=list)

@@ -57,6 +57,15 @@ def _mock_university(name: str = "University of Tokyo") -> MagicMock:
     return u
 
 
+def _mock_source(provider_id=None, country_id=None) -> MagicMock:
+    from database.models.source_registry import SourceRegistry
+    s = MagicMock(spec=SourceRegistry)
+    s.source_id = uuid.uuid4()
+    s.provider_id = provider_id
+    s.country_id = country_id
+    return s
+
+
 def _make_extracted(**overrides) -> ExtractedScholarship:
     today = date.today()
     defaults = dict(
@@ -97,8 +106,10 @@ def test_to_orm_creates_scholarship_with_children():
     session = MagicMock()
     provider = _mock_provider()
     country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
 
     session.query.return_value.filter.return_value.first.side_effect = [
+        source,
         provider,
         country,
     ]
@@ -137,8 +148,10 @@ def test_to_orm_with_university():
     provider = _mock_provider()
     country = _mock_country()
     university = _mock_university()
+    source = _mock_source(provider.provider_id, country.country_id)
 
     session.query.return_value.filter.return_value.first.side_effect = [
+        source,
         provider,
         country,
         university,
@@ -155,8 +168,10 @@ def test_to_orm_university_not_found_returns_none():
     session = MagicMock()
     provider = _mock_provider()
     country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
 
     session.query.return_value.filter.return_value.first.side_effect = [
+        source,
         provider,
         country,
         None,
@@ -171,31 +186,29 @@ def test_to_orm_university_not_found_returns_none():
 
 def test_to_orm_missing_provider_raises():
     session = MagicMock()
-    country = _mock_country()
 
-    session.query.return_value.filter.return_value.first.side_effect = [
-        None,
-        country,
-    ]
+    session.query.return_value.filter.return_value.first.return_value = None
 
     mapper = ScholarshipMapper(session)
     extracted = _make_extracted()
 
-    with pytest.raises(ValueError, match="Provider not found"):
+    with pytest.raises(ValueError, match="SourceRegistry not found"):
         mapper.to_orm(extracted, source_id="src-123")
 
 
 def test_to_orm_missing_country_raises():
     session = MagicMock()
     provider = _mock_provider()
+    source = _mock_source(provider.provider_id, None)
 
     session.query.return_value.filter.return_value.first.side_effect = [
-        provider,
-        None,
+        source,    # first query: SourceRegistry lookup -> source (found)
+        provider,  # second query: provider lookup -> provider (found)
+        None,      # third query: country lookup -> None (not found)
     ]
 
     mapper = ScholarshipMapper(session)
-    extracted = _make_extracted()
+    extracted = _make_extracted()  # country = "Japan" (from _make_extracted default)
 
     with pytest.raises(ValueError, match="Country not found"):
         mapper.to_orm(extracted, source_id="src-123")
@@ -205,8 +218,10 @@ def test_to_orm_timeline_with_none_dates():
     session = MagicMock()
     provider = _mock_provider()
     country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
 
     session.query.return_value.filter.return_value.first.side_effect = [
+        source,
         provider,
         country,
     ]
@@ -236,8 +251,10 @@ def test_to_orm_eligibility_with_none_values():
     session = MagicMock()
     provider = _mock_provider()
     country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
 
     session.query.return_value.filter.return_value.first.side_effect = [
+        source,
         provider,
         country,
     ]

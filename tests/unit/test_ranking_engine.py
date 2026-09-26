@@ -87,3 +87,58 @@ class TestRankingEngine:
         assert categories["Good"] == "Good Match"
         assert categories["Moderate"] == "Moderate Match"
         assert categories["Low"] == "Low Match"
+
+    def test_empty_input(self):
+        engine = RankingEngine()
+        results = engine.rank([])
+        assert results == []
+
+    def test_null_deadline_sorts_last(self):
+        engine = RankingEngine()
+        scored = [
+            (_make_scholarship("NoDeadline", None), CriteriaScores(total=90)),
+            (_make_scholarship("HasDeadline", 60), CriteriaScores(total=90)),
+        ]
+        results = engine.rank(scored)
+        assert results[0].scholarship_name == "HasDeadline"
+        assert results[1].scholarship_name == "NoDeadline"
+
+    def test_data_completeness_tiebreaker(self):
+        """With equal score, deadline, and funding — more complete data wins."""
+        engine = RankingEngine()
+
+        sparse = _make_scholarship("Sparse", 90)
+        sparse.requirement = None
+        sparse.benefit = None
+        # Keep timeline for deadline tiebreaker parity, but strip extra fields
+        sparse.timeline.application_open = None
+        sparse.timeline.interview_date = None
+        sparse.timeline.result_date = None
+        sparse.timeline.study_start = None
+
+        dense = _make_scholarship("Dense", 90)
+        # dense has requirement + benefit + timeline mocks — all attrs truthy
+
+        scored = [
+            (sparse, CriteriaScores(total=90)),
+            (dense, CriteriaScores(total=90)),
+        ]
+        results = engine.rank(scored)
+        assert results[0].scholarship_name == "Dense"
+
+    def test_stable_sort_preserves_insertion_order(self):
+        """Rows tying on every semantic key must still produce one total,
+        repeatable order: the final scholarship_id tiebreaker decides, so the
+        result no longer depends on the input order (which mirrors unstable
+        DB return order for tied rows)."""
+        engine = RankingEngine()
+        scored = [
+            (_make_scholarship("First", 90), CriteriaScores(total=80)),
+            (_make_scholarship("Second", 90), CriteriaScores(total=80)),
+            (_make_scholarship("Third", 90), CriteriaScores(total=80)),
+        ]
+        names1 = [r.scholarship_name for r in engine.rank(list(scored))]
+        names2 = [r.scholarship_name for r in engine.rank(list(scored))]
+        reversed_names = [r.scholarship_name for r in engine.rank(list(reversed(scored)))]
+        assert names1 == names2 == reversed_names
+        assert sorted(names1) == ["First", "Second", "Third"]

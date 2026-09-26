@@ -1,10 +1,11 @@
 from .profile import UserProfile
-from .result import CriteriaScores, Explanation, GapReport, MatchResult
+from .result import CriteriaScores, CriterionResult, GapReport, MatchExplanation, MatchResult
 
 __all__ = [
-    "UserProfile",
     "CriteriaScores",
-    "Explanation",
+    "CriterionResult",
     "GapReport",
+    "MatchExplanation",
     "MatchResult",
+    "UserProfile",
 ]

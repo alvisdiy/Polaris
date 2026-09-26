@@ -5,11 +5,14 @@ from __future__ import annotations
 import logging
 import time
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from api.routers import recommendations
+from api.routers import recommendations, scholarships
 
 # Configure structured logging
 logging.basicConfig(
@@ -80,6 +83,7 @@ def create_app() -> FastAPI:
     # --- Routes ---
 
     app.include_router(recommendations.router, tags=["recommendations"])
+    app.include_router(scholarships.router, tags=["scholarships"])
 
     @app.get(
         "/health",
@@ -89,6 +93,10 @@ def create_app() -> FastAPI:
     )
     def health():
         return {"status": "ok"}
+
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+    if frontend_dir.exists():
+        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
     return app
 

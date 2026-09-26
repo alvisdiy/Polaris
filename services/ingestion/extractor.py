@@ -16,7 +16,8 @@ class Timeline(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     application_open: str | None = None
-    application_deadline: str | None = None
+    application_deadline: str | None = None  # Optional: not all sources provide deadlines
+    application_cycle: str | None = None     # Cohort label, e.g. "2027" or "AY2027/28" — NOT a date
     interview_date: str | None = None
     result_date: str | None = None
     study_start: str | None = None
@@ -59,18 +60,19 @@ class ExtractedScholarship(BaseModel):
 
     scholarship_name: str
     provider_name: str
-    scholarship_type: str
-    country: str
+    scholarship_type: str | None = None  # Optional: fallback to provider type if missing
+    country: str | None = None          # Will be defaulted to ecosystem country if None
     university: str | None = None
-    degree: str
-    funding_type: str
-    field_of_study: list[str] = Field(default_factory=list)
+    degree: str | None = None           # Optional: unknown degree allowed
+    funding_type: str | None = None    # Optional: unknown funding type allowed
+    field_of_study: list[str] = Field(default_factory=list)  # May be empty if not mentioned
     application_url: str
     official_source: str
     timeline: "Timeline" = Field(default_factory=lambda: Timeline())
     eligibility: "Eligibility" = Field(default_factory=lambda: Eligibility())
     benefits: "Benefits" = Field(default_factory=lambda: Benefits())
     verification_status: str = "pending_review"
+
 
 
 class ExtractedDocument(BaseModel):

@@ -51,11 +51,11 @@ class ScholarshipIntelligenceEngine:
         scored = [(s, self._scoring.score(profile, s)) for s in filtered]
 
         # L3: Rank — sort by score, apply tiebreakers, Top-N
-        results = self._ranking.rank(scored)
+        ranked = self._ranking.rank(scored)
 
         # L4: Explain — add explanations to each result
         explained = []
-        for result in results:
+        for result in ranked:
             scholarship = next(s for s, _ in scored if str(s.scholarship_id) == result.scholarship_id)
             explanation = self._explanation.explain(profile, scholarship, result.criteria_scores)
             # MatchResult is frozen — create a new one with explanation data
@@ -66,8 +66,7 @@ class ScholarshipIntelligenceEngine:
                     match_score=result.match_score,
                     recommendation_category=result.recommendation_category,
                     criteria_scores=result.criteria_scores,
-                    strengths=explanation.strengths,
-                    gaps=result.gaps,
+                    explanation=explanation,
                     official_url=result.official_url,
                 )
             )

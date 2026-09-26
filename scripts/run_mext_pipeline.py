@@ -1,31 +1,17 @@
-"""End-to-end MEXT pipeline: fetch → RawDocument → extract → Scholarship.
-
-Usage:
-    python scripts/run_mext_pipeline.py
-
-Requires:
-    - DATABASE_URL set in environment or .env
-    - Seed data loaded (run scripts/seed_source_registry.py first)
-"""
-
-from __future__ import annotations
-
 import asyncio
 import sys
-
+import os
 from loguru import logger
 
 from database.models.source_registry import SourceRegistry
 from database.session import get_session_local
 from services.ingestion.connectors.base_connector import ConnectorConfig
 from services.ingestion.connectors.government.mext_connector import MEXTConnector
-from services.ingestion.mock_llm import MockLLMClient
+from services.ingestion.real_extractor import DeterministicLLMClient
 from services.ingestion.orchestrator import persist_scholarship, run_pipeline
 from services.ingestion.repositories.raw_document_mapper import RawDocumentMapper
 from services.ingestion.repositories.raw_document_repository import RawDocumentRepository
-
-# MEXT entry URL from Source Registry seed data
-MEXT_CRAWL_URL = "https://www.studyinjapan.go.jp/en/"
+from services.ingestion.discovery import discover_scholarships_for_country
 
 
 def get_mext_source(session) -> SourceRegistry:
@@ -36,6 +22,14 @@ def get_mext_source(session) -> SourceRegistry:
             "MEXT source not found in Source Registry. "
             "Run: python scripts/seed_source_registry.py"
         )
+    return source
+
+
+def get_mext_source_by_id(source_id: UUID, session) -> SourceRegistry:
+    """Fetch MEXT source by ID (for testing)."""
+    source = session.query(SourceRegistry).filter_by(source_id=source_id).first()
+    if not source:
+        raise RuntimeError(f"MEXT source {source_id} not found")
     return source
 
 
@@ -80,7 +74,7 @@ def store_raw_document(fetch_result, session) -> str:
 
 def run_extraction(document_id: str, session):
     """Run the extraction pipeline and persist the scholarship."""
-    llm_client = MockLLMClient()
+    llm_client = DeterministicLLMClient()
     logger.info("Running pipeline for document_id={}", document_id)
 
     result = run_pipeline(document_id, session, llm_client)
@@ -89,7 +83,6 @@ def run_extraction(document_id: str, session):
         logger.error("Validation failed: {}", result.validation_report.issues)
         return None
 
-    logger.info("Extraction valid. Persisting scholarship...")
     scholarship = persist_scholarship(result, document_id, session)
 
     if scholarship:
@@ -107,8 +100,8 @@ def run_extraction(document_id: str, session):
     return scholarship
 
 
-def main():
-    """Run the full MEXT pipeline."""
+def run_mext_pipeline():
+    """Run the full MEXT pipeline with enhanced discovery."""
     logger.info("=== MEXT Pipeline Start ===")
 
     SessionLocal = get_session_local()
@@ -120,24 +113,44 @@ def main():
         source = get_mext_source(session)
         logger.info("Source: {} ({})", source.source_name, source.status)
 
-        # 2. Fetch page
-        fetch_result, connector = asyncio.run(fetch_mext_page(source))
+        # 1.1 NEW: Discover scholarships from all registered sources for Japan
+        logger.info("Discovering scholarships for Japan...")
+        scholarships = discover_scholarships_for_country("JP", session)
+        logger.info("Found {} scholarship candidates", len(scholarships))
 
-        # 3. Store RawDocument
-        document_id = store_raw_document(fetch_result, session)
+        # 2. Process each candidate URL
+        for scholarship_url in scholarships:
+            logger.info("Processing scholarship URL: {}", scholarship_url)
 
-        # 4. Run extraction pipeline
-        scholarship = run_extraction(document_id, session)
+            try:
+                # Create connector config for this specific URL
+                config = ConnectorConfig(
+                    source_id=source.source_id,
+                    url=scholarship_url,
+                    timeout=30,
+                    max_retries=2,
+                )
 
-        if scholarship:
-            logger.info("=== Pipeline Success ===")
-            logger.info("Scholarship ID: {}", scholarship.scholarship_id)
-            logger.info("Name: {}", scholarship.scholarship_name)
-            logger.info("Status: {}", scholarship.extraction_status)
-            return 0
-        else:
-            logger.error("=== Pipeline Failed: No scholarship persisted ===")
-            return 1
+                connector = _instantiate_connector(source.connector_name, config)
+                await connector.connect()
+
+                result = await connector.fetch()
+                document_id = store_raw_document(result, session)
+
+                # Run extraction pipeline
+                scholarship = run_extraction(document_id, session)
+
+                if scholarship:
+                    logger.info("✓ Successfully processed: {}", scholarship.scholarship_name)
+                else:
+                    logger.warning("Failed to process: {}", scholarship_url)
+
+            except Exception as e:
+                logger.error("Failed processing {}: {}", scholarship_url, e)
+                continue
+
+        logger.info("=== MEXT Pipeline Complete ===")
+        return 0
 
     except Exception as e:
         logger.exception("Pipeline failed: {}", e)
@@ -146,6 +159,26 @@ def main():
         if connector:
             asyncio.run(connector.close())
         session.close()
+
+
+def _instantiate_connector(connector_name: str, config: ConnectorConfig):
+    """Dynamically instantiate a connector by name."""
+    connector_map = {
+        "mext_connector": ("services.ingestion.connectors.government.mext_connector", "MEXTConnector"),
+        "generic_http": ("services.ingestion.connectors.generic_connector", "GenericHTTPConnector"),
+        "generic_playwright": ("services.ingestion.connectors.generic_playwright", "GenericPlaywrightConnector"),
+    }
+
+    if connector_name not in connector_map:
+        raise ValueError(f"Unknown connector: {connector_name}")
+
+    module_path, class_name = connector_map[connector_name]
+    try:
+        module = __import__(module_path, fromlist=[class_name])
+        connector_class = getattr(module, class_name)
+        return connector_class(config)
+    except Exception as e:
+        raise ValueError(f"Failed to instantiate connector {connector_name}: {e}")
 
 
 if __name__ == "__main__":

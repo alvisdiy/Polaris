@@ -10,7 +10,7 @@ import pytest
 from services.matching.explanation import ExplanationEngine
 from services.matching.filter import FilterEngine
 from services.matching.models.profile import UserProfile
-from services.matching.models.result import CriteriaScores, Explanation, MatchResult
+from services.matching.models.result import CriteriaScores, MatchExplanation, MatchResult
 from services.matching.orchestrator import ScholarshipIntelligenceEngine
 from services.matching.ranking import RankingEngine
 from services.matching.scoring import ScoringEngine
@@ -89,7 +89,7 @@ def test_orchestrator_match_with_explanations():
     engine = ScholarshipIntelligenceEngine()
     scholarships = [_mock_scholarship()]
     results = engine.match(_profile(), scholarships)
-    assert len(results[0].strengths) > 0
+    assert len(results[0].explanation.strengths) > 0
     valid_categories = ("Excellent Match", "Strong Match", "Good Match", "Moderate Match", "Low Match")
     assert results[0].recommendation_category in valid_categories
 
@@ -121,13 +121,12 @@ def test_orchestrator_custom_engines():
         match_score=100.0,
         recommendation_category="Strongly Recommended",
         criteria_scores=scores,
-        strengths=["All good"],
-        gaps=[],
+        explanation=MatchExplanation(summary="", strengths=[], gaps=[], next_steps=[]),
         official_url="https://example.com",
     )
     ranking_engine.rank.return_value = [result]
 
-    explanation = Explanation(summary="Excellent match", strengths=["All good"], gaps=[], next_steps=[])
+    explanation = MatchExplanation(summary="Excellent match", strengths=["All good"], gaps=[], next_steps=[])
     explanation_engine.explain.return_value = explanation
 
     engine = ScholarshipIntelligenceEngine(

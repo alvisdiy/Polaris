@@ -10,6 +10,7 @@ import pytest
 from services.matching.models.profile import UserProfile
 from services.matching.scoring import ScoringEngine
 from services.matching.scoring.criteria import CriteriaWeights
+from services.matching.models.result import CriterionResult
 
 pytestmark = pytest.mark.unit
 
@@ -20,7 +21,7 @@ def _mock_scholarship(**overrides) -> MagicMock:
     s.scholarship_name = overrides.get("scholarship_name", "Test Scholarship")
     s.degree = overrides.get("degree", "Master")
     s.funding_type = overrides.get("funding_type", "Fully Funded")
-    s.field_of_study = overrides.get("field_of_study", ["Computer Science"])
+    s.field_of_study = overrides.get("field_of_study", ["Computer Science", "Engineering"])
     s.application_url = overrides.get("application_url", "https://example.com")
     s.official_page_url = overrides.get("official_page_url", "https://example.com")
 
@@ -86,8 +87,8 @@ def test_degree_mismatch():
 
 def test_partial_field_overlap():
     engine = ScoringEngine()
-    sch = _mock_scholarship(field_of_study=["Computer Science", "Engineering"])
-    profile = _profile(field_of_study=["Computer Science"])
+    sch = _mock_scholarship(field_of_study=["Computer Science"])
+    profile = _profile(field_of_study=["Computer Science", "Engineering"])
     scores = engine.score(profile, sch)
     assert scores.field_of_study == 10.0  # 50% overlap
 
@@ -217,3 +218,179 @@ def test_custom_weights():
     scores = engine.score(_profile(), sch)
     assert scores.total == 100.0
     assert scores.country == 30.0
+
+
+# --- CriterionResult / details tests ---
+
+
+def test_details_contains_all_criteria():
+    engine = ScoringEngine()
+    scores = engine.score(_profile(), _mock_scholarship())
+    assert len(scores.details) == 9
+    names = {d.criterion for d in scores.details}
+    assert names == {
+        "country", "degree", "field_of_study", "gpa", "language",
+        "funding", "research", "work", "leadership",
+    }
+
+
+def test_details_scores_sum_to_total():
+    engine = ScoringEngine()
+    scores = engine.score(_profile(), _mock_scholarship())
+    assert round(sum(d.score for d in scores.details), 2) == scores.total
+
+
+def test_perfect_match_all_reasons_present():
+    engine = ScoringEngine()
+    scores = engine.score(_profile(), _mock_scholarship())
+    for detail in scores.details:
+        assert isinstance(detail, CriterionResult)
+        assert detail.matched is True
+        assert detail.score == detail.weight
+        assert len(detail.reason) > 0
+
+
+def test_country_mismatch_reason():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(country_name="Germany")
+    scores = engine.score(_profile(), sch)
+    country_detail = next(d for d in scores.details if d.criterion == "country")
+    assert country_detail.matched is False
+    assert "Germany" in country_detail.reason
+    assert "Japan" in country_detail.reason
+
+
+def test_degree_mismatch_reason():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(degree="PhD")
+    scores = engine.score(_profile(), sch)
+    degree_detail = next(d for d in scores.details if d.criterion == "degree")
+    assert degree_detail.matched is False
+    assert "PhD" in degree_detail.reason
+
+
+def test_field_no_overlap_reason():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(field_of_study=["Biology"])
+    scores = engine.score(_profile(), sch)
+    field_detail = next(d for d in scores.details if d.criterion == "field_of_study")
+    assert field_detail.matched is False
+    assert field_detail.score == 0.0
+    assert "No overlap" in field_detail.reason
+
+
+def test_gpa_below_minimum_reason():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(minimum_gpa=3.5)
+    profile = _profile(current_gpa=3.0)
+    scores = engine.score(profile, sch)
+    gpa_detail = next(d for d in scores.details if d.criterion == "gpa")
+    assert gpa_detail.matched is False
+    assert "3.0" in gpa_detail.reason
+    assert "3.5" in gpa_detail.reason
+
+
+def test_language_missing_reason():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(ielts_required=True, minimum_ielts=6.5)
+    profile = _profile(ielts_score=None)
+    scores = engine.score(profile, sch)
+    lang_detail = next(d for d in scores.details if d.criterion == "language")
+    assert lang_detail.matched is False
+    assert "no IELTS score" in lang_detail.reason
+
+
+def test_leadership_reason():
+    engine = ScoringEngine()
+    scores = engine.score(_profile(leadership=False), _mock_scholarship())
+    lead_detail = next(d for d in scores.details if d.criterion == "leadership")
+    assert lead_detail.matched is False
+    assert "no leadership" in lead_detail.reason
+
+
+# --- Zero score / mixed score / fully funded tests ---
+
+
+def test_zero_score():
+    """Every criterion mismatches — total should be 0."""
+    engine = ScoringEngine()
+    sch = _mock_scholarship(
+        country_name="Germany",
+        degree="PhD",
+        field_of_study=["Biology"],
+        minimum_gpa=4.0,
+        ielts_required=True,
+        minimum_ielts=9.0,
+        funding_type="Tuition Only",
+        research_experience="Required",
+        work_experience="Required",
+    )
+    profile = _profile(
+        target_country="Japan",
+        degree="Master",
+        field_of_study=["Computer Science"],
+        current_gpa=0.0,
+        ielts_score=None,
+        research_experience="Not Required",
+        work_experience="Not Required",
+        leadership=False,
+        funding_preference="Fully Funded",
+    )
+    scores = engine.score(profile, sch)
+    assert scores.total == 0.0
+    for detail in scores.details:
+        assert detail.matched is False
+        assert detail.score == 0.0
+
+
+def test_mixed_score():
+    """Some criteria match, some don't — verify partial total."""
+    engine = ScoringEngine()
+    sch = _mock_scholarship(
+        country_name="Japan",       # match: 20
+        degree="Master",            # match: 20
+        field_of_study=["Biology"], # no overlap: 0
+        minimum_gpa=3.0,            # 2.5/3.0 ratio: 12.5
+        ielts_required=False,       # no req: 10
+        funding_type="Partial Funded",  # mismatch: 0
+        research_experience=None,   # no req: 5
+        work_experience=None,       # no req: 3
+    )
+    profile = _profile(
+        current_gpa=2.5,
+        field_of_study=["Computer Science"],
+        funding_preference="Fully Funded",
+        leadership=True,            # bonus: 2
+    )
+    scores = engine.score(profile, sch)
+    expected = 20 + 20 + 0 + round(15 * (2.5 / 3.0), 2) + 10 + 0 + 5 + 3 + 2
+    assert scores.total == round(expected, 2)
+
+
+def test_fully_funded_match():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(funding_type="Fully Funded")
+    profile = _profile(funding_preference="Fully Funded")
+    scores = engine.score(profile, sch)
+    assert scores.funding == 5.0
+    funding_detail = next(d for d in scores.details if d.criterion == "funding")
+    assert funding_detail.matched is True
+
+
+def test_partial_funded_match():
+    engine = ScoringEngine()
+    sch = _mock_scholarship(funding_type="Partial Funded")
+    profile = _profile(funding_preference="Partial Funded")
+    scores = engine.score(profile, sch)
+    assert scores.funding == 5.0
+
+
+def test_leadership_bonus():
+    """Leadership is a bonus — profile with leadership gets 2 extra points."""
+    engine = ScoringEngine()
+    sch = _mock_scholarship()
+    with_lead = engine.score(_profile(leadership=True), sch)
+    without_lead = engine.score(_profile(leadership=False), sch)
+    assert with_lead.leadership == 2.0
+    assert without_lead.leadership == 0.0
+    assert with_lead.total - without_lead.total == 2.0

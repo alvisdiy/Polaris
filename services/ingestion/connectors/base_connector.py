@@ -105,11 +105,15 @@ class BaseConnector(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def fetch(self) -> FetchResult:
-        """Fetch raw content from the configured source URL."""
+    async def fetch(self, url: Optional[str] = None) -> FetchResult:
+        """Fetch raw content from the configured source URL or optional override URL."""
         pass
 
     @abc.abstractmethod
     async def close(self) -> None:
         """Close connection and clean up resources (e.g., close browser/sessions)."""
         pass
+
+    async def discover(self) -> list[str]:
+        """Discover candidate URLs from the source. Default no-op returns empty list."""
+        return []

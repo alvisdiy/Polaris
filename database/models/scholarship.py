@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import DateTime, ForeignKey, Index, String
+import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ARRAY, TEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,8 +30,8 @@ class Scholarship(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=new_uuid, sort_order=0
     )
     scholarship_name: Mapped[str] = mapped_column(String(512), nullable=False, sort_order=1)
-    degree: Mapped[str] = mapped_column(String(50), nullable=False, sort_order=2)
-    funding_type: Mapped[str] = mapped_column(String(50), nullable=False, sort_order=3)
+    degree: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, sort_order=2)
+    funding_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, sort_order=3)
     field_of_study: Mapped[list[str]] = mapped_column(ARRAY(TEXT), nullable=False, server_default="{}", sort_order=4)
     application_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True, sort_order=5)
     official_page_url: Mapped[str] = mapped_column(String(2048), nullable=False, sort_order=6)
@@ -60,6 +61,14 @@ class Scholarship(Base, TimestampMixin):
     )
     extraction_status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending_review", sort_order=11)
     last_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, sort_order=12)
+    deadline_state: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, sort_order=13,
+        comment="Deadline freshness: active | expired | unknown | rolling (NULL = not yet classified)",
+    )
+    identity_key: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, sort_order=14,
+        comment="Canonical dedup hash: provider + normalized name + country (same opportunity across sites = 1 row)",
+    )
 
     # Relationships — reference entities
     provider: Mapped["Provider"] = relationship(
@@ -109,12 +118,14 @@ class Scholarship(Base, TimestampMixin):
     )
 
     __table_args__ = (
+        Index("uq_scholarship_identity", "identity_key", unique=True, postgresql_where=sa.text("identity_key IS NOT NULL")),
         Index("ix_scholarship_name", "scholarship_name"),
         Index("ix_scholarship_provider_id", "provider_id"),
         Index("ix_scholarship_country_id", "country_id"),
         Index("ix_scholarship_degree", "degree"),
         Index("ix_scholarship_funding_type", "funding_type"),
         Index("ix_scholarship_extraction_status", "extraction_status"),
+        Index("ix_scholarship_deadline_state", "deadline_state"),
     )
 
     def __repr__(self) -> str:

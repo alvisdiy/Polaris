@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from services.matching.models import CriteriaScores, Explanation, GapReport, MatchResult, UserProfile
+from services.matching.models import CriteriaScores, GapReport, MatchExplanation, MatchResult, UserProfile
 from services.matching.profile import ProfileNormalizer, ProfileValidator
 
 pytestmark = pytest.mark.unit
@@ -261,7 +261,7 @@ class TestResultModels:
         assert gap.field == "minimum_gpa"
 
     def test_explanation(self):
-        explanation = Explanation(
+        explanation = MatchExplanation(
             summary="Strong match",
             strengths=["Country match", "Degree match"],
             gaps=["GPA below minimum"],
@@ -288,8 +288,7 @@ class TestResultModels:
             match_score=87.0,
             recommendation_category="Strong Match",
             criteria_scores=scores,
-            strengths=["Country match"],
-            gaps=[],
+            explanation=MatchExplanation(summary="", strengths=["Country match"], gaps=[]),
             official_url="https://example.com",
         )
         assert result.match_score == 87.0

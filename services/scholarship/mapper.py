@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,9 @@ from database.models.scholarship_requirement import ScholarshipRequirement
 from database.models.scholarship_timeline import ScholarshipTimeline
 from database.models.university import University
 from services.ingestion.extractor import ExtractedScholarship
+
+if TYPE_CHECKING:
+    from database.models.source_registry import SourceRegistry
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -56,9 +60,15 @@ class ScholarshipMapper:
             ValueError: If a required reference (provider, country) cannot
                 be resolved from the database.
         """
-        # Resolve reference entities
-        provider = self._resolve_provider(extracted.provider_name)
-        country = self._resolve_country(extracted.country)
+        # Resolve source provenance first
+        from database.models.source_registry import SourceRegistry
+        source = self._session.query(SourceRegistry).filter(SourceRegistry.source_id == source_id).first()
+        if source is None:
+            raise ValueError(f"SourceRegistry not found for source_id: {source_id}")
+
+        # Resolve reference entities (fallback to source provenance)
+        provider = self._resolve_provider(extracted.provider_name, source)
+        country = self._resolve_country(extracted.country, source)
         university = self._resolve_university(extracted.university)
 
         # Create parent entity
@@ -111,7 +121,7 @@ class ScholarshipMapper:
         scholarship.timeline = ScholarshipTimeline(
             application_open=_parse_date(tl.application_open),
             application_deadline=_parse_date(tl.application_deadline),
-            application_cycle=None,
+            application_cycle=tl.application_cycle or None,
             interview_date=_parse_date(tl.interview_date),
             result_date=_parse_date(tl.result_date),
             study_start=_parse_date(tl.study_start),
@@ -123,19 +133,31 @@ class ScholarshipMapper:
     # Reference lookups
     # ------------------------------------------------------------------
 
-    def _resolve_provider(self, provider_name: str) -> Provider:
-        """Look up a Provider by exact name match."""
-        provider = self._session.query(Provider).filter(Provider.provider_name == provider_name).first()
-        if provider is None:
-            raise ValueError(f"Provider not found: '{provider_name}'. Ensure the provider is seeded before mapping.")
-        return provider
+    def _resolve_provider(self, provider_name: str, source: "SourceRegistry | None" = None) -> Provider:
+        """Look up a Provider by name, falling back to source provenance."""
+        if provider_name:
+            provider = self._session.query(Provider).filter(Provider.provider_name == provider_name).first()
+            if provider:
+                return provider
+        # Fallback: use the source's provider
+        if source and source.provider_id:
+            provider = self._session.query(Provider).filter(Provider.provider_id == source.provider_id).first()
+            if provider:
+                return provider
+        raise ValueError(f"Provider not found: '{provider_name}'. Ensure the provider is seeded before mapping.")
 
-    def _resolve_country(self, country_name: str) -> Country:
-        """Look up a Country by exact name match."""
-        country = self._session.query(Country).filter(Country.name == country_name).first()
-        if country is None:
-            raise ValueError(f"Country not found: '{country_name}'. Ensure the country is seeded before mapping.")
-        return country
+    def _resolve_country(self, country_name: str, source: "SourceRegistry | None" = None) -> Country:
+        """Look up a Country by name, falling back to source provenance."""
+        if country_name:
+            country = self._session.query(Country).filter(Country.name == country_name).first()
+            if country:
+                return country
+        # Fallback: use the source's country
+        if source and source.country_id:
+            country = self._session.query(Country).filter(Country.country_id == source.country_id).first()
+            if country:
+                return country
+        raise ValueError(f"Country not found: '{country_name}'. Ensure the country is seeded before mapping.")
 
     def _resolve_university(self, university_name: str | None) -> University | None:
         """Look up a University by exact name match. Returns None if not provided."""

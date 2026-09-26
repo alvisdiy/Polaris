@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -48,6 +49,18 @@ class SourceRegistry(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="Active", sort_order=14)
     last_crawled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, sort_order=15)
     last_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, sort_order=16)
+    verification_state: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, sort_order=17,
+        comment="Explicit verification lifecycle: DISCOVERED, NEEDS_REVIEW, VERIFIED, REJECTED, DEPRECATED",
+    )
+    confidence: Mapped[Optional[float]] = mapped_column(
+        sa.Float(), nullable=True, sort_order=18,
+        comment="Verification confidence 0.0-1.0 (routing only, not final state)",
+    )
+    discovered_via: Mapped[Optional[dict]] = mapped_column(
+        sa.JSON(), nullable=True, sort_order=19,
+        comment="Provenance: frontier chain that produced this source",
+    )
 
     # Relationships
     country: Mapped[Optional["Country"]] = relationship(

@@ -62,9 +62,9 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
     if not s.provider_name.strip():
         issues.append(ValidationIssue(field="provider_name", message="Provider name cannot be empty"))
 
-    # 2. Enum Validations
+    # 2. Enum Validations (optional)
     valid_types = {"Government", "University", "Foundation", "NGO", "Company"}
-    if s.scholarship_type not in valid_types:
+    if s.scholarship_type is not None and s.scholarship_type not in valid_types:
         issues.append(
             ValidationIssue(
                 field="scholarship_type",
@@ -73,7 +73,7 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
         )
 
     valid_degrees = {"Bachelor", "Master", "PhD", "Exchange", "Short Course"}
-    if s.degree not in valid_degrees:
+    if s.degree is not None and s.degree not in valid_degrees:
         issues.append(
             ValidationIssue(
                 field="degree", message=f"Invalid degree '{s.degree}'. Must be one of {sorted(valid_degrees)}"
@@ -81,7 +81,7 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
         )
 
     valid_fundings = {"Fully Funded", "Partial Funded", "Tuition Only"}
-    if s.funding_type not in valid_fundings:
+    if s.funding_type is not None and s.funding_type not in valid_fundings:
         issues.append(
             ValidationIssue(
                 field="funding_type",
@@ -99,7 +99,7 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
             ValidationIssue(field="official_source", message=f"Invalid official source URL: '{s.official_source}'")
         )
 
-    # 4. Timeline Date Validations
+    # 4. Timeline Date Validations (optional)
     t = s.timeline
     if t.application_open and not validate_date(t.application_open):
         issues.append(
@@ -116,13 +116,7 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
                     message=f"Invalid deadline date format: '{t.application_deadline}'",
                 )
             )
-    else:
-        issues.append(
-            ValidationIssue(
-                field="timeline.application_deadline",
-                message="Application deadline is required",
-            )
-        )
+    # Note: application_deadline is optional – no required error if missing.
 
     # Cross-field date check
     if (

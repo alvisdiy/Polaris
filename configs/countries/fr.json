@@ -1,0 +1,17 @@
+{
+  "iso2": "FR",
+  "country_name": "France",
+  "country_local": "France",
+  "languages": ["fr", "en"],
+  "search_locale": "fr-FR",
+  "search_gl": "fr",
+  "terminology": {
+    "scholarship": ["scholarship", "bourse", "allocation", "aide financière"],
+    "education": ["international students", "licence", "master", "doctorat", "étudiants internationaux"],
+    "provider": ["university", "foundation", "agency", "université", "fondation"],
+    "funding": ["fully funded", "stipend", "exonération"]
+  },
+  "soft_domain_signals": [".gouv.fr", ".fr"],
+  "seed_urls": [],
+  "max_queries_per_run": 12
+}

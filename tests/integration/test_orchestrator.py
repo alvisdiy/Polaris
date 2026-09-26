@@ -144,4 +144,4 @@ class TestOrchestrator:
         engine = ScholarshipIntelligenceEngine()
         results = engine.match(profile, seed_scholarships)
         for r in results:
-            assert isinstance(r.strengths, list)
+            assert isinstance(r.explanation.strengths, list)

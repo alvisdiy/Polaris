@@ -70,6 +70,14 @@ class TestRecommendationsEndpoint:
         response = client.post("/recommendations", json=sample_request)
         assert response.status_code == 200
 
+    def test_versioned_matching_contract(self, client, sample_request):
+        """The intended versioned endpoint returns traceable results."""
+        response = client.post("/api/v1/matching", json=sample_request)
+        assert response.status_code == 200
+        result = response.json()["results"][0]
+        assert result["scholarship_id"]
+        assert "deadline" in result
+
     def test_response_has_results_and_total(self, client, sample_request):
         """Response contains 'results' list and 'total' integer."""
         data = client.post("/recommendations", json=sample_request).json()

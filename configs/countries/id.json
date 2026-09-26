@@ -1,0 +1,17 @@
+{
+  "iso2": "ID",
+  "country_name": "Indonesia",
+  "country_local": "Indonesia",
+  "languages": ["id", "en"],
+  "search_locale": "id-ID",
+  "search_gl": "id",
+  "terminology": {
+    "scholarship": ["scholarship", "beasiswa", "grant", "fellowship"],
+    "education": ["international students", "undergraduate", "master", "pascasarjana", "mahasiswa"],
+    "provider": ["university", "foundation", "ministry", "universitas", "kementerian", "yayasan"],
+    "funding": ["fully funded", "stipend", "beasiswa penuh"]
+  },
+  "soft_domain_signals": [".go.id", ".ac.id", ".or.id"],
+  "seed_urls": [],
+  "max_queries_per_run": 12
+}

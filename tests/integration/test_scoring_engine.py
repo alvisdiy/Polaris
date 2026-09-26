@@ -101,7 +101,7 @@ class TestScoringEngine:
         partial_profile = UserProfile(
             target_country="Japan",
             degree="Master",
-            field_of_study=["Computer Science"],
+            field_of_study=["Computer Science", "Physics"],
             current_gpa=3.8,
             ielts_score=7.5,
             research_experience="Preferred",
@@ -111,7 +111,7 @@ class TestScoringEngine:
             funding_preference="Fully Funded",
         )
         scores = scoring_engine.score(partial_profile, sch)
-        assert scores.field_of_study == 10.0
+        assert scores.field_of_study == 10.0  # 1/2 user fields supported
 
         db_session.delete(sch)
         db_session.commit()

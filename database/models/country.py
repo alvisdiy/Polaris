@@ -12,6 +12,8 @@ from database.utils import new_uuid
 
 if TYPE_CHECKING:
     from database.models.provider import Provider
+    from database.models.provider_discovery_attempt import ProviderDiscoveryAttempt
+    from database.models.provider_discovery_config import ProviderDiscoveryConfig
     from database.models.scholarship import Scholarship
     from database.models.source_registry import SourceRegistry
     from database.models.university import University
@@ -36,6 +38,12 @@ class Country(Base, TimestampMixin):
         back_populates="country",
     )
     scholarships: Mapped[list["Scholarship"]] = relationship(
+        back_populates="country",
+    )
+    provider_discovery_configs: Mapped[list["ProviderDiscoveryConfig"]] = relationship(
+        back_populates="country",
+    )
+    provider_discovery_attempts: Mapped[list["ProviderDiscoveryAttempt"]] = relationship(
         back_populates="country",
     )
 

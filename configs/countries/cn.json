@@ -1,0 +1,17 @@
+{
+  "iso2": "CN",
+  "country_name": "China",
+  "country_local": "中国",
+  "languages": ["zh", "en"],
+  "search_locale": "zh-CN",
+  "search_gl": "cn",
+  "terminology": {
+    "scholarship": ["scholarship", "fellowship", "grant", "奖学金", "资助"],
+    "education": ["international students", "undergraduate", "master", "phd", "留学生", "研究生"],
+    "provider": ["university", "foundation", "council", "government", "大学", "基金会", "委员会"],
+    "funding": ["fully funded", "stipend", "tuition waiver", "全额资助"]
+  },
+  "soft_domain_signals": [".edu.cn", ".gov.cn", ".ac.cn"],
+  "seed_urls": [],
+  "max_queries_per_run": 12
+}

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from database.models.scholarship import Scholarship
-from services.matching.models.result import CriteriaScores, MatchResult
+from services.matching.models.result import CriteriaScores, MatchExplanation, MatchResult
 
 # Funding type priority (lower = better)
 _FUNDING_PRIORITY = {
@@ -62,33 +62,25 @@ class RankingEngine:
         return results
 
     @staticmethod
-    def _sort_key(scholarship: Scholarship, scores: CriteriaScores) -> tuple[float, float, float, float]:
-        """Build sort key: (score, deadline, funding, completeness).
+    def _sort_key(scholarship: Scholarship, scores: CriteriaScores) -> tuple[float, float, float, float, str]:
+        """Build sort key: (score, deadline, funding, completeness, id).
 
-        Deadline is inverted (far future = low value = sorts first among
-        equal scores) because we want nearest deadline first. NULL deadlines
-        sort last (represented as date.max).
+        Deadline: nearest deadline = largest key value (sorts first with reverse=True).
+        NULL deadlines get key=0 and sort last.
+
+        The final scholarship_id component makes the order total: without it,
+        rows tying on all four semantic keys flip position between queries
+        (observed live with the 19-scholarship reference seed), which breaks
+        the deterministic-repeated-request contract of the matching API.
         """
         # 1. Score (primary)
         total = scores.total
 
-        # 2. Deadline (secondary — nearest first)
+        # 2. Deadline (secondary — nearest first, NULL last)
         deadline = date.max
         if scholarship.timeline and scholarship.timeline.application_deadline:
             deadline = scholarship.timeline.application_deadline
-        # Invert: convert to days from today, negate so nearer = higher
         days_until = (deadline - date.today()).days
-        deadline_key = -days_until  # nearer deadline = larger negative = sorts higher? No.
-        # Actually: we want nearest deadline first among equal scores.
-        # sort(reverse=True) means higher values come first.
-        # Nearest deadline = smallest days_until. We want it first.
-        # So use negative: -days_until. More negative = further away = sorts last.
-        # Wait, that's wrong. Let me think again.
-        # reverse=True: higher value = earlier in list.
-        # We want: nearest deadline = earlier in list = higher value.
-        # Nearest deadline = smallest positive days_until.
-        # So use: -days_until. Small days_until → large negative → sorts last? No.
-        # Let's just use: max_days - days_until. That way small days_until → large value → sorts first.
         max_days = 365 * 10
         deadline_key = max_days - days_until if days_until >= 0 else 0
 
@@ -98,7 +90,8 @@ class RankingEngine:
         # 4. Data completeness (quaternary)
         completeness = _data_completeness(scholarship)
 
-        return (total, deadline_key, funding_key, completeness)
+        # 5. Stable identity tiebreaker (arbitrary but deterministic order)
+        return (total, deadline_key, funding_key, completeness, str(scholarship.scholarship_id))
 
 
 def _data_completeness(scholarship: Scholarship) -> float:
@@ -174,7 +167,6 @@ def _to_match_result(scholarship: Scholarship, scores: CriteriaScores) -> MatchR
         match_score=scores.total,
         recommendation_category=_recommendation_category(scores.total),
         criteria_scores=scores,
-        strengths=[],
-        gaps=[],
+        explanation=MatchExplanation(summary=""),
         official_url=url,
     )

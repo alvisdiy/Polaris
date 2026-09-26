@@ -1,0 +1,17 @@
+{
+  "iso2": "DE",
+  "country_name": "Germany",
+  "country_local": "Deutschland",
+  "languages": ["de", "en"],
+  "search_locale": "de-DE",
+  "search_gl": "de",
+  "terminology": {
+    "scholarship": ["scholarship", "fellowship", "Stipendium", "Stipendien", "Förderung"],
+    "education": ["international students", "Bachelor", "Master", "Promotion", "internationale Studierende"],
+    "provider": ["university", "foundation", "Hochschule", "Stiftung", "Behörde"],
+    "funding": ["fully funded", "stipend", "Finanzierung"]
+  },
+  "soft_domain_signals": [".de", ".edu"],
+  "seed_urls": [],
+  "max_queries_per_run": 12
+}

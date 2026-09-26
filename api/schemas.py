@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from pydantic import BaseModel, Field
 
 
@@ -99,10 +101,18 @@ class RecommendationRequest(BaseModel):
 class RecommendationResponse(BaseModel):
     """Single scholarship recommendation with match details."""
 
+    scholarship_id: str = Field(
+        ...,
+        description="Stable scholarship identifier.",
+    )
     scholarship_name: str = Field(
         ...,
         description="Official scholarship name.",
         examples=["MEXT Scholarship 2027"],
+    )
+    deadline: date | None = Field(
+        None,
+        description="Application deadline, or null when not published.",
     )
     provider_name: str = Field(
         ...,
@@ -173,3 +183,71 @@ class ErrorResponse(BaseModel):
         description="Error message or list of validation errors.",
         examples=["Internal server error"],
     )
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
+from datetime import date
+
+# ... appending this at the end of schemas.py ...
+
+class ScholarshipRequirementSchema(BaseModel):
+    minimum_gpa: float | None = None
+    ielts_required: bool
+    minimum_ielts: float | None = None
+    toefl_required: bool
+    minimum_toefl: int | None = None
+    work_experience: str | None = None
+    research_experience: str | None = None
+    publication: str | None = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ScholarshipBenefitSchema(BaseModel):
+    tuition_fee: bool
+    monthly_allowance: bool
+    accommodation: bool
+    health_insurance: bool
+    travel_ticket: bool
+    research_grant: bool
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ScholarshipTimelineSchema(BaseModel):
+    application_open: date | None = None
+    application_deadline: date | None = None
+    application_cycle: str | None = None
+    interview_date: date | None = None
+    result_date: date | None = None
+    study_start: date | None = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ScholarshipSummaryResponse(BaseModel):
+    scholarship_id: str
+    scholarship_name: str
+    provider_name: str
+    country: str
+    degree: str
+    funding_type: str
+    field_of_study: list[str]
+    deadline: date | None = None
+    official_url: str
+
+class ScholarshipListResponse(BaseModel):
+    results: list[ScholarshipSummaryResponse]
+    total: int
+
+class ScholarshipDetailResponse(BaseModel):
+    scholarship_id: str
+    scholarship_name: str
+    provider_name: str
+    provider_type: str | None = None
+    country: str
+    degree: str
+    funding_type: str
+    field_of_study: list[str]
+    official_url: str
+    application_url: str | None = None
+    
+    requirement: ScholarshipRequirementSchema | None = None
+    benefit: ScholarshipBenefitSchema | None = None
+    timeline: ScholarshipTimelineSchema | None = None

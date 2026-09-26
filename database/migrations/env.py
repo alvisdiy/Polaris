@@ -14,7 +14,11 @@ if config.config_file_name is not None:
 from database.models import (  # noqa: E402
     Base,
     Country,  # noqa: F401
+    DiscoveryFrontier,  # noqa: F401
+    ExplorationRun,  # noqa: F401
     Provider,  # noqa: F401
+    ProviderDiscoveryAttempt,  # noqa: F401
+    ProviderDiscoveryConfig,  # noqa: F401
     RawDocument,  # noqa: F401
     Scholarship,  # noqa: F401
     ScholarshipBenefit,  # noqa: F401
@@ -29,7 +33,12 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    from database.config import get_database_url
+
     url = config.get_main_option("sqlalchemy.url")
+    if not url or "driver://" in url:
+        url = get_database_url()
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
