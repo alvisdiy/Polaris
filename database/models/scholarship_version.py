@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,6 +35,24 @@ class ScholarshipVersion(Base, TimestampMixin):
     # Relationship
     scholarship: Mapped["Scholarship"] = relationship(
         back_populates="versions",
+    )
+
+    # M9.1 Phase 3. version_number is the ordering the audit trail is read by,
+    # so it must be unique per scholarship. Declared here as well as in the
+    # migration: `Base.metadata.create_all()` runs before migrations against
+    # the development database, and a constraint that only existed in one of
+    # the two would mean tests and production disagreed about the schema.
+    #
+    # ReviewService also locks the Scholarship row with SELECT ... FOR UPDATE
+    # before allocating, which is what makes the common path allocate without
+    # conflict. This constraint is the backstop for writers that are not
+    # ReviewService — only the database can refuse those.
+    __table_args__ = (
+        UniqueConstraint(
+            "scholarship_id",
+            "version_number",
+            name="uq_scholarship_version_number",
+        ),
     )
 
     def __repr__(self) -> str:

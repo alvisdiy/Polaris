@@ -4,9 +4,9 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, String
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import ARRAY, TEXT, UUID
+from sqlalchemy import DateTime, Float, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models.base import Base, TimestampMixin
@@ -16,7 +16,10 @@ if TYPE_CHECKING:
     from database.models.country import Country
     from database.models.provider import Provider
     from database.models.scholarship_benefit import ScholarshipBenefit
+    from database.models.scholarship_candidate_revision import ScholarshipCandidateRevision
+    from database.models.scholarship_degree_level import ScholarshipDegreeLevel
     from database.models.scholarship_requirement import ScholarshipRequirement
+    from database.models.scholarship_review_action import ScholarshipReviewAction
     from database.models.scholarship_timeline import ScholarshipTimeline
     from database.models.scholarship_version import ScholarshipVersion
     from database.models.source_registry import SourceRegistry
@@ -70,6 +73,42 @@ class Scholarship(Base, TimestampMixin):
         comment="Canonical dedup hash: provider + normalized name + country (same opportunity across sites = 1 row)",
     )
 
+    # --- M9 review / curation state ---
+    # extraction_status remains THE publication boundary (approved only is
+    # visible to API + matching). The columns below describe *why* a record
+    # is where it is, and carry the reviewer's verdict; they never gate
+    # visibility on their own.
+    extraction_confidence: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True, sort_order=15,
+        comment="Extractor confidence 0.0-1.0. Routing only; never a publication decision.",
+    )
+    quality_report: Mapped[Optional[dict]] = mapped_column(
+        JSONB, nullable=True, sort_order=16,
+        comment="Publication-gate result: per-field KNOWN/UNKNOWN/NOT_APPLICABLE/MISSING/CONFLICTING",
+    )
+    conflicts: Mapped[Optional[list]] = mapped_column(
+        JSONB, nullable=True, sort_order=17,
+        comment="Unresolved cross-source disagreements: [{field, values:[{source_url, value}]}]",
+    )
+    field_provenance: Mapped[Optional[dict]] = mapped_column(
+        JSONB, nullable=True, sort_order=18,
+        comment="Per-field origin: {field: {source_url, raw_document_id, extracted_at, confidence}}",
+    )
+    provenance_origin: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True, sort_order=19,
+        comment="How this record entered the KB: exploration | seed_script | connector | manual",
+    )
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, sort_order=20,
+    )
+    reviewed_by: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, sort_order=21,
+    )
+    review_notes: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, sort_order=22,
+        comment="Latest reviewer rationale. Full history lives in scholarship_review_action.",
+    )
+
     # Relationships — reference entities
     provider: Mapped["Provider"] = relationship(
         "Provider",
@@ -99,6 +138,12 @@ class Scholarship(Base, TimestampMixin):
         cascade="all, delete-orphan",
         uselist=False,
     )
+    degree_levels: Mapped[list["ScholarshipDegreeLevel"]] = relationship(
+        "ScholarshipDegreeLevel",
+        back_populates="scholarship",
+        cascade="all, delete-orphan",
+        order_by="ScholarshipDegreeLevel.degree",
+    )
     benefit: Mapped[Optional["ScholarshipBenefit"]] = relationship(
         "ScholarshipBenefit",
         back_populates="scholarship",
@@ -116,9 +161,26 @@ class Scholarship(Base, TimestampMixin):
         back_populates="scholarship",
         cascade="all, delete-orphan",
     )
+    review_actions: Mapped[list["ScholarshipReviewAction"]] = relationship(
+        "ScholarshipReviewAction",
+        back_populates="scholarship",
+        cascade="all, delete-orphan",
+    )
+    # Proposed-but-unpublished revisions (M9.1). Separate from `versions`
+    # because their existence means a value has NOT been published.
+    candidate_revisions: Mapped[list["ScholarshipCandidateRevision"]] = relationship(
+        "ScholarshipCandidateRevision",
+        back_populates="scholarship",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
-        Index("uq_scholarship_identity", "identity_key", unique=True, postgresql_where=sa.text("identity_key IS NOT NULL")),
+        Index(
+            "uq_scholarship_identity",
+            "identity_key",
+            unique=True,
+            postgresql_where=sa.text("identity_key IS NOT NULL"),
+        ),
         Index("ix_scholarship_name", "scholarship_name"),
         Index("ix_scholarship_provider_id", "provider_id"),
         Index("ix_scholarship_country_id", "country_id"),
@@ -126,6 +188,8 @@ class Scholarship(Base, TimestampMixin):
         Index("ix_scholarship_funding_type", "funding_type"),
         Index("ix_scholarship_extraction_status", "extraction_status"),
         Index("ix_scholarship_deadline_state", "deadline_state"),
+        Index("ix_scholarship_provenance_origin", "provenance_origin"),
+        Index("ix_scholarship_reviewed_at", "reviewed_at"),
     )
 
     def __repr__(self) -> str:

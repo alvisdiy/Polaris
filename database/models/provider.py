@@ -17,8 +17,8 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
 import sqlalchemy as sa
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,7 @@ from database.utils import new_uuid
 
 if TYPE_CHECKING:
     from database.models.country import Country
+    from database.models.provider_discovery_attempt import ProviderDiscoveryAttempt
     from database.models.scholarship import Scholarship
     from database.models.source_registry import SourceRegistry
 

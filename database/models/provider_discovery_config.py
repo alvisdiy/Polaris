@@ -79,7 +79,10 @@ class ProviderDiscoveryConfig(Base, TimestampMixin):
     )
     organization_type: Mapped[str] = mapped_column(
         String(50), nullable=False, default="University", sort_order=11,
-        comment="Type of organization this config discovers: University, Government, Foundation, Research, Agency, Other"
+        comment=(
+            "Type of organization this config discovers: "
+            "University, Government, Foundation, Research, Agency, Other"
+        )
     )
     max_urls_per_source: Mapped[int] = mapped_column(
         Integer, nullable=False, default=50, sort_order=12,

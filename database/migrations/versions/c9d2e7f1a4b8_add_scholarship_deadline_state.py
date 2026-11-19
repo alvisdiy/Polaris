@@ -10,8 +10,8 @@ classified, so rows predating the column are not silently treated as current.
 Kept as a plain column (not an enum) for the same reason extraction_status is:
 the application layer owns the state machine.
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "c9d2e7f1a4b8"
 down_revision = "f3a7b1c2d4e5"
