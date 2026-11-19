@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from urllib.parse import parse_qsl, quote, unquote, urlparse, urlunparse
+import re
+from urllib.parse import parse_qs, parse_qsl, quote, unquote, urlparse, urlunparse
 
 # Tracking params stripped during canonicalization
 _TRACKING_PARAMS = {
@@ -17,8 +18,11 @@ def normalize_url(url: str) -> str:
 
     - lowercase scheme/host
     - strip default ports, fragments, tracking params
-    - remove trailing slash on empty path
+    - strip default trailing slashes so canonical-equivalent URLs such as
+      ``https://host/`` and ``https://host`` compare equal
     - sort remaining query params for stable comparison
+    - stable under round-tripping: canonicalizing a canonical URL yields the same
+      string
     """
     url = (url or "").strip()
     if not url:
@@ -40,9 +44,14 @@ def normalize_url(url: str) -> str:
     # collapse duplicate slashes in path
     while "//" in path:
         path = path.replace("//", "/")
-    # strip trailing slash (non-root)
-    if len(path) > 1 and path.endswith("/"):
-        path = path.rstrip("/")
+
+    # Strip the default trailing slash on any path, including the bare root. That
+    # makes ``https://host/`` and ``https://host`` canonicalize to the same string,
+    # which is what the dedup in `acquisition_service` depends on.
+    path = path.rstrip("/")
+
+    if path == "":
+        path = "/"
 
     params = [
         (k.lower(), v)
@@ -58,6 +67,81 @@ def normalize_url(url: str) -> str:
 def url_hash(url: str) -> str:
     """Deterministic sha256 hash of the normalized URL (dedup key)."""
     return hashlib.sha256(normalize_url(url).encode("utf-8")).hexdigest()
+
+
+#: CMS routes that render one record. The record's identity lives in the query
+#: (``view.do?seq=759978``), so the path alone names nothing.
+_VIEWER_ROUTE_STEMS = frozenset({
+    "view", "detail", "read", "bbs", "board", "post", "article",
+})
+
+#: Query parameters that carry a record id on the CMSs used by ministries and
+#: universities in the target countries. Only when the value is numeric.
+_DETAIL_ID_QUERY_KEYS = frozenset({
+    "seq", "no", "num", "id", "idx", "nseq", "b_idx", "board_seq",
+    "article", "articleid", "article_id", "articleno", "docid", "contentid",
+})
+
+#: One record's id as the final path segment: ``2026917``, ``fg202610135``,
+#: ``-202610137``. Three digits is the shortest id length seen on real sources;
+#: shorter numbers are far more often a page number than a record.
+_ID_SEGMENT_PATTERN = re.compile(r"^-?[a-z]{0,4}\d{3,}$")
+
+
+def _segment_stem(segment: str) -> str:
+    """The final path segment without a document extension."""
+    stem = (segment or "").casefold()
+    for ext in (".html", ".htm", ".shtml", ".php", ".jsp", ".aspx", ".do"):
+        if stem.endswith(ext):
+            return stem[: -len(ext)]
+    return stem
+
+
+def _query_record_id(url: str) -> str:
+    """The single numeric record id in a URL's query, if it has exactly one."""
+    query = urlparse(url).query
+    if not query:
+        return ""
+    try:
+        pairs = parse_qs(query, keep_blank_values=False)
+    except ValueError:
+        return ""
+    hits = [
+        key for key, values in pairs.items()
+        if key.casefold() in _DETAIL_ID_QUERY_KEYS and values and values[0].isdigit()
+    ]
+    # One id among a couple of parameters is a record. Several ids, or an id
+    # mixed with paging and search state, is a results view.
+    if len(hits) == 1 and len(pairs) <= 2:
+        return hits[0]
+    return ""
+
+
+def is_detail_record_url(url: str) -> bool:
+    """Whether the URL addresses one record on the publisher's own CMS.
+
+    Structural, not a site list. Two shapes cover the official sources that
+    failed the 2026-10 live run: an id as the final path segment
+    (``/pg/2026917.html``, 1,415 of them on one university listing) and an id
+    in the query of a viewer route (``/brd/m_11417/view.do?seq=759978``, the
+    MOFA Korea announcement pages). Neither URL contains the word
+    "scholarship", which is why a keyword gate over the href alone returned
+    zero candidates on those pages.
+
+    Being a record says nothing about *what* the record is. This is an
+    admission filter for discovery, never an eligibility decision: the
+    classifier still decides whether the record is a scholarship.
+    """
+    parsed = urlparse(url)
+    segments = [s for s in (parsed.path or "").split("/") if s]
+    record_query = _query_record_id(url)
+    if segments:
+        stem = _segment_stem(segments[-1])
+        if stem and _ID_SEGMENT_PATTERN.match(stem):
+            return True
+        if stem in _VIEWER_ROUTE_STEMS and record_query:
+            return True
+    return bool(record_query and segments)
 
 
 def registered_domain(host: str) -> str:
