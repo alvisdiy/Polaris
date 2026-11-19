@@ -6,7 +6,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.models.country import Country
 from database.models.enums import ProviderType
-from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
 from database.session import SessionLocal
 from services.discovery import register_source
@@ -48,21 +47,6 @@ def seed_data():
                 "country_iso2": "JP",
                 "official_url": "https://www.jasso.go.jp/en/",
                 "crawl_entry_url": "https://www.jasso.go.jp/en/scholarships/",
-                "crawl_method": "html_extraction",
-                "connector_name": "generic_http",
-                "crawl_frequency": "weekly",
-                "priority": 1,
-                "robots_allowed": True,
-                "requires_login": False,
-                "status": "active",
-            },
-            {
-                "source_name": "Japanese University Scholarship Portal",
-                "provider_name": "Various Japanese Universities",
-                "provider_type": ProviderType.UNIVERSITY,
-                "country_iso2": "JP",
-                "official_url": "https://www.university-scholarships.jp/",
-                "crawl_entry_url": "https://www.university-scholarships.jp/",
                 "crawl_method": "html_extraction",
                 "connector_name": "generic_http",
                 "crawl_frequency": "weekly",
@@ -182,8 +166,8 @@ def seed_data():
                 "provider_name": "Campus France",
                 "provider_type": ProviderType.GOVERNMENT,
                 "country_iso2": "FR",
-                "official_url": "https://www.campusfrance.org/en/eiffel-scholarship-program",
-                "crawl_entry_url": "https://www.campusfrance.org/en/eiffel-scholarship-program",
+                "official_url": "https://www.campusfrance.org/en/france-excellence-eiffel-scholarship-program",
+                "crawl_entry_url": "https://www.campusfrance.org/en/france-excellence-eiffel-scholarship-program",
                 "crawl_method": "html_extraction",
                 "connector_name": "generic_http",
                 "crawl_frequency": "weekly",

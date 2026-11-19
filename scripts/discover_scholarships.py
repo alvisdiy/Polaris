@@ -1,5 +1,7 @@
 import argparse
+import json
 import sys
+
 from database.session import SessionLocal
 from services.discovery import discover_scholarships_for_country
 

@@ -5,8 +5,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
-import json
 import time
+
 from database.models.country import Country
 from database.session import SessionLocal
 from services.ingestion.provider_discovery import ProviderDiscoveryOrchestrator

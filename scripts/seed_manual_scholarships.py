@@ -4,36 +4,37 @@ import sys
 # Ensure repository root is in sys.path when script is executed directly
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.session import SessionLocal
-from database.models.source_registry import SourceRegistry
 from database.models.provider import Provider
-from services.scholarship.repository import ScholarshipRepository
+from database.models.source_registry import SourceRegistry
+from database.session import SessionLocal
+from services.ingestion.extractor import Benefits, Eligibility, ExtractedScholarship, Timeline
 from services.scholarship.mapper import ScholarshipMapper
-from services.ingestion.extractor import ExtractedScholarship, Timeline, Eligibility, Benefits
+from services.scholarship.repository import ScholarshipRepository
 
-def seed_scholarships():
+
+def seed_scholarships(approve_directly: bool = False):
     session = SessionLocal()
     try:
         repo = ScholarshipRepository(session)
         mapper = ScholarshipMapper(session)
-        
+
         # 1. MEXT Scholarship (Research Students)
         mext_source = session.query(SourceRegistry).filter_by(source_name="Study in Japan (MEXT)").first()
         if not mext_source:
             mext_source = session.query(SourceRegistry).filter_by(source_name="Study in Japan").first()
         if not mext_source:
             raise ValueError("MEXT source not found. Run seed_source_registry.py first.")
-        
+
         # 2. DAAD Scholarship
         daad_source = session.query(SourceRegistry).filter_by(source_name="DAAD Scholarship Database").first()
         if not daad_source:
             raise ValueError("DAAD source not found. Run seed_source_registry.py first.")
-        
+
         # 3. Chevening Scholarship
         chevening_source = session.query(SourceRegistry).filter_by(source_name="Chevening Scholarships").first()
         if not chevening_source:
             raise ValueError("Chevening source not found. Run seed_source_registry.py first.")
-        
+
         # 4. Eiffel Scholarship (France) - from Campus France
         eiffel_source = session.query(SourceRegistry).filter_by(source_name="Eiffel Scholarship").first()
         if not eiffel_source:
@@ -41,17 +42,17 @@ def seed_scholarships():
             # For now, we assume it's already in the source registry via seed_source_registry.py
             # If not, we'll raise an error.
             raise ValueError("Eiffel source not found. Run seed_source_registry.py first.")
-        
+
         # 5. Fulbright Foreign Student Program (USA) - from US Department of State
         fulbright_source = session.query(SourceRegistry).filter_by(source_name="Fulbright Foreign Student Program").first()
         if not fulbright_source:
             raise ValueError("Fulbright source not found. Run seed_source_registry.py first.")
-        
+
         # 6. Australia Awards (Australia) - from Australian Government
         australia_source = session.query(SourceRegistry).filter_by(source_name="Australia Awards").first()
         if not australia_source:
             raise ValueError("Australia Awards source not found. Run seed_source_registry.py first.")
-        
+
         # 7. Chinese Government Scholarship (China) - from China Scholarship Council
         csc_source = session.query(SourceRegistry).filter_by(source_name="Chinese Government Scholarship").first()
         if not csc_source:
@@ -61,7 +62,7 @@ def seed_scholarships():
         lpdp_source = session.query(SourceRegistry).filter_by(source_name="LPDP Beasiswa").first()
         if not lpdp_source:
             raise ValueError("LPDP source not found. Run seed_source_registry.py first.")
-        
+
         # Real scholarships catalog
         catalog = [
             # Existing 10 scholarships (from previous seed)
@@ -637,11 +638,11 @@ def seed_scholarships():
                  )
              ))
         ]
-        
+
         count = 0
         for source_id, extracted in catalog:
             provider = session.query(Provider).filter_by(provider_name=extracted.provider_name).first()
-            
+
             # Check for duplicate
             duplicate = repo.find_duplicate(
                 scholarship_name=extracted.scholarship_name,
@@ -649,23 +650,34 @@ def seed_scholarships():
                 application_cycle=None,  # We don't have application_cycle in our extracted data, but we can set to None
                 source_id=source_id
             )
-            
+
             if duplicate:
-                # Update existing? For now, we can skip or just update the extraction_status if it's not approved.
-                if duplicate.extraction_status != "approved":
+                if duplicate.extraction_status != "approved" and approve_directly:
                     duplicate.extraction_status = "approved"
                     repo.update(duplicate)
-                    print(f"[SEED] Approved existing Scholarship: {extracted.scholarship_name}")
+                    print(f"[SEED] bootstrap-approved existing Scholarship: {extracted.scholarship_name}")
             else:
                 scholarship = mapper.to_orm(extracted, source_id)
-                # Manually verified -> Approved
-                scholarship.extraction_status = "approved"
+                # A hand-curated catalogue, entered by a human years ago. The
+                # default is PENDING_REVIEW like any other extraction: it goes
+                # through review and gets a version and an audit trail.
+                #
+                # `--approve-directly` exists only to rebuild the historical
+                # bootstrap state of an old development database. It writes the
+                # status and nothing else — deliberately NOT a synthetic review
+                # action or reviewer, because that history did not happen and
+                # inventing it would make the audit trail lie.
+                if approve_directly:
+                    scholarship.extraction_status = "approved"
                 repo.save(scholarship)
-                print(f"[SEED] Created Scholarship: {extracted.scholarship_name}")
+                print(
+                    f"[SEED] Created Scholarship: {extracted.scholarship_name} "
+                    f"(state={scholarship.extraction_status})"
+                )
                 count += 1
-        
+
         print(f"[SEED SUCCESS] Created {count} new scholarships.")
-    
+
     except Exception as e:
         session.rollback()
         print(f"[SEED FAIL] Failed: {e}")
@@ -674,4 +686,25 @@ def seed_scholarships():
         session.close()
 
 if __name__ == "__main__":
-    seed_scholarships()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--approve-directly",
+        action="store_true",
+        help=(
+            "Bootstrap-approve the seeded records instead of queueing them for "
+            "review. Creates published records with NO review history, for "
+            "rebuilding legacy development data only."
+        ),
+    )
+    args = parser.parse_args()
+
+    if args.approve_directly:
+        print("!" * 78)
+        print("BOOTSTRAP APPROVAL: seeded records will be publicly visible with no")
+        print("reviewer, no review action and no version row. Review is the")
+        print("publication boundary; use this only to rebuild legacy sample data.")
+        print("!" * 78)
+
+    seed_scholarships(approve_directly=args.approve_directly)

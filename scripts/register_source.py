@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+
 from database.session import SessionLocal
 from services.discovery import register_source
 
@@ -60,7 +61,7 @@ def main():
             source_name=args.source_name,
         )
 
-        print(f"✓ Registered source:")
+        print("✓ Registered source:")
         print(f"  Provider: {provider.provider_name} ({provider.provider_code})")
         print(f"  Source: {source.source_name} ({source.source_id})")
         print(f"  URL: {source.official_url}")

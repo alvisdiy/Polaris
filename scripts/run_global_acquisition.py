@@ -18,8 +18,8 @@ The script prints a concise table for quick inspection.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

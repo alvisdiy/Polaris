@@ -33,13 +33,13 @@ from urllib.parse import urlparse
 # Add project root to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database.session import SessionLocal
 from database.models.country import Country
+from database.models.enums import ProviderType
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
-from database.models.enums import ProviderType
-from services.ingestion.connectors.generic_playwright import GenericPlaywrightConnector
+from database.session import SessionLocal
 from services.ingestion.connectors.base_connector import ConnectorConfig
+from services.ingestion.connectors.generic_playwright import GenericPlaywrightConnector
 
 # ---------------------------------------------------------------------------
 # Minimal discovery‑source mapping – extend as needed.

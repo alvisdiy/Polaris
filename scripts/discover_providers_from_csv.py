@@ -9,17 +9,17 @@ SQLAlchemy models; no additional third‑party dependencies are introduced.
 """
 
 import csv
-import sys
 import os
+import sys
 
 # Ensure project root on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database.session import SessionLocal
 from database.models.country import Country
+from database.models.enums import ProviderType
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
-from database.models.enums import ProviderType
+from database.session import SessionLocal
 
 
 def _parse_type(value: str) -> ProviderType:

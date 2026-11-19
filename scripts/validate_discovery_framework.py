@@ -10,17 +10,16 @@ For each country with active ProviderDiscoveryConfig rows:
 """
 
 import asyncio
-import sys
 import os
-from datetime import datetime, timezone
+import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from database.session import SessionLocal
 from database.models.country import Country
-from database.models.provider_discovery_config import ProviderDiscoveryConfig
 from database.models.provider import Provider
+from database.models.provider_discovery_config import ProviderDiscoveryConfig
+from database.session import SessionLocal
 from services.ingestion.ecosystem_discovery import CountryEcosystemDiscovery
 from services.ingestion.strategy_factory import StrategyFactory
 
@@ -46,7 +45,7 @@ async def run_validation():
         print("[Step 2] Grouping enabled configs by country...")
         country_configs = defaultdict(list)
         for cfg in session.query(ProviderDiscoveryConfig).filter(
-            ProviderDiscoveryConfig.is_active == True
+            ProviderDiscoveryConfig.is_active.is_(True)
         ).all():
             country = session.query(Country).filter(
                 Country.country_id == cfg.country_id
@@ -103,7 +102,7 @@ async def run_validation():
                         .filter(Provider.country_id == country.country_id)
                         .count()
                     )
-                    print(f"  Metrics:")
+                    print("  Metrics:")
                     print(f"    Strategies executed: {metrics.strategies_executed}")
                     print(f"    Organizations discovered: {metrics.organizations_discovered}")
                     print(f"    Providers created: {metrics.organizations_created}")
@@ -137,7 +136,7 @@ async def run_validation():
             configs_for_country = [
                 cfg for cfg in session.query(ProviderDiscoveryConfig).filter(
                     ProviderDiscoveryConfig.country_id == country.country_id,
-                    ProviderDiscoveryConfig.is_active == True
+                    ProviderDiscoveryConfig.is_active.is_(True)
                 ).all()
             ]
 
@@ -177,9 +176,9 @@ async def run_validation():
                     print(f"  Provider count before 2nd: {providers_before_2nd}")
                     print(f"  Provider count after 2nd: {providers_after_2nd}")
                     if providers_after_2nd == providers_before_2nd:
-                        print(f"  ✓ IDEMPOTENT: No new duplicates created")
+                        print("  ✓ IDEMPOTENT: No new duplicates created")
                     else:
-                        print(f"  ✗ FAILED IDEMPOTENCY: Provider count changed")
+                        print("  ✗ FAILED IDEMPOTENCY: Provider count changed")
             except Exception as e:
                 print(f"  ERROR during idempotency test: {e}")
 
