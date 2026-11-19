@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
 from api.schemas import (
+    ScholarshipBenefitSchema,
     ScholarshipDetailResponse,
     ScholarshipListResponse,
     ScholarshipRequirementSchema,
-    ScholarshipBenefitSchema,
-    ScholarshipTimelineSchema,
     ScholarshipSummaryResponse,
+    ScholarshipTimelineSchema,
 )
 from database.session import SessionLocal
 from services.scholarship.repository import ScholarshipRepository
@@ -56,12 +57,23 @@ def list_scholarships(
     responses={404: {"description": "Scholarship not found"}},
 )
 def get_scholarship(scholarship_id: str):
-    """Get full scholarship detail including requirements, benefits, timeline."""
+    """Get full scholarship detail including requirements, benefits, timeline.
+
+    Visibility is decided by the repository's canonical publication predicate,
+    not here: an unpublished record is a 404 for the same reason a missing one
+    is, and the rule that says so lives in one place.
+    """
+    # An id that is not a valid UUID would crash the query with a 500; a
+    # missing record is a 404 concern, not a server error.
+    try:
+        uuid.UUID(scholarship_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Scholarship not found")
     session = SessionLocal()
     try:
         repo = ScholarshipRepository(session)
-        sch = repo.get_by_id(scholarship_id)
-        if not sch or sch.extraction_status != "approved":
+        sch = repo.get_published_by_id(scholarship_id)
+        if not sch:
             raise HTTPException(status_code=404, detail="Scholarship not found")
         return _to_detail(sch)
     finally:
@@ -73,9 +85,14 @@ def _to_summary(sch) -> ScholarshipSummaryResponse:
     return ScholarshipSummaryResponse(
         scholarship_id=str(sch.scholarship_id),
         scholarship_name=sch.scholarship_name,
-        provider_name=sch.provider.provider_name if sch.provider else "Unknown",
-        country=sch.country.name if sch.country else "Unknown",
+        # Null, never the string "Unknown". A placeholder that looks like a
+        # value is how "Unknown Scholarship" and "Unknown" ended up as
+        # identities in M8; the same mistake in a response body is the same
+        # mistake with a JSON type on it.
+        provider_name=sch.provider.provider_name if sch.provider else None,
+        country=sch.country.name if sch.country else None,
         degree=sch.degree,
+        degree_levels=[row.degree for row in (sch.degree_levels or [])],
         funding_type=sch.funding_type,
         field_of_study=sch.field_of_study or [],
         deadline=dl,
@@ -97,14 +114,16 @@ def _to_detail(sch) -> ScholarshipDetailResponse:
     return ScholarshipDetailResponse(
         scholarship_id=str(sch.scholarship_id),
         scholarship_name=sch.scholarship_name,
-        provider_name=sch.provider.provider_name if sch.provider else "Unknown",
+        provider_name=sch.provider.provider_name if sch.provider else None,
         provider_type=sch.provider.provider_type if sch.provider else None,
-        country=sch.country.name if sch.country else "Unknown",
+        country=sch.country.name if sch.country else None,
         degree=sch.degree,
+        degree_levels=[row.degree for row in (sch.degree_levels or [])],
         funding_type=sch.funding_type,
         field_of_study=sch.field_of_study or [],
         official_url=sch.official_page_url or "",
         application_url=sch.application_url,
+        last_verified_at=sch.last_verified_at,
         requirement=req,
         benefit=ben,
         timeline=tl,

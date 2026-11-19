@@ -1,4 +1,15 @@
-"""Recommendations router — POST /recommendations."""
+"""Recommendations router — POST /api/v1/recommendations.
+
+The canonical route is ``/api/v1/recommendations``, matching every other
+router in the app (``/api/v1/scholarships``, ``/api/v1/admin/review/*``) and
+the frontend's ``API_BASE``. ``/api/v1/matching`` is the name the frontend
+calls the same operation by and is kept as a second entry point.
+
+Before this milestone the two paths were written out in full on the decorators
+while the router carried no prefix, which left ``POST /recommendations``
+working and ``POST /api/v1/recommendations`` — the path the convention
+implies — answering 405.
+"""
 
 from __future__ import annotations
 
@@ -12,9 +23,6 @@ from api.schemas import (
     RecommendationListResponse,
     RecommendationRequest,
     RecommendationResponse,
-    ScholarshipDetailResponse,
-    ScholarshipSummaryResponse,
-    ScholarshipListResponse,
 )
 from database.session import SessionLocal
 from services.matching.models.profile import UserProfile
@@ -22,7 +30,7 @@ from services.matching.service import MatchingService
 
 logger = logging.getLogger("polaris.api.recommendations")
 
-router = APIRouter()
+router = APIRouter(prefix="/api/v1")
 
 
 def _build_profile(request: RecommendationRequest) -> UserProfile:
@@ -57,7 +65,7 @@ def _build_profile(request: RecommendationRequest) -> UserProfile:
     ),
 )
 @router.post(
-    "/api/v1/matching",
+    "/matching",
     response_model=RecommendationListResponse,
     responses={
         422: {"model": ErrorResponse, "description": "Validation Error"},
@@ -115,7 +123,8 @@ def get_recommendations(request: RecommendationRequest):
 
         return RecommendationListResponse(
             results=response_results,
-            total=len(response_results),
+            total=output.total_matched,
+            returned=len(response_results),
         )
 
     except ValueError as e:
