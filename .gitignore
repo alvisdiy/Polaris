@@ -45,6 +45,7 @@ htmlcov/
 dist/
 build/
 graphify-out/
+artifacts/
 
 # Python packaging / build artifacts
 *.egg-info/
@@ -54,3 +55,11 @@ frontend/node_modules/
 
 # Claude Code local settings (project commands/context stay tracked)
 .claude/settings.local.json
+
+# Local scratch copies of service files (not part of the repository)
+.services/
+
+
+# Agent runtime state (background logs, monitors)
+.zwork/
+

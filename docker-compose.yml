@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: polaris
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-polaris}
+      POSTGRES_DB: polaris
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polaris -d polaris"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - polaris-db:/var/lib/postgresql/data
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://polaris:${POSTGRES_PASSWORD:-polaris}@db:5432/polaris
+      # Required. An unset token disables the admin review surface (503),
+      # which is safer than exposing it, but it also means no one can curate.
+      POLARIS_ADMIN_TOKEN: ${POLARIS_ADMIN_TOKEN:?set POLARIS_ADMIN_TOKEN before starting}
+      POLARIS_SEARCH_PROVIDER: ${POLARIS_SEARCH_PROVIDER:-ddgs}
+      POLARIS_ALLOWED_ORIGINS: ${POLARIS_ALLOWED_ORIGINS:-}
+    ports:
+      - "${PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  polaris-db:

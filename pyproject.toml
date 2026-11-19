@@ -21,6 +21,13 @@ dependencies = [
     "trafilatura>=1.8",
     "httpx>=0.27",
     "beautifulsoup4>=4.12",
+    # PDF pamphlets are fetched as bytes by the Playwright connector and parsed
+    # with pypdf. It is a runtime dependency of acquisition, not a dev extra.
+    "pypdf>=4.0",
+    # Free web-search backend for the discovery surface (POLARIS_SEARCH_PROVIDER=ddgs).
+    # Optional at runtime — the provider imports it lazily — but installed by
+    # default so a fresh clone can run live discovery without Serper credits.
+    "ddgs>=9.0",
 ]
 
 [project.optional-dependencies]
@@ -32,11 +39,15 @@ dev = [
     "ruff>=0.5",
 ]
 
-[project.scripts]
-polaris-knowledge = "knowledge_pipeline.cli:main"
+# No console scripts: the previous `polaris-knowledge` entry point referenced
+# `knowledge_pipeline.cli`, a module that does not exist in this repository.
+# Installing it produced a console script that failed on import.
 
 [tool.setuptools.packages.find]
-include = ["knowledge_pipeline*"]
+# The application packages live at the repository root (api/, services/,
+# database/), not under a src/ tree. Include them explicitly so `pip install .`
+# installs the code it declares dependencies for.
+include = ["api*", "services*", "database*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -48,23 +59,46 @@ markers = [
     "integration: Integration tests (DB-dependent)",
     "api: API endpoint tests (TestClient)",
     "slow: Slow tests (network or heavy IO)",
+    "data: Requires the development knowledge base (skipped unless POLARIS_RUN_DATA_TESTS=1)",
 ]
 
 [tool.coverage.run]
 source = ["services", "api", "database"]
 omit = [
     "database/migrations/*",
-    "services/ingestion/*",
 ]
 
 [tool.coverage.report]
-fail_under = 90
+# Recalibrated in the post-M10 milestone, not lowered to make a run pass.
+#
+# `services/ingestion/*` was omitted from `source` until now, which made the
+# suite report 91.40% while never measuring the extraction and safety code
+# that decides what enters the knowledge base. With ingestion included the
+# true figure is 85.60%, and the previously invisible gaps are large:
+# strategy_factory 0%, generic_playwright 12%, discovery 27%,
+# country_orchestrator 38%, mext_connector 47%.
+#
+# The gate is a ratchet against silent decline, not a target. It now sits
+# below the honest measurement so that a drop is still a failure, and the gap
+# to 90% is tracked in the milestone report as real work rather than closed
+# with tests written only to move the number.
+fail_under = 85
 show_missing = true
 
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+extend-exclude = [".services"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Line length is a style guard on production code. Fixture HTML, long URLs in
+# ops scripts and generated migrations are not improved by wrapping them, and
+# wrapping them makes the data harder to diff. Correctness rules (F, E7) still
+# apply everywhere.
+"tests/**" = ["E501"]
+"scripts/**" = ["E501"]
+"database/migrations/**" = ["E501"]
 

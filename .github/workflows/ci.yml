@@ -48,8 +48,8 @@ jobs:
       - name: Run unit tests
         run: PYTHONPATH=. python -m pytest tests/unit/ -v --tb=short -m unit
         env:
-          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/polaris_test
+          POLARIS_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/polaris_test
       - name: Run all tests with coverage
-        run: PYTHONPATH=. python -m pytest tests/ -v --tb=short --cov --cov-report=term-missing --cov-fail-under=90
+        run: PYTHONPATH=. python -m pytest tests/ -v --tb=short --cov --cov-report=term-missing --cov-fail-under=85
         env:
-          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/polaris_test
+          POLARIS_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/polaris_test
