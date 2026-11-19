@@ -14,13 +14,13 @@ from database.models.country import Country
 from database.models.provider import Provider
 from database.models.raw_document import RawDocument
 from database.models.source_registry import SourceRegistry
-from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship
-from services.ingestion.orchestrator import PipelineResult
-from services.ingestion.validator import ValidationReport
 from services.exploration.acquisition_service import (
     AcquisitionService,
     scholarship_identity_key,
 )
+from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship
+from services.ingestion.orchestrator import PipelineResult
+from services.ingestion.validator import ValidationReport
 
 
 @pytest.fixture

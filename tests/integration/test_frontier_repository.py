@@ -4,14 +4,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from database.models.discovery_frontier import FrontierState
 from database.models.country import Country
+from database.models.discovery_frontier import FrontierState
 from services.exploration.repositories.frontier_repository import (
     FrontierBounds,
     FrontierObservation,
     FrontierRepository,
 )
-from tests.integration._exploration_isolation import exploration_session
 
 
 @pytest.fixture
@@ -137,15 +136,67 @@ class TestBounds:
         )
         assert not created
 
-    def test_per_domain_cap(self, session, jp_country):
+    def test_per_domain_cap_counts_fetched_pages(self, session, jp_country):
+        """The domain budget is spent by fetching, not by queuing.
+
+        It used to be incremented in upsert_candidate *and* in the engine's
+        fetch path, so a budget of N pages was exhausted after roughly N/2
+        reads — and the rejected half was never fetched at all.
+        """
         repo = FrontierRepository(session, FrontierBounds(max_pages_per_domain=2))
         for i in range(3):
             repo.upsert_candidate(
                 jp_country.country_id, f"https://capped.example.com/p{i}", origin="seed"
             )
-        # Two admitted, third rejected by domain cap
+        assert repo.admitted == 3, "queuing URLs must not consume the page budget"
+        assert repo.rejected_by_bounds == 0
+
+        # Two pages were actually read from this domain.
+        repo.bounds.processed_domains["capped.example.com"] = 2
+        _, created = repo.upsert_candidate(
+            jp_country.country_id, "https://capped.example.com/p4", origin="link_expansion"
+        )
+        assert not created
+        assert repo.rejected_by_bounds == 1
+
+    def test_max_candidates_enforced(self, session, jp_country):
+        """The advertised per-run candidate cap is actually read.
+
+        `FrontierBounds.max_candidates` was declared and never used, so a run
+        could admit without limit while its config claimed a bound.
+        """
+        repo = FrontierRepository(session, FrontierBounds(max_candidates=2))
+        for i in range(3):
+            repo.upsert_candidate(
+                jp_country.country_id, f"https://maxcand.example.com/p{i}", origin="seed"
+            )
         assert repo.admitted == 2
         assert repo.rejected_by_bounds == 1
+
+    def test_aggregator_urls_are_not_admitted(self, repo, jp_country):
+        """A listing site is not a candidate, whichever path found it.
+
+        The search surface filtered them, but link expansion did not: 32
+        globaladmissions.com URLs entered a live run and spent fetch budget.
+        """
+        candidate, created = repo.upsert_candidate(
+            jp_country.country_id,
+            "https://www.globaladmissions.com/scholarships/japan/master",
+            origin="link_expansion",
+        )
+        assert not created
+        assert candidate is None
+        assert repo.skipped_aggregators == 1
+
+    def test_social_urls_are_not_admitted(self, repo, jp_country):
+        candidate, created = repo.upsert_candidate(
+            jp_country.country_id,
+            "https://www.youtube.com/watch?v=abc",
+            origin="link_expansion",
+        )
+        assert not created
+        assert candidate is None
+        assert repo.skipped_aggregators == 1
 
 
 class TestClaimAndLease:

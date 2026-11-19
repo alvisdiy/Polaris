@@ -14,7 +14,6 @@ from services.exploration.provider_resolver import (
     is_noise_org_name,
     normalize_org_name,
 )
-from tests.integration._exploration_isolation import exploration_session
 
 
 @pytest.fixture
@@ -89,7 +88,7 @@ class TestResolve:
         assert resolution.provider.merged_into_provider_id is None
 
     def test_evidence_accumulates_on_rediscovery(self, resolver):
-        r1 = resolver.resolve("XYZ Foundation", "https://xyz-foundation.org/a", evidence={"via": "web_search"})
+        resolver.resolve("XYZ Foundation", "https://xyz-foundation.org/a", evidence={"via": "web_search"})
         r2 = resolver.resolve("XYZ Foundation", "https://xyz-foundation.org/b", evidence={"via": "link_expansion"})
         obs = r2.provider.discovery_evidence.get("observations", [])
         assert len(obs) >= 2

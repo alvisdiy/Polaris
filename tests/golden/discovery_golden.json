@@ -1,0 +1,125 @@
+{
+  "dataset": "polaris-discovery-golden",
+  "phase": "M11",
+  "policy": [
+    "Every sample is a real page already stored in Polaris's raw_document table, and every sample names the exact document_id it was labelled from. The M10 mistake of reading 'the latest fetch of this URL' is not repeated: a site that later serves an empty body must not be able to change this dataset.",
+    "Labels are hand-judged from the URL and the page's own title and headings. They are not copied from the classifier's output; where the classifier disagrees, the sample fails and the disagreement is reported.",
+    "The labels describe what the page IS, not whether Polaris can extract it well. A scholarship detail page that happens to be hard to parse is still SCHOLARSHIP_DETAIL.",
+    "Ambiguous pages are labelled UNKNOWN rather than forced into a class. UNKNOWN/NEEDS_REVIEW is the honest answer and the classifier is expected to prefer it to a confident wrong call. No stored page in this dataset earned that label, which is a finding rather than a gap: every real page Polaris has captured declares its own intent somewhere.",
+    "Each sample records the evidence a reader needs to reproduce the label without opening the page."
+  ],
+  "samples": [
+    {
+      "id": "cranfield_commonwealth",
+      "url": "https://www.cranfield.ac.uk/funding/funding-opportunities/commonwealth-shared-scholarship-scheme",
+      "document_id": "c2c7e956-e494-449e-916d-ec35577619c6",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "One named scheme, its own h1, its own deadline and its own eligibility. Nothing on the page describes a collection.",
+      "note": "The M10 golden corpus already asserts this page states 'Deadline 09 Dec 2025' and matches no canonical funding type."
+    },
+    {
+      "id": "cranfield_merit",
+      "url": "https://www.cranfield.ac.uk/som/funding/cranfield-merit-scholarships",
+      "document_id": "c8674519-b067-4105-8020-d740ad5a9a6c",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "A named award with an eligibility list and an application section. 'Deadline: On going' is still one award, not a catalogue.",
+      "note": "A page with no fixed closing date is still a detail page; the absence of a deadline is an extraction problem, not a classification problem."
+    },
+    {
+      "id": "lboro_future_leaders",
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/future-leaders-scholarship/",
+      "document_id": "4b8faeba-382a-49ef-a97f-ba09be1d7b3b",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "The path ends in the award's own slug and the title is the award's name."
+    },
+    {
+      "id": "lboro_international_excellence",
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/international-excellence-scholarships/",
+      "document_id": "6b5a6355-3c38-4aa1-acbc-00e75da05ad0",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "A plural name, but one award page with eligibility and how-to-apply sections — the plural is the award's own title."
+    },
+    {
+      "id": "lboro_sanctuary",
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/sanctuary-scholarships/",
+      "document_id": "a18596be-41d3-48da-aa12-c6ecffc08e60",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "One award, its own deadline, its own eligibility."
+    },
+    {
+      "id": "lboro_arts_scholarships",
+      "url": "https://www.lboro.ac.uk/arts/scholarships/",
+      "document_id": "b6ea9f32-d828-42a3-ac44-cbbd9018150a",
+      "expected_intent": "SCHOLARSHIP_INDEX",
+      "why": "The last path segment is a collection word and the page links to many named awards. This is the page class M10 fed to the extractor by mistake.",
+      "note": "Used as the canonical 'follow this, do not extract this' sample."
+    },
+    {
+      "id": "daad_overview",
+      "url": "https://www.daad.de/en/studying-in-germany/scholarships/daad-scholarships/",
+      "document_id": "6d276658-e13f-4d89-91c6-e5993c4ab809",
+      "expected_intent": "SCHOLARSHIP_OVERVIEW",
+      "why": "The title says 'An Overview' and the page lists awards at several degree levels. It describes a family of opportunities.",
+      "note": "Hard case: the page is the DAAD scholarship section, so every naïve signal says 'scholarship page'. Only the self-declared overview wording separates it from a detail page."
+    },
+    {
+      "id": "daad_information_for_applicants",
+      "url": "https://www.daad.de/en/studying-in-germany/scholarships/information-for-scholarship-applicants/",
+      "document_id": "967a1a66-d149-4328-9055-7adc93eb8d8d",
+      "expected_intent": "GENERAL_PROGRAMME_PAGE",
+      "why": "Guidance about applying, not an award. It sits inside the scholarship section and uses the funding vocabulary throughout, which is exactly why it needs an explicit rule."
+    },
+    {
+      "id": "daad_funding_options",
+      "url": "https://www.daad.de/en/studying-in-germany/scholarships/funding-options/",
+      "document_id": "c82341d9-658b-41c8-be2f-b54dd1a52cdf",
+      "expected_intent": "SCHOLARSHIP_INDEX",
+      "why": "A funding-options index linking out to many named programmes."
+    },
+    {
+      "id": "hisf_faq",
+      "url": "https://www.hisf.or.jp/en/scholarship/foreigner/faq-en/",
+      "document_id": "a44ffad1-c1cf-4bc1-8f97-13664c39be63",
+      "expected_intent": "FAQ",
+      "why": "The title is 'Frequently Asked Questions' and the headings are questions. The site is a scholarship foundation, so every funding term is present.",
+      "note": "This page is also a M10 negative sample: it must yield no scholarship name. M10 fixed the name; M11 stops the page being acquired as a candidate at all."
+    },
+    {
+      "id": "ntu_faqs_on_scholarships",
+      "url": "https://www.ntu.edu.sg/admissions/undergraduate/scholarships/faqs-on-scholarships",
+      "document_id": "bc99e1df-9ca5-4614-a7ca-fe850cad226d",
+      "expected_intent": "FAQ",
+      "why": "'FAQs on scholarships' — questions about the application process, not an award."
+    },
+    {
+      "id": "aminef_scholarships_index",
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/scholarship/",
+      "document_id": "90d5ec8d-c230-4844-8984-79f5fc971dda",
+      "expected_intent": "SCHOLARSHIP_INDEX",
+      "why": "The last path segment is the singular 'scholarship' but the page lists the Fulbright Master's, Doctoral and Research schemes. Singular and plural both mean collection here.",
+      "note": "Hard case: the title is plural-funding and the page carries eligibility sections, so several detail signals fire at once."
+    },
+    {
+      "id": "aminef_fellowships_index",
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/fellowships/",
+      "document_id": "87afcae0-9214-4b00-9412-72c4419404cf",
+      "expected_intent": "SCHOLARSHIP_INDEX",
+      "why": "A fellowships category page whose own title is just the plural collection word."
+    },
+    {
+      "id": "sp_pfp_study_award",
+      "url": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes/pfp-study-award",
+      "document_id": "219a2f86-3970-4757-bb41-3e8abf754648",
+      "expected_intent": "SCHOLARSHIP_DETAIL",
+      "why": "One named award with its own eligibility and benefit sections."
+    },
+    {
+      "id": "kyoto_other_opportunities",
+      "url": "https://www.kyoto-u.ac.jp/en/current/how-to/financial-aid/other-scholarship-opportunities",
+      "document_id": "37acc71d-44be-409d-b473-94103913a7f4",
+      "expected_intent": "SCHOLARSHIP_INDEX",
+      "why": "A contact-and-navigation page whose headings are menu labels and whose body is 661 characters, but which links to 9 scholarship-labelled destinations. It is not an award, and it is not a page to extract from; it is a place to find other pages.",
+      "note": "LABEL REVISED. The first hand label here was UNKNOWN, on the reasoning that the page has no scholarship content of its own. That was wrong: it does link to 9 funding-labelled destinations, which is the definition of an index. The revision was made after seeing the classifier's answer, so it is disclosed rather than presented as an independent label — the reasoning above is checkable against the stored document, and the classification is unchanged in effect: this page must never be extracted as a scholarship. It is also the one remaining M10 name-accuracy miss ('About JASSO and other programs for Japanese students'), so M10 and M11 independently concluded that this page must not become a record."
+    }
+  ]
+}

@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.matching.models.profile import UserProfile
+from services.matching.models.result import CriterionResult
 from services.matching.scoring import ScoringEngine
 from services.matching.scoring.criteria import CriteriaWeights
-from services.matching.models.result import CriterionResult
 
 pytestmark = pytest.mark.unit
 

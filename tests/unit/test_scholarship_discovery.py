@@ -1,8 +1,9 @@
 """Unit tests for scholarship discovery orchestrator."""
 
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
+
+import pytest
 
 from services.discovery.scholarship_discovery import (
     _instantiate_connector,
@@ -96,8 +97,11 @@ class TestDiscoverScholarshipsForCountry:
         result = discover_scholarships_for_country("JP", session)
         assert result == []
 
-    @patch("services.discovery.scholarship_discovery.asyncio.run")
-    def test_discovers_from_multiple_sources(self, mock_asyncio_run):
+    @patch(
+        "services.discovery.scholarship_discovery._discover_from_source_async",
+        new_callable=AsyncMock,
+    )
+    def test_discovers_from_multiple_sources(self, mock_discover):
         """Aggregate URLs from multiple sources."""
         country = MagicMock(country_id=uuid4())
         provider = MagicMock(provider_name="Test Provider")
@@ -121,8 +125,8 @@ class TestDiscoverScholarshipsForCountry:
         session.query.return_value.filter.return_value.first.return_value = country
         session.query.return_value.filter.return_value.all.return_value = [source1, source2]
 
-        # Mock async discovery results
-        mock_asyncio_run.return_value = [
+        # Mock async discovery results (one list per source)
+        mock_discover.side_effect = [
             [
                 {
                     "url": "https://source1.com/scholarship1",
@@ -149,8 +153,11 @@ class TestDiscoverScholarshipsForCountry:
         assert result[0]["url"] == "https://source1.com/scholarship1"
         assert result[1]["url"] == "https://source2.com/scholarship2"
 
-    @patch("services.discovery.scholarship_discovery.asyncio.run")
-    def test_deduplicates_urls(self, mock_asyncio_run):
+    @patch(
+        "services.discovery.scholarship_discovery._discover_from_source_async",
+        new_callable=AsyncMock,
+    )
+    def test_deduplicates_urls(self, mock_discover):
         """Deduplicate identical URLs from different sources."""
         country = MagicMock(country_id=uuid4())
         provider = MagicMock(provider_name="Test Provider")
@@ -168,7 +175,7 @@ class TestDiscoverScholarshipsForCountry:
         session.query.return_value.filter.return_value.all.return_value = [source]
 
         # Same URL discovered twice (with/without trailing slash)
-        mock_asyncio_run.return_value = [
+        mock_discover.side_effect = [
             [
                 {
                     "url": "https://source.com/scholarship/",

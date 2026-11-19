@@ -124,7 +124,7 @@ def test_orchestrator_custom_engines():
         explanation=MatchExplanation(summary="", strengths=[], gaps=[], next_steps=[]),
         official_url="https://example.com",
     )
-    ranking_engine.rank.return_value = [result]
+    ranking_engine.rank_with_total.return_value = ([result], 1)
 
     explanation = MatchExplanation(summary="Excellent match", strengths=["All good"], gaps=[], next_steps=[])
     explanation_engine.explain.return_value = explanation
@@ -140,5 +140,5 @@ def test_orchestrator_custom_engines():
     assert len(results) == 1
     filter_engine.filter.assert_called_once()
     scoring_engine.score.assert_called_once()
-    ranking_engine.rank.assert_called_once()
+    ranking_engine.rank_with_total.assert_called_once()
     explanation_engine.explain.assert_called_once()

@@ -143,6 +143,72 @@ def test_to_orm_creates_scholarship_with_children():
     assert result.timeline.application_deadline == today + timedelta(days=300)
 
 
+def test_to_orm_falls_back_to_the_document_url_for_official_page():
+    """A programme page that is its own official page has no labelled link.
+
+    Without the fallback the insert raised NotNullViolation mid-acquisition
+    and aborted the whole source (observed live on a Japan Foundation page).
+    """
+    session = MagicMock()
+    provider = _mock_provider()
+    country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
+
+    session.query.return_value.filter.return_value.first.side_effect = [
+        source,
+        provider,
+        country,
+    ]
+
+    extracted = _make_extracted(official_source=None)
+    result = ScholarshipMapper(session).to_orm(
+        extracted,
+        source_id="src-123",
+        document_url="https://ny.jpf.go.jp/grants/fellowship-program/",
+    )
+
+    assert result.official_page_url == "https://ny.jpf.go.jp/grants/fellowship-program/"
+
+
+def test_to_orm_prefers_a_labelled_official_link_over_the_document_url():
+    session = MagicMock()
+    provider = _mock_provider()
+    country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
+
+    session.query.return_value.filter.return_value.first.side_effect = [
+        source,
+        provider,
+        country,
+    ]
+
+    extracted = _make_extracted(official_source="https://official.example/scholarship")
+    result = ScholarshipMapper(session).to_orm(
+        extracted,
+        source_id="src-123",
+        document_url="https://aggregator.example/article",
+    )
+
+    assert result.official_page_url == "https://official.example/scholarship"
+
+
+def test_to_orm_without_any_official_url_raises():
+    session = MagicMock()
+    provider = _mock_provider()
+    country = _mock_country()
+    source = _mock_source(provider.provider_id, country.country_id)
+
+    session.query.return_value.filter.return_value.first.side_effect = [
+        source,
+        provider,
+        country,
+    ]
+
+    extracted = _make_extracted(official_source=None)
+    with pytest.raises(ValueError, match="official page URL"):
+        ScholarshipMapper(session).to_orm(extracted, source_id="src-123")
+
+
 def test_to_orm_with_university():
     session = MagicMock()
     provider = _mock_provider()

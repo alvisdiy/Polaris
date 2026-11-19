@@ -11,12 +11,11 @@ from fastapi.testclient import TestClient
 
 from api.app import app
 from database.session import SessionLocal
-from services.matching.service import MatchingService
 from services.matching.models.profile import UserProfile
 from services.matching.models.result import CriteriaScores
-from services.matching.models.result import CriteriaScores
+from services.matching.service import MatchingService
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.data]
 
 
 @pytest.fixture(scope="module")
@@ -134,7 +133,6 @@ def test_partial_field_overlap_rewards_partial_score(svc):
     scholarships = svc._repository.get_all_approved()
     filtered = svc._engine._filter.filter(profile, scholarships)
     scored = [(s, svc._engine._scoring.score(profile, s)) for s in filtered]
-    mext = next(s for s, _ in scored if s.scholarship_name == "MEXT Scholarship for Research Students")
     mext_scores = next(scores for s, scores in scored if s.scholarship_name == "MEXT Scholarship for Research Students")
     # MEXT supports CS, AI, Engineering, Natural Sciences, Social Sciences
     # User has CS, Engineering, Math, Physics, Biology → 2/5 supported = 8.0

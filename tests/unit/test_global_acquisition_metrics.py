@@ -6,8 +6,8 @@ as specified in the product requirements.
 
 import pytest
 
-from services.ingestion.discovery import DiscoveryMetrics
 from services.ingestion.country_orchestrator import CountryDiscoveryReport
+from services.ingestion.discovery import DiscoveryMetrics
 
 pytestmark = pytest.mark.unit
 
@@ -18,7 +18,6 @@ class TestDiscoveryMetricsReporting:
     def test_discovery_metrics_has_all_required_fields(self):
         """DiscoveryMetrics must track all fields needed for reporting."""
         from uuid import uuid4
-        from datetime import datetime, timezone
 
         source_id = uuid4()
         metrics = DiscoveryMetrics(source_id=source_id)
@@ -116,8 +115,9 @@ class TestValidationContract:
 
     def test_scholarship_type_not_in_database_schema(self):
         """scholarship_type is validated but not stored - document this gap."""
-        from database.models.scholarship import Scholarship
         from sqlalchemy import inspect
+
+        from database.models.scholarship import Scholarship
 
         # Get all column names from Scholarship model
         mapper = inspect(Scholarship)
@@ -137,8 +137,8 @@ class TestValidationContract:
         scholarship type. Rather than fabricate a value, we allow it to be None.
         Downstream matching and user review can handle the incomplete data.
         """
-        from services.ingestion.validator import validate
         from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship
+        from services.ingestion.validator import validate
 
         # Create an extraction with scholarship_type=None – should be allowed
         extraction = ExtractedDocument(

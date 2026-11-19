@@ -8,6 +8,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from database.models.scholarship import Scholarship
+from services.scholarship.identity import (
+    IdentityUnavailable,
+    scholarship_identity_key,
+)
 from services.scholarship.repository import ScholarshipRepository
 
 pytestmark = pytest.mark.unit
@@ -15,7 +19,10 @@ pytestmark = pytest.mark.unit
 
 def _mock_scholarship(**overrides) -> MagicMock:
     s = MagicMock(spec=Scholarship)
-    s.scholarship_id = overrides.get("scholarship_id", uuid.uuid4())
+    # None by default, matching a transient entity: the mapper builds a
+    # Scholarship and hands it to save() before the UUID default is applied at
+    # flush time. Tests that need an id pass one explicitly.
+    s.scholarship_id = overrides.get("scholarship_id")
     s.scholarship_name = overrides.get("scholarship_name", "Test Scholarship")
     s.provider_id = overrides.get("provider_id", uuid.uuid4())
     s.country_id = overrides.get("country_id", uuid.uuid4())
@@ -30,8 +37,19 @@ def _mock_scholarship(**overrides) -> MagicMock:
 # --- save ---
 
 
+def _no_existing_identity(session: MagicMock) -> MagicMock:
+    """Mock a session where this identity has not been seen before.
+
+    ``save`` now asks the database whether the canonical identity already
+    exists. A bare ``MagicMock`` answers with a truthy object, which would
+    make every save take the duplicate branch.
+    """
+    session.query.return_value.filter.return_value.first.return_value = None
+    return session
+
+
 def test_save():
-    session = MagicMock()
+    session = _no_existing_identity(MagicMock())
     repo = ScholarshipRepository(session)
     scholarship = _mock_scholarship()
 
@@ -41,6 +59,72 @@ def test_save():
     session.commit.assert_called_once()
     session.refresh.assert_called_once_with(scholarship)
     assert result is scholarship
+
+
+def test_save_assigns_canonical_identity_key():
+    """Identity is derived by the repository, not supplied by the caller.
+
+    This is the invariant: an acquisition path that forgets to set the key
+    still lands inside deduplication.
+    """
+    session = _no_existing_identity(MagicMock())
+    repo = ScholarshipRepository(session)
+    scholarship = _mock_scholarship(scholarship_name="  Global   Excellence Scholarship ")
+    scholarship.identity_key = None
+
+    repo.save(scholarship)
+
+    assert scholarship.identity_key == scholarship_identity_key(
+        scholarship.provider_id, scholarship.scholarship_name, scholarship.country_id
+    )
+
+
+def test_save_returns_existing_row_instead_of_inserting_a_duplicate():
+    """A second extraction of the same scholarship must not add a row."""
+    session = MagicMock()
+    canonical = _mock_scholarship(scholarship_name="Global Excellence Scholarship")
+    session.query.return_value.filter.return_value.first.return_value = canonical
+    repo = ScholarshipRepository(session)
+    duplicate = _mock_scholarship(
+        provider_id=canonical.provider_id,
+        country_id=canonical.country_id,
+        scholarship_name="GLOBAL  EXCELLENCE   SCHOLARSHIP!",
+    )
+
+    result = repo.save(duplicate)
+
+    assert result is canonical
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+
+
+def test_save_does_not_overwrite_an_approved_row_with_a_rejected_one():
+    """Dedup never writes: an approved record cannot be downgraded."""
+    session = MagicMock()
+    approved = _mock_scholarship(extraction_status="approved")
+    session.query.return_value.filter.return_value.first.return_value = approved
+    repo = ScholarshipRepository(session)
+    rejected = _mock_scholarship(
+        provider_id=approved.provider_id,
+        country_id=approved.country_id,
+        extraction_status="rejected",
+    )
+
+    result = repo.save(rejected)
+
+    assert result.extraction_status == "approved"
+    session.commit.assert_not_called()
+
+
+def test_save_refuses_a_row_with_no_usable_name():
+    """A row with no derivable identity would be permanently outside dedup."""
+    session = _no_existing_identity(MagicMock())
+    repo = ScholarshipRepository(session)
+
+    with pytest.raises(IdentityUnavailable):
+        repo.save(_mock_scholarship(scholarship_name="   "))
+
+    session.add.assert_not_called()
 
 
 # --- get_by_id ---

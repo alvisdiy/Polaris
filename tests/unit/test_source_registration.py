@@ -1,12 +1,13 @@
 """Unit tests for source registration service."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
+
 from services.discovery.source_registration import (
-    _normalize_domain,
     _get_or_create_provider,
+    _normalize_domain,
     register_source,
 )
 
@@ -61,7 +62,7 @@ class TestGetOrCreateProvider:
 
         assert provider.provider_code == "test-provider"
         assert provider.provider_name == "Test Provider"
-        assert provider.verification_status == "unverified"
+        assert provider.verification_status == "discovered"
         session.add.assert_called_once()
 
     def test_returns_existing_provider(self):

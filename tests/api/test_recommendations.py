@@ -67,7 +67,7 @@ class TestRecommendationsEndpoint:
 
     def test_returns_200(self, client, sample_request):
         """Valid request returns HTTP 200."""
-        response = client.post("/recommendations", json=sample_request)
+        response = client.post("/api/v1/recommendations", json=sample_request)
         assert response.status_code == 200
 
     def test_versioned_matching_contract(self, client, sample_request):
@@ -80,7 +80,7 @@ class TestRecommendationsEndpoint:
 
     def test_response_has_results_and_total(self, client, sample_request):
         """Response contains 'results' list and 'total' integer."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         assert "results" in data
         assert "total" in data
         assert isinstance(data["results"], list)
@@ -88,12 +88,12 @@ class TestRecommendationsEndpoint:
 
     def test_at_least_one_result(self, client, sample_request):
         """At least one recommendation returned when scholarships exist."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         assert data["total"] >= 1
 
     def test_result_schema(self, client, sample_request):
         """Each result has all required fields with correct types."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         result = data["results"][0]
 
         assert isinstance(result["scholarship_name"], str)
@@ -109,26 +109,26 @@ class TestRecommendationsEndpoint:
 
     def test_match_score_range(self, client, sample_request):
         """Match score is between 0 and 100."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         for result in data["results"]:
             assert 0 <= result["match_score"] <= 100
 
     def test_recommendation_category_valid(self, client, sample_request):
         """Recommendation category is one of the valid values."""
         valid_categories = {"Excellent Match", "Strong Match", "Good Match", "Moderate Match", "Low Match"}
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         for result in data["results"]:
             assert result["recommendation_category"] in valid_categories
 
     def test_results_sorted_by_score(self, client, sample_request):
         """Results are sorted by match_score descending."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         scores = [r["match_score"] for r in data["results"]]
         assert scores == sorted(scores, reverse=True)
 
     def test_explanation_not_empty(self, client, sample_request):
         """Explanation field is non-empty for scored results."""
-        data = client.post("/recommendations", json=sample_request).json()
+        data = client.post("/api/v1/recommendations", json=sample_request).json()
         for result in data["results"]:
             assert result["explanation"]
 
@@ -145,7 +145,7 @@ class TestRecommendationsEndpoint:
             "leadership": False,
             "funding_preference": "Fully Funded",
         }
-        response = client.post("/recommendations", json=payload)
+        response = client.post("/api/v1/recommendations", json=payload)
         assert response.status_code == 422
 
     def test_validation_error_gpa_out_of_range(self, client):
@@ -161,7 +161,7 @@ class TestRecommendationsEndpoint:
             "leadership": False,
             "funding_preference": "Fully Funded",
         }
-        response = client.post("/recommendations", json=payload)
+        response = client.post("/api/v1/recommendations", json=payload)
         assert response.status_code == 422
 
     def test_validation_error_missing_field(self, client):
@@ -177,7 +177,7 @@ class TestRecommendationsEndpoint:
             "leadership": False,
             "funding_preference": "Fully Funded",
         }
-        response = client.post("/recommendations", json=payload)
+        response = client.post("/api/v1/recommendations", json=payload)
         assert response.status_code == 422
 
 
@@ -188,6 +188,27 @@ class TestHealthEndpoint:
         response = client.get("/health")
         assert response.status_code == 200
 
-    def test_health_returns_ok(self, client):
+    def test_health_reports_ok_and_database_reachable(self, client):
+        """V0.1: the check must actually check.
+
+        A health endpoint that returns ok while the database is down tells an
+        orchestrator to keep routing traffic to a service that cannot answer.
+        """
         data = client.get("/health").json()
-        assert data == {"status": "ok"}
+        assert data["status"] == "ok"
+        assert data["database"] == "ok"
+
+    def test_health_reports_degraded_when_the_database_is_unreachable(self, client, monkeypatch):
+        from database import session as session_module
+
+        class _Broken:
+            def execute(self, *args, **kwargs):
+                raise RuntimeError("connection refused")
+
+            def close(self):
+                pass
+
+        monkeypatch.setattr(session_module, "SessionLocal", _Broken)
+        response = client.get("/health")
+        assert response.status_code == 503
+        assert response.json()["database"] == "unreachable"

@@ -16,11 +16,11 @@ from database.models.provider import Provider
 from database.models.raw_document import RawDocument
 from database.models.scholarship import Scholarship
 from database.models.source_registry import SourceRegistry
+from services.exploration.acquisition_service import AcquisitionService
 from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship, Timeline
 from services.ingestion.orchestrator import PipelineResult
 from services.ingestion.validator import ValidationReport
 from services.scholarship.repository import ScholarshipRepository
-from services.exploration.acquisition_service import AcquisitionService
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -234,7 +234,7 @@ class TestMatchingServiceMatch:
         repo.get_all_approved.return_value = []
 
         engine = MagicMock(spec=ScholarshipIntelligenceEngine)
-        engine.match.return_value = []
+        engine.match_with_total.return_value = ([], 0)
 
         service = MatchingService(
             session=session,
@@ -250,7 +250,7 @@ class TestMatchingServiceMatch:
         # Normalizer was called with the raw profile
         normalizer.normalize.assert_called_once_with(raw_profile)
         # Engine received the normalized profile
-        engine.match.assert_called_once_with(normalized_profile, [])
+        engine.match_with_total.assert_called_once_with(normalized_profile, [])
 
     def test_loads_approved_scholarships_from_repository(self):
         """match() loads scholarships from the repository."""
@@ -265,7 +265,7 @@ class TestMatchingServiceMatch:
         repo.get_all_approved.return_value = scholarships
 
         engine = MagicMock(spec=ScholarshipIntelligenceEngine)
-        engine.match.return_value = []
+        engine.match_with_total.return_value = ([], 0)
 
         service = MatchingService(
             session=session,
@@ -278,8 +278,8 @@ class TestMatchingServiceMatch:
         service.match(_profile())
 
         repo.get_all_approved.assert_called_once()
-        engine.match.assert_called_once()
-        call_args = engine.match.call_args
+        engine.match_with_total.assert_called_once()
+        call_args = engine.match_with_total.call_args
         _, called_scholarships = call_args[0]
         assert called_scholarships == scholarships
 
@@ -298,7 +298,7 @@ class TestMatchingServiceMatch:
 
         expected_results = [_mock_result(scholarship_id=sid, score=85.0)]
         engine = MagicMock(spec=ScholarshipIntelligenceEngine)
-        engine.match.return_value = expected_results
+        engine.match_with_total.return_value = (expected_results, len(expected_results))
 
         service = MatchingService(
             session=session,
@@ -347,7 +347,7 @@ class TestMatchingServiceEdgeCases:
         repo.get_all_approved.return_value = []
 
         engine = MagicMock(spec=ScholarshipIntelligenceEngine)
-        engine.match.return_value = []
+        engine.match_with_total.return_value = ([], 0)
 
         service = MatchingService(
             session=session,
@@ -377,10 +377,13 @@ class TestMatchingServiceEdgeCases:
 
         # Engine only returns 7 (3 were filtered by deadline)
         engine = MagicMock(spec=ScholarshipIntelligenceEngine)
-        engine.match.return_value = [
-            _mock_result(scholarship_id=scholarships[i].scholarship_id, score=80.0)
-            for i in range(7)
-        ]
+        engine.match_with_total.return_value = (
+            [
+                _mock_result(scholarship_id=scholarships[i].scholarship_id, score=80.0)
+                for i in range(7)
+            ],
+            7,
+        )
 
         service = MatchingService(
             session=session,

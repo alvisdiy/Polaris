@@ -1,12 +1,13 @@
 """Integration tests for scholarship-first discovery flow."""
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 from database.models.country import Country
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
-from services.discovery import register_source, discover_scholarships_for_country
+from services.discovery import discover_scholarships_for_country, register_source
 
 
 @pytest.fixture
@@ -44,13 +45,13 @@ class TestScholarshipFirstFlow:
         # Verify Provider created
         assert provider.provider_id is not None
         assert provider.provider_code == "test-scholarship-example-com"
-        assert provider.verification_status == "unverified"
+        assert provider.verification_status == "discovered"
 
         # Verify SourceRegistry created
         assert source.source_id is not None
         assert source.provider_id == provider.provider_id
         assert source.country_id == country.country_id
-        assert source.status == "active"
+        assert source.status == "Active"
 
     def test_register_source_reuses_existing_provider(self, session):
         """Registering another source with same domain reuses Provider."""
@@ -132,7 +133,7 @@ class TestScholarshipFirstFlow:
             results = discover_scholarships_for_country("DC", session)
             # Results will be empty since we don't make actual HTTP calls in tests
             assert isinstance(results, list)
-        except Exception as e:
+        except Exception:
             # Expected: connection errors without actual network
             # The important thing is the query logic works
             pass

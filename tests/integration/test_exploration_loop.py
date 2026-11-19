@@ -8,21 +8,18 @@ Uses mocked fetch/search so no live internet is needed.
 """
 
 from dataclasses import dataclass, field
-from unittest.mock import patch
 
 import pytest
 
 from database.models.country import Country
-from database.models.discovery_frontier import FrontierState
 from database.models.exploration_run import ExplorationRun
 from database.models.provider import Provider
 from database.models.scholarship import Scholarship
 from database.models.source_registry import SourceRegistry
-from services.exploration.candidate_analyzer import AnalyzedCandidate, CandidateAnalyzer, PageLink
+from services.exploration.candidate_analyzer import AnalyzedCandidate, CandidateAnalyzer
 from services.exploration.config_loader import load_country_config
 from services.exploration.engine import CountryExplorationEngine
 from services.exploration.search.base import SearchProvider, SearchQuery, SearchResult
-from tests.integration._exploration_isolation import exploration_session
 
 
 @pytest.fixture
@@ -259,11 +256,11 @@ class TestExplorationLoop:
     @pytest.mark.asyncio
     async def test_second_run_idempotent(self, engine, jp_country, session):
         """CRITICAL: second run creates no duplicate ecosystem rows."""
-        metrics1 = await engine.run()
+        await engine.run()
         providers_after_1 = session.query(Provider).count()
         sources_after_1 = session.query(SourceRegistry).count()
 
-        metrics2 = await engine.run()
+        await engine.run()
 
         providers_after_2 = session.query(Provider).count()
         sources_after_2 = session.query(SourceRegistry).count()

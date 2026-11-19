@@ -1,0 +1,137 @@
+{
+  "dataset": "polaris-extraction-golden",
+  "phase": "M10.3",
+  "policy": [
+    "Every sample is a real official page already stored in Polaris's raw_document table.",
+    "Every sample names the exact stored capture (document_id) its expectations were written against. A re-fetch of the same URL is a different page, and a site that starts serving an empty body would otherwise silently replace the corpus underneath the tests.",
+    "A field is asserted only where the page states it unambiguously. A field absent from 'expected' is NOT judged: ambiguity is not a licence to guess an answer, and it is equally not a licence to assert one.",
+    "An expected value of null asserts the ABSENCE of a value. That is a real, testable claim, and it is the claim that matters most: a scholarship page that states no deadline must produce NULL, not 2099-01-01.",
+    "Expectations were written by reading the cleaned page text (scripts/m10_show_pages.py), not by reading the extractor's output. Where the two disagree, that is a finding and is reported, not resolved by moving the expectation.",
+    "A field is removed from a sample when the page genuinely does not settle it. That is not a concession to the extractor: it is the same rule that stopped the dataset asserting a degree level from 'undergraduate or postgraduate'.",
+    "scholarship_name is held under 'name_reference' rather than 'expected'. It is a reference answer for the metrics report and a ratchet for the test suite, not an assertion, because the M10 accuracy was a known defect being reported rather than fixed."
+  ],
+  "samples": [
+    {
+      "id": "lboro_sanctuary",
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/sanctuary-scholarships/",
+      "document_id": "a18596be-41d3-48da-aa12-c6ecffc08e60",
+      "note": "States 'Application deadline is 3 May 2027' verbatim. The award covers 'undergraduate or postgraduate level', so no single degree level is derivable from the page and the field is deliberately not asserted.",
+      "expected": {
+        "application_deadline": "2027-05-03",
+        "funding_type": null
+      },
+      "name_reference": "Loughborough University Sanctuary Scholarships"
+    },
+    {
+      "id": "cranfield_merit",
+      "url": "https://www.cranfield.ac.uk/som/funding/cranfield-merit-scholarships",
+      "document_id": "e70cbd5a-c325-45a1-bb93-8d68ff0c8a86",
+      "note": "'Deadline: On going' - no fixed closing date exists, so the deadline must be NULL. The qualification levels on the page are an eligibility list ('An existing UK Master's degree ... a UK Doctoral qualification'), not a declaration of the award's level, so NULL is asserted and the reviewer settles it against the page.",
+      "expected": {
+        "application_deadline": null,
+        "degree": null,
+        "funding_type": null
+      },
+      "name_reference": "Cranfield Excellence Merit Scholarships"
+    },
+    {
+      "id": "cranfield_commonwealth",
+      "url": "https://www.cranfield.ac.uk/funding/funding-opportunities/commonwealth-shared-scholarship-scheme",
+      "document_id": "c2c7e956-e494-449e-916d-ec35577619c6",
+      "note": "'Deadline 09 Dec 2025' is explicit. The page states a specific benefit wording — 'Stipend (living allowance) at the rate of GBP 1,452 per month' — which the pre-expansion three-value funding vocabulary could not express, so the expected value was NULL on the grounds that the wording 'matched none of the three canonical funding types'. That premise is now obsolete: Living Allowance is a canonical value and the page states one, so the classification is evidence-backed rather than forced. The NULL that remains asserted (degree) is unchanged: the page both offers 'taught full-time master's courses' and says the scholarships 'do not cover PhD study', and a page that mentions both levels does not declare one.",
+      "expected": {
+        "application_deadline": "2025-12-09",
+        "degree": null,
+        "funding_type": "Living Allowance"
+      },
+      "name_reference": "Commonwealth Shared Scholarship Scheme"
+    },
+    {
+      "id": "fulbright_scholar_grant",
+      "url": "https://fulbright.de/en/grants/program/fulbright-scholar-grant-including-inter-country-travel-grant",
+      "document_id": "f63d561f-f49a-459c-ae1f-39790e063cdb",
+      "note": "'The application cycle opens in February and ends in September' states no calendar deadline. Naming a month is not a date, and inventing one would be the single most damaging thing extraction can do to a deadline field.",
+      "expected": {
+        "application_deadline": null
+      },
+      "name_reference": "Fulbright Scholar Grant (including Inter-Country Travel Grant)"
+    },
+    {
+      "id": "daad_overview",
+      "url": "https://www.daad.de/en/studying-in-germany/scholarships/daad-scholarships/",
+      "document_id": "6d276658-e13f-4d89-91c6-e5993c4ab809",
+      "note": "An overview page listing awards at several levels (graduates, doctoral, postgraduate). A single degree level here would be a fabrication.",
+      "expected": {
+        "degree": null
+      },
+      "name_reference": "DAAD Scholarships - An Overview"
+    },
+    {
+      "id": "nus_undergraduate",
+      "url": "https://nus.edu.sg/oam/scholarships/scholarships-for-freshmen-singapore-citizens/nus-undergraduate-scholarship",
+      "document_id": "5a6eb146-c61c-45e1-870b-44e537efc8da",
+      "note": "Eligibility requires 'local Polytechnic Diploma ... or equivalent'. That is a qualification Polaris has no degree level for, so degree must be NULL with the source wording preserved as evidence (ADR-016). Eligibility requires a 'local Polytechnic Diploma'. The page also advertises a 'guaranteed student exchange programme placement' as a benefit, so whether the award's level is Bachelor or Exchange is not settled by the page alone; the field is left unasserted rather than guessed either way.",
+      "expected": {},
+      "name_reference": "NUS Undergraduate Scholarship"
+    },
+    {
+      "id": "nus_sports",
+      "url": "https://nus.edu.sg/oam/scholarships/scholarships-for-freshmen-singapore-citizens/nus-sports-scholarship",
+      "document_id": "47063def-5204-4183-8c8b-5488c4ef82d1",
+      "note": "Same structure as the NUS undergraduate award, different page. Two samples from one source is deliberate: identical structure must not produce identical results by accident. Eligibility requires a 'local Polytechnic Diploma'. The page also advertises a 'guaranteed student exchange programme placement' as a benefit, so whether the award's level is Bachelor or Exchange is not settled by the page alone; the field is left unasserted rather than guessed either way.",
+      "expected": {},
+      "name_reference": "NUS Sports Scholarship (Freshmen)"
+    },
+    {
+      "id": "aminef_kennedy",
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/fellowships/fulbright-visiting-scholar/the-fulbright-kennedy-center-fellowship-for-performing-arts-and-science/",
+      "document_id": "54bb5cfa-8e05-4a3b-9dbf-a6cef118810f",
+      "note": "'Applications for this fellowship are currently closed.' A closed call has no deadline, and the page states no degree level - it is a research fellowship.",
+      "expected": {
+        "application_deadline": null,
+        "degree": null
+      },
+      "name_reference": "The Fulbright / Kennedy Center Fellowship for Performing Arts And Science"
+    },
+    {
+      "id": "sp_pfp_study_award",
+      "url": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes/pfp-study-award",
+      "document_id": "219a2f86-3970-4757-bb41-3e8abf754648",
+      "note": "A polytechnic-level award. The page says 'PFP students' and never the word diploma, so no unmapped-qualification evidence may be recorded either - evidence has to come from the page too.",
+      "expected": {
+        "degree": null,
+        "unmapped_qualification": null
+      },
+      "name_reference": "PFP Study Award"
+    },
+    {
+      "id": "tp_engineering_scholars_2026",
+      "url": "https://www.tp.edu.sg/schools-and-courses/students/schools/eng/scholarships/tp-eng-scholars-2026.html",
+      "document_id": "96af7738-e17e-4b00-8bb7-08255115edd1",
+      "note": "The page's own subject is the h2 'TP Engineering scholars 2026'. The page also links to many other programmes, so a name drawn from an anchor rather than the heading is a precision failure, not a formatting detail.",
+      "expected": {
+        "degree": null
+      },
+      "name_reference": "TP Engineering scholars 2026"
+    },
+    {
+      "id": "hisf_faq",
+      "url": "https://www.hisf.or.jp/en/scholarship/foreigner/faq-en/",
+      "document_id": "a44ffad1-c1cf-4bc1-8f97-13664c39be63",
+      "note": "Negative sample. An FAQ page is not a scholarship, and its title is a navigation label. Producing a scholarship name here would be exactly the M8 'Number of Scholarship' failure.",
+      "expected": {}
+    },
+    {
+      "id": "kyoto_other_opportunities",
+      "url": "https://www.kyoto-u.ac.jp/en/current/how-to/financial-aid/other-scholarship-opportunities",
+      "document_id": "37acc71d-44be-409d-b473-94103913a7f4",
+      "note": "Negative sample. A contact-and-navigation page with no scholarship content at all. This is the one sample still missed after the post-M10 Priority B work: the page's headings are menu labels, and 'About JASSO and other programs for Japanese students' is a well-formed noun phrase that names more than one programme. See name_accuracy.note.",
+      "expected": {}
+    }
+  ],
+  "name_accuracy": {
+    "correct": 11,
+    "total": 12,
+    "note": "Measured over all 12 samples including the two negative ones. M10 recorded 5/12 and deliberately did not assert the figure, because it was a defect rather than a result. The post-M10 Priority B work raised it to 11/12 and the figure is now asserted. Four defects were fixed, each from evidence rather than re-weighting: (1) candidates are ranked by what kind of claim put them on the page — a heading is the page's own statement of its subject, a link label is a statement about a different page — so 'Application procedure & deadlines' no longer outranks the Fulbright programme's h1, and 'Polytechnic Foundation Programme (PFP)' no longer outranks 'TP Engineering scholars 2026'; (2) the site name a CMS appends to a title is stripped, so 'Scholarships for international students | KYOTO UNIVERSITY' no longer publishes the publisher's name as part of the award; (3) strings that describe a page rather than name a programme are refused on that ground alone — an FAQ heading, a consent banner, a section label like 'General Scholarship Information', and a category label set in capitals like 'UNDERGRADUATE SCHOLARSHIPS'; (4) when a page's own claim is refused, no link label is promoted to take its place, because an anchor names another page's scholarship. Known remaining limit, stated rather than papered over: kyoto_other_opportunities is a contact-and-navigation page whose headings are menu labels ('About JASSO and other programs for Japanese students'). The identity gate judges strings, and that string is a well-formed noun phrase about more than one programme. Rejecting it would need page-intent evidence the pipeline does not carry; the record is refused at review rather than published, so the cost is a missed record, not a wrong one."
+  }
+}

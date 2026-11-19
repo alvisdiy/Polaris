@@ -1,6 +1,5 @@
 """Unit tests for UniversityStrategy."""
 
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -37,7 +36,7 @@ async def test_university_strategy_discover_returns_organizations(mock_country):
     ]
 
     with patch(
-        "services.ingestion.ecosystem_strategies.university_strategy.GenericPlaywrightConnector",
+        "services.ingestion.ecosystem_strategies.link_discovery.GenericPlaywrightConnector",
         return_value=mock_connector,
     ):
         result = await strategy.discover()
@@ -63,7 +62,7 @@ async def test_university_strategy_empty_links(mock_country):
     mock_connector.discover.return_value = []
 
     with patch(
-        "services.ingestion.ecosystem_strategies.university_strategy.GenericPlaywrightConnector",
+        "services.ingestion.ecosystem_strategies.link_discovery.GenericPlaywrightConnector",
         return_value=mock_connector,
     ):
         result = await strategy.discover()
@@ -83,7 +82,7 @@ async def test_university_strategy_connector_closed_on_exit(mock_country):
     mock_connector.discover.return_value = ["https://example.edu.cn"]
 
     with patch(
-        "services.ingestion.ecosystem_strategies.university_strategy.GenericPlaywrightConnector",
+        "services.ingestion.ecosystem_strategies.link_discovery.GenericPlaywrightConnector",
         return_value=mock_connector,
     ):
         await strategy.discover()
@@ -102,7 +101,7 @@ async def test_university_strategy_discovered_organizations_have_provenance(mock
     mock_connector.discover.return_value = ["https://pku.edu.cn"]
 
     with patch(
-        "services.ingestion.ecosystem_strategies.university_strategy.GenericPlaywrightConnector",
+        "services.ingestion.ecosystem_strategies.link_discovery.GenericPlaywrightConnector",
         return_value=mock_connector,
     ):
         result = await strategy.discover()
@@ -112,5 +111,6 @@ async def test_university_strategy_discovered_organizations_have_provenance(mock
     assert org.discovery_source == surface_url
     assert org.discovery_method == "link_discovery"
     assert org.confidence == 0.5
-    assert org.evidence == {"origin": "link_discovery"}
+    assert org.evidence["origin"] == "link_discovery"
+    assert org.evidence["registered_domain"]
     assert org.discovered_at is not None

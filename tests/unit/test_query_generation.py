@@ -69,6 +69,16 @@ class TestLocalization:
         for q in localized:
             assert any(not ch.isascii() for ch in q.text), f"not native: {q.text}"
 
+    @pytest.mark.parametrize("iso2", ["JP", "KR", "CN", "SG", "ID", "DE", "FR"])
+    def test_every_run_reserves_two_localized_queries(self, iso2):
+        config = load_country_config(iso2)
+        for offset in range(7):
+            plan = QueryGenerator(config, seed=1).generate_plan(run_offset=offset)
+            localized = [query for query in plan if query.family == "localized"]
+            assert len(localized) >= 2
+            if iso2 in {"JP", "KR", "CN", "SG"}:
+                assert all(any(not char.isascii() for char in query.text) for query in localized)
+
     def test_latin_queries_stay_single_script(self, jp_config):
         """Non-localized queries must not mix scripts (search quality)."""
         plan = QueryGenerator(jp_config, seed=1).generate_plan()
@@ -81,6 +91,36 @@ class TestLocalization:
         localized = [q for q in plan if q.family == "localized"]
         assert localized
         assert any("奖学金" in q.text or "留学" in q.text for q in localized)
+
+
+class TestOfficialDomainQueries:
+    def test_jp_plan_uses_the_site_operator(self, jp_config):
+        plan = QueryGenerator(jp_config, seed=1).generate_plan()
+        official = [q for q in plan if q.family == "official_domain"]
+        assert official, "official_domain family must appear in the plan"
+        tlds = {s.lstrip(".") for s in jp_config.soft_domain_signals}
+        for query in official:
+            assert "site:" in query.text
+            assert any(query.text.rstrip().endswith(tld) for tld in tlds), query.text
+
+    def test_tlds_rotate_across_runs(self, jp_config):
+        first = QueryGenerator(jp_config, seed=1).generate_plan(run_offset=0)
+        second = QueryGenerator(jp_config, seed=1).generate_plan(run_offset=1)
+        first_tlds = [q.text.rsplit("site:", 1)[-1] for q in first if q.family == "official_domain"]
+        second_tlds = [q.text.rsplit("site:", 1)[-1] for q in second if q.family == "official_domain"]
+        assert first_tlds != second_tlds, "successive runs must query different official TLDs"
+
+    def test_family_is_absent_without_official_tlds(self, jp_config):
+        config = jp_config.model_copy(
+            update={"soft_domain_signals": [], "query_families": ["official_domain"]}
+        )
+        assert QueryGenerator(config, seed=1).generate_plan() == []
+
+    @pytest.mark.parametrize("iso2", ["JP", "KR", "CN", "SG", "ID", "DE", "FR", "GB", "AU", "US"])
+    def test_every_country_has_official_seed_portals(self, iso2):
+        config = load_country_config(iso2)
+        assert config.seed_urls, f"{iso2} has no seed_urls"
+        assert all(url.startswith("https://") for url in config.seed_urls)
 
 
 class TestTypeHints:

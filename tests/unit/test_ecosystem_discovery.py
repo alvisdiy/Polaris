@@ -7,7 +7,7 @@ They verify orchestration, deduplication, persistence calls, and metrics.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -70,10 +70,10 @@ def test_normalize_url_strips_www_and_lowercases():
     assert _normalize_url("https://sub.example.com/") == "https://sub.example.com/"
 
 
-def test_provider_code_from_url_includes_hash_suffix():
-    code = _provider_code_from_url("https://example.com")
-    assert code.startswith("EXAMPLE_COM_")
-    assert len(code.split("_")[-1]) == 6  # 6-char hash suffix
+def test_provider_code_uses_registered_domain():
+    # Identity is the organisation (domain), not the path.
+    code = _provider_code_from_url("https://www.example.com/admissions")
+    assert code == "EXAMPLE_COM"
 
 
 def test_provider_code_stable_for_same_url():
@@ -83,10 +83,10 @@ def test_provider_code_stable_for_same_url():
     assert code1 == code2
 
 
-def test_provider_code_differs_for_different_urls():
+def test_provider_code_is_the_same_for_two_pages_of_one_domain():
     code1 = _provider_code_from_url("https://example.com")
     code2 = _provider_code_from_url("https://example.com/different")
-    assert code1 != code2
+    assert code1 == code2 == "EXAMPLE_COM"
 
 
 @pytest.mark.asyncio

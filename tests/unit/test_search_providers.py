@@ -3,15 +3,17 @@
 import httpx
 import pytest
 
+from services.exploration.query_generation import PlannedQuery
 from services.exploration.search import (
     NullSearchProvider,
-    SearchQuery,
     SearchProvider,
+    SearchQuery,
     SearchResult,
     SerperSearchProvider,
     create_search_provider,
 )
 from services.exploration.search.counting import CountingSearchProvider
+from services.exploration.surfaces.web_search import WebSearchSurface
 
 
 class TestNullProvider:
@@ -130,6 +132,28 @@ class TestCountingProvider:
         assert counter.calls == 1
         assert counter.failures == 1
         assert counter.results == 0
+        assert counter.failure_categories == {"runtimeerror": 1}
+
+
+class TestWebSearchSurface:
+    @pytest.mark.asyncio
+    async def test_unconfigured_provider_skips_the_query_plan(self, monkeypatch):
+        monkeypatch.delenv("POLARIS_SERPER_API_KEY", raising=False)
+        provider = CountingSearchProvider(SerperSearchProvider())
+        outcome = await WebSearchSurface(provider).execute(
+            [PlannedQuery("scholarships in Japan", "opportunity", "opportunity")],
+            country_id="country-id",
+            country_iso2="JP",
+            locale="en",
+            gl="jp",
+            frontier=None,
+        )
+
+        assert outcome.queries_executed == 0
+        assert outcome.queries_failed == 0
+        assert outcome.degraded_reason == "search provider 'serper' is not configured"
+        assert provider.calls == 0
+        assert provider.configured is False
 
 
 class TestFactory:
@@ -137,9 +161,11 @@ class TestFactory:
         monkeypatch.setenv("POLARIS_SEARCH_PROVIDER", "null")
         assert isinstance(create_search_provider(), NullSearchProvider)
 
-    def test_serper_default(self, monkeypatch):
+    def test_ddgs_default(self, monkeypatch):
         monkeypatch.delenv("POLARIS_SEARCH_PROVIDER", raising=False)
-        assert isinstance(create_search_provider(), SerperSearchProvider)
+        from services.exploration.search.ddgs import DDGSearchProvider
+
+        assert isinstance(create_search_provider(), DDGSearchProvider)
 
     def test_unknown_provider_rejected(self, monkeypatch):
         monkeypatch.setenv("POLARIS_SEARCH_PROVIDER", "yahoo1999")

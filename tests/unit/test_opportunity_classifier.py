@@ -2,7 +2,7 @@
 
 import pytest
 
-from services.exploration.candidate_analyzer import AnalyzedCandidate, PageLink
+from services.exploration.candidate_analyzer import AnalyzedCandidate
 from services.exploration.opportunity_classifier import OpportunityClassifier
 
 

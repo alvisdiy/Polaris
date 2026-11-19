@@ -83,6 +83,26 @@ def exploration_session(rollback_session):
         rollback_session.execute(
             delete(ExplorationRun).where(ExplorationRun.country_id == cid)
         )
+        # A provider belongs to one country but is *referenced* by sources in
+        # any country — real exploration finds "Study in Japan" from a GB or SG
+        # search and attaches the JP provider to that source. Deleting only the
+        # country's own SourceRegistry rows therefore left those sources
+        # holding a reference to a provider about to be deleted, and
+        # source_registry_provider_id_fkey is ON DELETE RESTRICT. The fixture
+        # broke the moment real cross-country discovery data existed, which is
+        # a property of the data, not of any one test run.
+        #
+        # Clearing the pointer (rather than deleting the other country's
+        # sources) keeps the real knowledge base intact and makes the JP
+        # provider delete legal inside the rolled-back transaction.
+        jp_provider_ids = rollback_session.query(Provider.provider_id).filter(
+            Provider.country_id == cid
+        )
+        rollback_session.execute(
+            SourceRegistry.__table__.update()
+            .where(SourceRegistry.provider_id.in_(jp_provider_ids))
+            .values(provider_id=None)
+        )
         rollback_session.execute(
             delete(Provider).where(Provider.country_id == cid)
         )

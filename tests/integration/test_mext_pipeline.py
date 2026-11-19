@@ -10,15 +10,18 @@ cross-test contamination.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 
 import pytest
 
 from database.models.country import Country
 from database.models.provider import Provider
+from database.models.scholarship import Scholarship
 from database.models.source_registry import SourceRegistry
-from database.session import get_engine, get_session_local
-from services.ingestion.connectors.base_connector import FetchResult
+from database.session import get_engine
+from services.ingestion.connectors.base_connector import ConnectorConfig, FetchResult
+from services.ingestion.connectors.government.mext_connector import MEXTConnector
 from services.ingestion.mock_llm import MockLLMClient
 from services.ingestion.orchestrator import persist_scholarship, run_pipeline
 from services.ingestion.repositories.raw_document_mapper import RawDocumentMapper
@@ -312,7 +315,7 @@ class TestMextConnectorPipeline:
         # 3. Call API
         client = TestClient(app)
         response = client.post(
-            "/recommendations",
+            "/api/v1/recommendations",
             json={
                 "target_country": "Japan",
                 "degree": "Master",
@@ -333,6 +336,134 @@ class TestMextConnectorPipeline:
         results = data["results"]
         assert len(results) > 0
 
-        # Verify MEXT scholarship is in results
-        names = [r["scholarship_name"] for r in results]
-        assert "MEXT Scholarship 2027" in names
+        # The API returns a Top-N page. Whether a given record lands on it is a
+        # question about its score relative to the whole catalogue, not about
+        # whether the pipeline produced a publishable record — which is what
+        # this test is for. Assert the contract the API promises, and assert
+        # the record's publication directly.
+        assert data["returned"] == len(results)
+        assert data["total"] >= data["returned"]
+
+        approved_names = {
+            s.scholarship_name
+            for s in db_session.query(Scholarship).filter(
+                Scholarship.extraction_status == "approved"
+            )
+        }
+        assert "MEXT Scholarship 2027" in approved_names, (
+            "the pipeline record did not become approved; it must not be "
+            "silently absent from the published set"
+        )
+
+    def test_failed_discovery_returns_empty_not_entry_url(self):
+        """Regression: a failed MEXT discovery must not hand the portal page
+        to the extractor as though it were a scholarship link.
+
+        The old behaviour returned [entry_url] on any exception, which is the
+        exact failure class the generic connector already fixed. A discovery
+        failure is now an absence, not a misreport.
+
+        The connector's ``_safe().get()`` is the call the discovery path
+        actually makes, so the mock goes there — mocking ``connector.client.get
+        `` directly would bypass ``SafeFetch`` and the robots check and would
+        also still resolve to a live robots.txt request in this test.
+        """
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        config = ConnectorConfig(
+            source_id=uuid.uuid4(),
+            url="https://www.studyinjapan.go.jp/en/",
+            timeout=5,
+            user_agent="PolarisBot/test",
+        )
+        connector = MEXTConnector(config)
+        # Prevent connect() from creating a real httpx client / doing network.
+        connector.client = AsyncMock()
+
+        failing_get = AsyncMock()
+        failing_get.side_effect = OSError("connection refused")
+        safe = AsyncMock()
+        safe.get = failing_get
+        connector._safe = lambda: safe
+
+        result = asyncio.run(connector.discover())
+        assert result == [], f"failed discovery returned {result!r}, not an empty list"
+
+    def test_empty_discovery_returns_empty_not_entry_url(self):
+        """A page with no scholarship links is an absence, not the entry URL.
+
+        The old fallback `if not unique: unique = [entry_url]` treated a page
+        with no matching links as if the entry page itself were a scholarship
+        candidate.
+        """
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        html = (
+            "<html><body><h1>Welcome</h1><p>No scholarships here.</p></body></html>"
+        )
+        config = ConnectorConfig(
+            source_id=uuid.uuid4(),
+            url="https://www.example.org/",
+            timeout=5,
+            user_agent="PolarisBot/test",
+        )
+        connector = MEXTConnector(config)
+        connector.client = AsyncMock()
+
+        ok_get = AsyncMock()
+        ok_resp = AsyncMock()
+        ok_resp.raise_for_status = lambda: None
+        ok_resp.text = html
+        ok_resp.url = config.url
+        ok_resp.content = html.encode("utf-8")
+        ok_resp.encoding = "utf-8"
+        ok_resp.headers = {}
+        ok_get.return_value = ok_resp
+        safe = AsyncMock()
+        safe.get = ok_get
+        connector._safe = lambda: safe
+
+        result = asyncio.run(connector.discover())
+        assert result == [], f"empty discovery returned {result!r}, not an empty list"
+
+    def test_discovery_still_succeeds_when_links_exist(self):
+        """The fix must not break the successful path."""
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        html = (
+            "<html><body>"
+            "<a href='/en/scholarship/mext'>MEXT Scholarship</a>"
+            "<a href='/about'>About</a>"
+            "</body></html>"
+        )
+        config = ConnectorConfig(
+            source_id=uuid.uuid4(),
+            url="https://www.studyinjapan.go.jp/en/",
+            timeout=5,
+            user_agent="PolarisBot/test",
+        )
+        connector = MEXTConnector(config)
+        connector.client = AsyncMock()
+
+        ok_get = AsyncMock()
+        ok_resp = AsyncMock()
+        ok_resp.raise_for_status = lambda: None
+        ok_resp.text = html
+        ok_resp.url = "https://www.studyinjapan.go.jp/en/scholarship/mext"
+        ok_resp.content = html.encode("utf-8")
+        ok_resp.encoding = "utf-8"
+        ok_resp.headers = {}
+        ok_get.return_value = ok_resp
+        safe = AsyncMock()
+        safe.get = ok_get
+        connector._safe = lambda: safe
+
+        result = asyncio.run(connector.discover())
+        assert len(result) >= 1
+        assert any(
+            "studyinjapan.go.jp" in url and "scholarship" in url.lower()
+            for url in result
+        )

@@ -2,17 +2,43 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
 from database.models import Base
-from database.session import get_engine, SessionLocal
+from database.session import SessionLocal, get_engine
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip tests that need the development knowledge base.
+
+    Golden samples, pinned discovery captures and the 41-record catalogue live
+    in the development database, not in a fresh one. Those tests are valuable
+    and must keep running where the data exists; on a clean CI database they
+    would fail for a reason that says nothing about the code.
+
+    Set ``POLARIS_RUN_DATA_TESTS=1`` to run them against a database that has
+    the knowledge base.
+    """
+    if os.getenv("POLARIS_RUN_DATA_TESTS", "").strip() == "1":
+        return
+    skip = pytest.mark.skip(
+        reason=(
+            "requires the development knowledge base "
+            "(set POLARIS_RUN_DATA_TESTS=1 to run against it)"
+        )
+    )
+    for item in items:
+        if "data" in item.keywords:
+            item.add_marker(skip)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    """Create all database tables before running tests."""
+    """Create and seed tables in the explicitly configured disposable test database."""
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
 
@@ -62,10 +88,35 @@ def rollback_session():
         connection.close()
 
 
+ADMIN_TEST_TOKEN = "test-admin-token"
+
+
+@pytest.fixture(autouse=True)
+def _admin_token(monkeypatch):
+    """Every test runs with the admin token configured.
+
+    Auth tests delete it explicitly. Without this, the review API correctly
+    answers 503 and every curation test fails at the auth layer instead of
+    the behaviour it is testing.
+    """
+    monkeypatch.setenv("POLARIS_ADMIN_TOKEN", ADMIN_TEST_TOKEN)
+
+
 @pytest.fixture
 def client():
-    """FastAPI test client."""
-    return TestClient(app)
+    """FastAPI test client with the admin bearer token attached."""
+    test_client = TestClient(app)
+    test_client.headers.update({"Authorization": f"Bearer {ADMIN_TEST_TOKEN}"})
+    return test_client
+
+
+# Exposed to every test module rather than imported by each one: an import
+# whose only purpose is fixture registration is invisible to linters, and
+# removing it breaks the tests silently. Tests that curate records need this
+# because the review API commits on its own.
+from tests.integration._exploration_isolation import (  # noqa: E402,F401
+    exploration_session,
+)
 
 
 @pytest.fixture
