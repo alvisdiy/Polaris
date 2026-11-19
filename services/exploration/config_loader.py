@@ -44,6 +44,10 @@ class CountryExplorationConfig(BaseModel):
     """Everything the engine needs to explore one country."""
 
     iso2: str
+    # ISO-3166 alpha-3 is a NOT NULL column on `country`. It belongs in the
+    # config for the same reason the seeds do: adding a country should be a data
+    # edit, not a code change.
+    iso3: str = ""
     country_name: str
     country_local: str                      # native name for localized queries
     languages: list[str] = Field(default_factory=lambda: ["en"])
@@ -51,7 +55,21 @@ class CountryExplorationConfig(BaseModel):
     search_gl: str = ""                     # geolocation param (e.g. "jp")
     terminology: dict[str, list[str]] = Field(default_factory=dict)
     query_families: list[str] = Field(
-        default_factory=lambda: ["opportunity", "provider", "official_source", "localized"]
+        # Order matters: it is the round-robin start order in
+        # QueryGenerator.generate_plan, so the highest-yield families are
+        # visited first when the per-run budget cannot cover them all.
+        # `funding`/`degree`/`ecosystem` are the three families added for
+        # scholarship breadth; the original four carry the proven yield.
+        default_factory=lambda: [
+            "opportunity",
+            "official_domain",
+            "localized",
+            "official_source",
+            "funding",
+            "degree",
+            "ecosystem",
+            "provider",
+        ]
     )
     max_queries_per_run: int = 12
     seed_urls: list[str] = Field(default_factory=list)

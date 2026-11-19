@@ -47,6 +47,11 @@ _NOISE_NAME_PATTERNS = (
     r"^[-–—•·\s\d]+",  # leading dashes/bullets/years, e.g. "-2021 ..."
     r"back to (?:top|home)",
     r"skip to (?:main |content)",
+    # Vowel-less short tokens are domain acronyms read as names ("Jpf" from
+    # jpf.go.jp). MIT (has I), NUS (has U) and DAAD (has A) stay valid.
+    r"^[bcdfghjklmnpqrstvwxz]{2,4}$",
+    # A bare hostname is not an organisation name.
+    r"^(?:[\w-]+\.)+(?:com|org|net|edu|gov|jp|go|ac|uk|de|fr|sg|id|kr|cn)$",
 )
 
 
@@ -102,7 +107,12 @@ class ProviderResolver:
 
         # JSON-LD Organization
         for item in analyzed.structured_data:
-            if item.get("@type") in ("Organization", "CollegeOrUniversity", "EducationalOrganization", "GovernmentOrganization"):
+            if item.get("@type") in (
+                "Organization",
+                "CollegeOrUniversity",
+                "EducationalOrganization",
+                "GovernmentOrganization",
+            ):
                 name = (item.get("name") or "").strip()
                 if name and not is_noise_org_name(name):
                     candidates.append((name, 0.9))
@@ -149,7 +159,12 @@ class ProviderResolver:
         norm_name = normalize_org_name(org_name)
 
         if not norm_name:
-            return self._create_needs_review(org_name or reg_domain or "unknown", url, "empty organization name", evidence)
+            return self._create_needs_review(
+                org_name or reg_domain or "unknown",
+                url,
+                "empty organization name",
+                evidence,
+            )
 
         # Signal 1: exact identity_key match
         key = identity_key_for(reg_domain, norm_name, self.country_id)
@@ -173,7 +188,9 @@ class ProviderResolver:
         ]
         if len(domain_match) == 1:
             existing = domain_match[0]
-            if not existing.is_verified() and self._names_compatible(norm_name, normalize_org_name(existing.provider_name)):
+            if not existing.is_verified() and self._names_compatible(
+                norm_name, normalize_org_name(existing.provider_name)
+            ):
                 # Strengthen identity: same domain AND compatible name
                 existing.identity_key = key
                 existing.identity_confidence = max(existing.identity_confidence or 0.0, 0.85)
@@ -263,12 +280,28 @@ class ProviderResolver:
         """Consolidate near-duplicate providers sharing one registered domain.
 
         The earliest-discovered non-merged row becomes the primary; the rest
-        are marked merged_into_provider_id and their scholarships/sources are
-        re-pointed to it (rows are kept — FKs are RESTRICT and the merge trail
-        stays auditable). Verified rows are preferred over discovered ones.
+        are marked merged_into_provider_id and their **unpublished**
+        scholarships and sources are re-pointed to it (rows are kept — FKs are
+        RESTRICT and the merge trail stays auditable). Verified rows are
+        preferred over discovered ones.
+
+        Approved scholarships are never re-pointed here. ``provider_id`` is
+        published knowledge: the public API renders the provider's name and
+        type, and duplicate detection keys on it. Rewriting it on an APPROVED
+        row would change what a user sees with no version, no review action and
+        no provenance — the same defect class as the M9.1 reacquisition bug,
+        reached through a different door.
+
+        Leaving the link alone is a decision, not a gap. A reviewer can still
+        re-point the record through ``ReviewService.correct(provider_id=...)``,
+        which writes the version and the audit trail. Phase 2 also ruled that
+        identity does not move on an automated observation, which is why this
+        does not go through a candidate revision: an approved record keeps the
+        provider it was published with until a human says otherwise.
         """
         from database.models.scholarship import Scholarship
         from database.models.source_registry import SourceRegistry
+        from services.review.publication import is_published
 
         candidates = [p for p in domain_match if not p.merged_into_provider_id]
         if not candidates:
@@ -285,9 +318,17 @@ class ProviderResolver:
             if dup.merged_into_provider_id:
                 continue
             dup.merged_into_provider_id = primary.provider_id
-            self.session.query(Scholarship).filter(
-                Scholarship.provider_id == dup.provider_id
-            ).update({"provider_id": primary.provider_id})
+
+            linked = (
+                self.session.query(Scholarship)
+                .filter(Scholarship.provider_id == dup.provider_id)
+                .all()
+            )
+            unpublished = [s for s in linked if not is_published(s)]
+            frozen = [s for s in linked if is_published(s)]
+            for scholarship in unpublished:
+                scholarship.provider_id = primary.provider_id
+
             self.session.query(SourceRegistry).filter(
                 SourceRegistry.provider_id == dup.provider_id
             ).update({"provider_id": primary.provider_id})
@@ -295,6 +336,12 @@ class ProviderResolver:
                 "ProviderResolver: merged duplicate '{}' into '{}' (same domain)",
                 dup.provider_name, primary.provider_name,
             )
+            if frozen:
+                logger.warning(
+                    "ProviderResolver: {} approved scholarship(s) still point at "
+                    "'{}' — left untouched for reviewer curation",
+                    len(frozen), dup.provider_name,
+                )
         self.session.flush()
         return primary, len(duplicates)
 

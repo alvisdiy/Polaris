@@ -17,6 +17,7 @@ import httpx
 from bs4 import BeautifulSoup
 from loguru import logger
 
+from services.exploration.robots_rules import RobotsRules
 from services.exploration.url_utils import domain_of
 
 USER_AGENT = "PolarisBot/0.2 (+https://polaris.example; discovery research)"
@@ -27,8 +28,8 @@ _BINARY_EXTENSIONS = (
     ".woff", ".woff2", ".ttf", ".eot", ".mp4", ".mp3", ".zip", ".pdf",
 )
 
-# robots.txt cache: domain → (allow_all, disallow_paths)
-_robots_cache: dict[str, tuple[bool, list[str]]] = {}
+# robots.txt cache: origin → rules (None = absent or unreadable)
+_robots_cache: dict[str, RobotsRules | None] = {}
 _domain_locks: dict[str, asyncio.Lock] = {}
 _last_fetch_at: dict[str, float] = {}
 
@@ -57,34 +58,38 @@ class AnalyzedCandidate:
 
 
 class _RobotRules:
-    """Minimal robots.txt compliance (allow-all on absence/parse failure)."""
+    """robots.txt compliance for the analyzer's fetch.
+
+    Uses services/exploration/robots_rules.py rather than a hand-rolled line
+    scanner or the standard library parser. The scanner honoured only
+    ``Disallow`` lines inside a ``User-agent: *`` group and ignored ``Allow``
+    entirely; urllib's parser returns the first matching rule in Python 3.11,
+    so ``Disallow: /`` followed by ``Allow: /en/`` still blocked everything.
+    One well-formed rule was therefore enough to silently stop discovery for
+    a whole domain — and a rejected page is marked permanent, so the loss
+    survived later runs.
+
+    Absence or an unreadable robots.txt means "not forbidden", the same
+    policy as services/ingestion/robots.py.
+    """
 
     @staticmethod
     async def allowed(client: httpx.AsyncClient, url: str) -> bool:
         parsed = urlparse(url)
-        domain = parsed.netloc.lower()
-        if domain not in _robots_cache:
-            allow_all, disallows = True, []
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        if origin not in _robots_cache:
+            rules: RobotsRules | None = None
             try:
-                resp = await client.get(f"{parsed.scheme}://{domain}/robots.txt")
+                resp = await client.get(f"{origin}/robots.txt")
                 if resp.status_code == 200 and resp.text:
-                    allow_all = False
-                    for line in resp.text.splitlines():
-                        line = line.strip()
-                        if line.lower().startswith("user-agent:"):
-                            agent = line.split(":", 1)[1].strip().lower()
-                        elif line.lower().startswith("disallow:") and agent in ("*",):
-                            path = line.split(":", 1)[1].strip()
-                            if path:
-                                disallows.append(path)
+                    rules = RobotsRules.from_text(resp.text)
             except Exception:  # noqa: BLE001 — unreachable robots means allow
-                pass
-            _robots_cache[domain] = (allow_all, disallows)
-        allow_all, disallows = _robots_cache[domain]
-        if allow_all:
+                rules = None
+            _robots_cache[origin] = rules
+        rules = _robots_cache[origin]
+        if rules is None:
             return True
-        path = parsed.path or "/"
-        return not any(path.startswith(d) for d in disallows)
+        return rules.allows(USER_AGENT, url)
 
 
 async def _respect_domain_delay(domain: str, delay_ms: int) -> None:

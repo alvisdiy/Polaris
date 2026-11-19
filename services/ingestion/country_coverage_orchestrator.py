@@ -18,14 +18,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from loguru import logger
+from sqlalchemy import func
 
 from database.models.country import Country
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
-from services.ingestion.country_orchestrator import CountryDiscoveryOrchestrator
+from services.domain.source_trust import is_blocked_source_host
 from services.ingestion.ecosystem_discovery import CountryEcosystemDiscovery
-from services.ingestion.ecosystem_strategies.university_strategy import UniversityStrategy
-from services.ingestion.provider_discovery import ProviderDiscoveryOrchestrator
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -96,6 +95,7 @@ class CountryCoverageOrchestrator:
         run_provider_discovery: bool = True,
         run_scholarship_discovery: bool = True,
         max_urls_per_source: int = 50,
+        max_sources: int = 20,
     ) -> CountryCoverageMetrics:
         """Run complete country coverage pipeline.
 
@@ -121,7 +121,7 @@ class CountryCoverageOrchestrator:
             await self._run_source_discovery()
 
             if run_scholarship_discovery:
-                await self._run_scholarship_discovery(max_urls_per_source)
+                await self._run_scholarship_discovery(max_urls_per_source, max_sources)
 
             return self._finalize()
 
@@ -146,22 +146,39 @@ class CountryCoverageOrchestrator:
                 self.metrics.errors.append(f"Country {self.country_iso2} not found")
                 return
 
-            # Load discovery configuration for the country
+            # Load every enabled discovery configuration for the country and
+            # resolve each through the strategy factory. The previous version
+            # hardcoded UniversityStrategy, so adding a government/foundation
+            # config had no effect on the run.
             from database.models.provider_discovery_config import ProviderDiscoveryConfig
-            config = (
+            from services.ingestion.strategy_factory import StrategyFactory
+
+            configs = (
                 self.session.query(ProviderDiscoveryConfig)
                 .filter_by(country_id=country.country_id, is_active=True)
-                .first()
+                .all()
             )
-            if not config:
+            if not configs:
                 logger.warning("No active ProviderDiscoveryConfig for {}", self.country_iso2)
                 return
 
-            # Phase 2 vertical slice: University discovery
-            # Future phases will instantiate multiple strategies (government, foundation, etc.)
-            strategies = [
-                UniversityStrategy(country=country, surface_url=config.discovery_surface_url)
-            ]
+            strategies = []
+            for config in configs:
+                try:
+                    strategies.append(
+                        StrategyFactory.get_strategy(
+                            config.organization_type,
+                            country,
+                            config.discovery_surface_url,
+                            config,
+                        )
+                    )
+                except KeyError as exc:
+                    logger.warning("Unsupported discovery config: {}", exc)
+                    self.metrics.errors.append(str(exc))
+            if not strategies:
+                logger.warning("No runnable discovery strategy for {}", self.country_iso2)
+                return
 
             # Run ecosystem discovery
             engine = CountryEcosystemDiscovery(self.session)
@@ -205,7 +222,9 @@ class CountryCoverageOrchestrator:
                 self.session.query(Provider)
                 .filter(
                     Provider.country_id == country.country_id,
-                    Provider.verification_status.in_(["discovered", "candidate", "verified"]),
+                    Provider.verification_status.in_(
+                        ["discovered", "candidate", "verified", "unverified"]
+                    ),
                 )
                 .all()
             )
@@ -213,6 +232,17 @@ class CountryCoverageOrchestrator:
             logger.info("Found {} discovered providers for {}", len(discovered_providers), self.country_iso2)
 
             for provider in discovered_providers:
+                if not provider.official_url:
+                    self.metrics.errors.append(
+                        f"provider {provider.provider_code} has no official_url; skipped"
+                    )
+                    continue
+                if is_blocked_source_host(provider.official_url):
+                    self.metrics.errors.append(
+                        f"provider {provider.provider_code} points at an aggregator/social host; skipped"
+                    )
+                    continue
+
                 existing_source = (
                     self.session.query(SourceRegistry)
                     .filter(
@@ -273,35 +303,66 @@ class CountryCoverageOrchestrator:
             logger.error("Source Discovery failed: {}", e)
             self.metrics.errors.append(f"Source Discovery: {e}")
 
-    async def _run_scholarship_discovery(self, max_urls_per_source: int) -> None:
-        """Phase 3: Discover scholarships from all active sources."""
-        logger.info("[Phase 3] Scholarship Discovery")
+    async def _run_scholarship_discovery(self, max_urls_per_source: int, max_sources: int = 20) -> None:
+        """Phase 3: Acquire programmes from the country's sources.
+
+        Uses ``AcquisitionService`` — the same path as country exploration —
+        instead of the legacy ``DiscoveryOrchestrator``. That means page intent,
+        the listing guard, aggregator blocking and the review boundary all apply;
+        the previous path fed every discovered URL straight into extraction.
+        """
+        logger.info("[Phase 3] Scholarship Acquisition")
 
         try:
-            orchestrator = CountryDiscoveryOrchestrator(self.country_iso2, self.session)
-            report = await orchestrator.discover_all_sources(max_urls_per_source=max_urls_per_source)
+            from services.exploration.acquisition_service import AcquisitionService
 
-            self.metrics.candidate_urls_found = report.total_candidates
-            self.metrics.pages_fetched = report.total_fetched
-            self.metrics.scholarships_persisted = report.total_persisted
-            self.metrics.duplicates_skipped = report.total_duplicates
+            country = self.session.query(Country).filter_by(iso2=self.country_iso2).first()
+            if not country:
+                return
 
-            for metrics in report.per_source_metrics.values():
-                self.metrics.extraction_succeeded += metrics.extraction_succeeded
-                self.metrics.extraction_failed += metrics.extraction_failed
+            sources = (
+                self.session.query(SourceRegistry)
+                .filter(
+                    SourceRegistry.country_id == country.country_id,
+                    func.lower(SourceRegistry.status).in_(["active", "provisional"]),
+                )
+                .order_by(SourceRegistry.priority)
+                .limit(max_sources)
+                .all()
+            )
+            logger.info("Acquiring from {} source(s) for {}", len(sources), self.country_iso2)
 
-            self.metrics.errors.extend(report.errors)
+            service = AcquisitionService(self.session)
+            for source in sources:
+                entry_url = source.crawl_entry_url or source.official_url
+                if not entry_url or is_blocked_source_host(entry_url):
+                    continue
+                try:
+                    acq = await service.acquire_from_source(
+                        source, max_pages=max_urls_per_source
+                    )
+                except Exception as exc:  # noqa: BLE001 — one source must not stop the country
+                    self.metrics.errors.append(f"{source.source_name}: {exc}"[:300])
+                    continue
+
+                self.metrics.candidate_urls_found += acq.scholarship_urls_found
+                self.metrics.pages_fetched += acq.pages_fetched
+                self.metrics.scholarships_persisted += acq.scholarships_persisted
+                self.metrics.duplicates_skipped += acq.duplicates_collapsed
+                self.metrics.extraction_succeeded += acq.extraction_succeeded
+                self.metrics.extraction_failed += acq.extraction_failed
+                self.metrics.errors.extend(acq.errors)
 
             logger.info(
-                "Scholarship Discovery complete: {} candidates, {} fetched, {} persisted",
+                "Scholarship Acquisition complete: {} candidates, {} fetched, {} persisted",
                 self.metrics.candidate_urls_found,
                 self.metrics.pages_fetched,
                 self.metrics.scholarships_persisted,
             )
 
         except Exception as e:
-            logger.error("Scholarship Discovery failed: {}", e)
-            self.metrics.errors.append(f"Scholarship Discovery: {e}")
+            logger.error("Scholarship Acquisition failed: {}", e)
+            self.metrics.errors.append(f"Scholarship Acquisition: {e}")
 
     def _finalize(self) -> CountryCoverageMetrics:
         """Finalize and return metrics."""
@@ -312,9 +373,17 @@ class CountryCoverageOrchestrator:
         logger.info("COUNTRY COVERAGE COMPLETE: {}", self.country_iso2)
         logger.info("=" * 80)
         logger.info("Duration: {:.1f}s", duration)
-        logger.info("Providers: {} discovered, {} verified", self.metrics.providers_discovered, self.metrics.providers_verified)
+        logger.info(
+            "Providers: {} discovered, {} verified",
+            self.metrics.providers_discovered,
+            self.metrics.providers_verified,
+        )
         logger.info("Sources: {} discovered, {} active", self.metrics.sources_discovered, self.metrics.sources_active)
-        logger.info("Scholarships: {} fetched, {} persisted", self.metrics.pages_fetched, self.metrics.scholarships_persisted)
+        logger.info(
+            "Scholarships: {} fetched, {} persisted",
+            self.metrics.pages_fetched,
+            self.metrics.scholarships_persisted,
+        )
         if self.metrics.errors:
             logger.warning("Errors: {}", len(self.metrics.errors))
         logger.info("=" * 80)

@@ -10,6 +10,7 @@ import importlib
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database.models.country import Country
@@ -112,7 +113,7 @@ async def _discover_from_source_async(source: SourceRegistry) -> list[dict]:
         await connector.close()
 
 
-def discover_scholarships_for_country(
+async def discover_scholarships_for_country_async(
     country_iso2: str,
     session: Session,
     limit: Optional[int] = None,
@@ -153,7 +154,7 @@ def discover_scholarships_for_country(
     # 2. Load active SourceRegistry entries for country
     sources = session.query(SourceRegistry).filter(
         SourceRegistry.country_id == country.country_id,
-        SourceRegistry.status == "active",
+        func.lower(SourceRegistry.status) == "active",
     ).all()
 
     if not sources:
@@ -167,7 +168,7 @@ def discover_scholarships_for_country(
         results = await asyncio.gather(*tasks, return_exceptions=True)
         return results
 
-    results = asyncio.run(discover_all())
+    results = await discover_all()
 
     for i, result in enumerate(results):
         if isinstance(result, Exception):
@@ -186,6 +187,22 @@ def discover_scholarships_for_country(
         result = result[:limit]
 
     return result
+
+
+def discover_scholarships_for_country(
+    country_iso2: str,
+    session: Session,
+    limit: Optional[int] = None,
+) -> list[dict]:
+    """Blocking wrapper around :func:`discover_scholarships_for_country_async`.
+
+    The async form exists because ``asyncio.run`` — which this wrapper calls —
+    raises when invoked from a caller that already owns an event loop. An
+    operator script that is itself async must await the async form.
+    """
+    return asyncio.run(
+        discover_scholarships_for_country_async(country_iso2, session, limit)
+    )
 
 
 def discover_scholarships_for_source(

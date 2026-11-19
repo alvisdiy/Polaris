@@ -1,0 +1,20 @@
+{
+  "sources": [
+    {
+      "id": "fully_scholarships",
+      "name": "Fully Scholarships",
+      "base_url": "https://fullyscholarships.com/",
+      "discovery_urls": ["https://fullyscholarships.com/fully-funded-scholarships/"],
+      "discovery_mode": "html",
+      "max_pages": 3
+    },
+    {
+      "id": "opportunities_circle",
+      "name": "Opportunities Circle",
+      "base_url": "https://www.opportunitiescircle.com/",
+      "discovery_urls": ["https://www.opportunitiescircle.com/scholarships/"],
+      "discovery_mode": "html",
+      "max_pages": 3
+    }
+  ]
+}

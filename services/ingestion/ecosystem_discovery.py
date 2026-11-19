@@ -25,21 +25,22 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
-from uuid import UUID
 
 from loguru import logger
 from sqlalchemy import or_
 
 from database.models.enums import ProviderType
 from database.models.provider import Provider
+from services.exploration.url_utils import domain_of, registered_domain
 from services.ingestion.ecosystem_strategies import (
     DiscoveredOrganization,
     OrganizationDiscoveryStrategy,
 )
 
 if TYPE_CHECKING:
-    from database.models.country import Country
     from sqlalchemy.orm import Session
+
+    from database.models.country import Country
 
 
 @dataclass
@@ -81,21 +82,16 @@ def _normalize_url(url: str) -> str:
 
 
 def _provider_code_from_url(url: str) -> str:
-    """Derive a stable provider_code from the official URL.
+    """Derive a stable provider_code from the registered domain.
 
-    Uses the registered domain plus a short hash suffix of the full normalized
-    URL to avoid collisions between sub-domains or paths.
+    Provider identity is the organization, not the path. The previous version
+    hashed the full URL, so two links to the same university (homepage and
+    admissions page) produced two Provider rows. One registered domain is one
+    provider; its pages become sources.
     """
-    import hashlib
-
-    normalized = _normalize_url(url)
-    parsed = urlparse(normalized)
-    host = parsed.netloc
-    # Strip leading www. already done in normalization, but keep registered domain
-    registered = host
-    readable = registered.replace(".", "_").upper()
-    short_hash = hashlib.sha256(normalized.encode()).hexdigest()[:6].upper()
-    return f"{readable}_{short_hash}"
+    host = domain_of(url)
+    registered = registered_domain(host) or host
+    return registered.replace(".", "_").upper()
 
 
 class CountryEcosystemDiscovery:

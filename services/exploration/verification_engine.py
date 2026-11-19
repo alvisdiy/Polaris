@@ -8,8 +8,8 @@ DISCOVERED / NEEDS_REVIEW / VERIFIED / REJECTED / DEPRECATED.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
 
+from services.domain.source_trust import aggregator_host
 from services.exploration.url_utils import domain_of, registered_domain
 
 STATE_DISCOVERED = "DISCOVERED"
@@ -65,12 +65,27 @@ class VerificationEngine:
         title: str = "",
     ) -> VerificationVerdict:
         """Verify a candidate source page. Strict: confidence must be earned."""
+        aggregator = aggregator_host(url)
+        if aggregator:
+            # The verifier already refuses an aggregator *implicitly* by
+            # requiring an institutional domain. Saying it explicitly keeps
+            # the reason in the audit trail, and covers hosts that carry an
+            # academic suffix without being a university (prospects.ac.uk).
+            return VerificationVerdict(
+                state=STATE_REJECTED,
+                confidence=0.95,
+                signals={"aggregator_host": aggregator},
+                reasoning=(
+                    f"{aggregator} is a third-party aggregator, "
+                    "not an official scholarship source"
+                ),
+            )
+
         signals: dict = {}
         score = 0.0
 
         host = domain_of(url)
         reg = registered_domain(host)
-        path = urlparse(url).path.lower()
 
         # TLS + reachability (mechanical prerequisites)
         if https_ok:
@@ -109,7 +124,10 @@ class VerificationEngine:
             signals["referenced_by_verified"] = True
 
         # Page self-identification
-        if title and any(t in title.lower() for t in ("official", "university", "government", "ministry", "foundation")):
+        if title and any(
+            t in title.lower()
+            for t in ("official", "university", "government", "ministry", "foundation")
+        ):
             score += 0.05
             signals["self_identification"] = True
 

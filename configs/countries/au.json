@@ -2,16 +2,45 @@
   "iso2": "AU",
   "country_name": "Australia",
   "country_local": "Australia",
-  "languages": ["en"],
+  "languages": [
+    "en"
+  ],
   "search_locale": "en-AU",
   "search_gl": "au",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "award"],
-    "education": ["international students", "undergraduate", "postgraduate", "phd", "research"],
-    "provider": ["university", "foundation", "agency", "government"],
-    "funding": ["fully funded", "stipend", "tuition waiver"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "award"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "postgraduate",
+      "phd",
+      "research"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "agency",
+      "government"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition waiver"
+    ]
   },
-  "soft_domain_signals": [".edu.au", ".gov.au"],
-  "seed_urls": [],
+  "soft_domain_signals": [
+    ".edu.au",
+    ".gov.au"
+  ],
+  "seed_urls": [
+    "https://www.studyaustralia.gov.au/en/scholarships",
+    "https://www.dfat.gov.au/people-to-people/australia-awards",
+    "https://www.education.gov.au/"
+  ],
   "max_queries_per_run": 12
 }

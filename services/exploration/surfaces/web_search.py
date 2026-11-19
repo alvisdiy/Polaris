@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from services.domain.source_trust import is_blocked_source_host
 from services.exploration.query_generation import PlannedQuery
 from services.exploration.repositories.frontier_repository import (
     FrontierObservation,
@@ -28,6 +29,7 @@ class SurfaceOutcome:
         self.queries_failed = 0
         self.results_received = 0
         self.candidates_created = 0
+        self.skipped_aggregators = 0
         self.degraded_reason: str | None = None
 
 
@@ -51,8 +53,9 @@ class WebSearchSurface:
         outcome = SurfaceOutcome()
         now = datetime.now(timezone.utc).isoformat()
 
-        if isinstance(self.provider, type(self)) and not getattr(self.provider, "configured", True):
-            outcome.degraded_reason = "search provider not configured"
+        if not getattr(self.provider, "configured", True):
+            outcome.degraded_reason = f"search provider '{self.provider.name}' is not configured"
+            logger.warning("WebSearchSurface degraded: {}", outcome.degraded_reason)
             return outcome
 
         for planned in plan:
@@ -75,6 +78,14 @@ class WebSearchSurface:
             outcome.results_received += len(results)
 
             for result in results:
+                # A third-party listing site is a discovery lead, not an
+                # official source. Country exploration only queues official
+                # hosts; aggregator resolution has its own service
+                # (aggregator_discovery) where the article is traced back to
+                # the provider's page.
+                if is_blocked_source_host(result.url):
+                    outcome.skipped_aggregators += 1
+                    continue
                 observation = FrontierObservation(
                     origin="web_search",
                     origin_query=planned.text,
@@ -102,17 +113,32 @@ class WebSearchSurface:
             outcome.degraded_reason = "all search queries failed"
 
         logger.info(
-            "WebSearchSurface: {} queries, {} results, {} new candidates",
+            "WebSearchSurface: {} queries, {} results, {} new candidates "
+            "({} aggregator leads skipped)",
             outcome.queries_executed,
             outcome.results_received,
             outcome.candidates_created,
+            outcome.skipped_aggregators,
         )
         return outcome
 
     @staticmethod
     def _priority_for(planned: PlannedQuery) -> int:
+        """Lower runs first. Families added after the original four must be
+        named here: the default (5) put them behind everything else, so a run
+        that could not drain its queue never reached the queries that exist
+        to widen it.
+
+        ``funding`` and ``degree`` are opportunity-bearing queries and rank
+        with ``opportunity``; ``ecosystem`` asks for provider sites, so it
+        ranks with the other source-family queries.
+        """
         return {
             "opportunity": 2,
+            "official_domain": 2,
+            "funding": 3,
+            "degree": 3,
+            "ecosystem": 3,
             "provider": 3,
             "official_source": 3,
             "localized": 4,

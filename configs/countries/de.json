@@ -2,16 +2,51 @@
   "iso2": "DE",
   "country_name": "Germany",
   "country_local": "Deutschland",
-  "languages": ["de", "en"],
+  "languages": [
+    "de",
+    "en"
+  ],
   "search_locale": "de-DE",
   "search_gl": "de",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "Stipendium", "Stipendien", "Förderung"],
-    "education": ["international students", "Bachelor", "Master", "Promotion", "internationale Studierende"],
-    "provider": ["university", "foundation", "Hochschule", "Stiftung", "Behörde"],
-    "funding": ["fully funded", "stipend", "Finanzierung"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "Stipendium",
+      "Stipendien",
+      "Förderung"
+    ],
+    "education": [
+      "international students",
+      "Bachelor",
+      "Master",
+      "Promotion",
+      "internationale Studierende"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "Hochschule",
+      "Stiftung",
+      "Behörde"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "Finanzierung"
+    ]
   },
-  "soft_domain_signals": [".de", ".edu"],
-  "seed_urls": [],
-  "max_queries_per_run": 12
+  "soft_domain_signals": [
+    ".de"
+  ],
+  "seed_urls": [
+    "https://www.daad.de/en/studying-in-germany/scholarships/",
+    "https://www.research-in-germany.org/en/",
+    "https://www.make-it-in-germany.com/en/",
+    "https://www.deutschlandstipendium.de/",
+    "https://www.dfg.de/en/",
+    "https://www.tum.de/en/studies/fees-and-financial-aid/scholarships"
+  ],
+  "max_queries_per_run": 12,
+  "iso3": "DEU"
 }

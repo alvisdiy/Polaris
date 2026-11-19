@@ -2,16 +2,61 @@
   "iso2": "CN",
   "country_name": "China",
   "country_local": "中国",
-  "languages": ["zh", "en"],
+  "languages": [
+    "zh",
+    "en"
+  ],
   "search_locale": "zh-CN",
   "search_gl": "cn",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "奖学金", "资助"],
-    "education": ["international students", "undergraduate", "master", "phd", "留学生", "研究生"],
-    "provider": ["university", "foundation", "council", "government", "大学", "基金会", "委员会"],
-    "funding": ["fully funded", "stipend", "tuition waiver", "全额资助"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "奖学金",
+      "资助"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "master",
+      "phd",
+      "留学生",
+      "研究生"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "council",
+      "government",
+      "大学",
+      "基金会",
+      "委员会"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition waiver",
+      "全额资助"
+    ]
   },
-  "soft_domain_signals": [".edu.cn", ".gov.cn", ".ac.cn"],
-  "seed_urls": [],
+  "soft_domain_signals": [
+    ".edu.cn",
+    ".gov.cn",
+    ".ac.cn"
+  ],
+  "seed_urls": [
+    "https://www.isd.pku.edu.cn/en/scholarship.php",
+    "https://yz.tsinghua.edu.cn/en/Financial_Aid/Scholarship_Application.htm",
+    "https://global.sjtu.edu.cn/en/study-sjtu/prospective/scholarships/62",
+    "https://iczu.zju.edu.cn/admissionsen/wasterwswwcholarships/list.htm",
+    "https://iso.sysu.edu.cn/en/application/scholarship/index.htm",
+    "https://study.tongji.edu.cn/en/info/1049/1005.htm",
+    "https://en.shmtu.edu.cn/SGSScholarship/list.htm",
+    "https://iso.fudan.edu.cn/",
+    "https://en.sdu.edu.cn/",
+    "https://en.whu.edu.cn/",
+    "https://www.moe.gov.cn/"
+  ],
   "max_queries_per_run": 12
 }

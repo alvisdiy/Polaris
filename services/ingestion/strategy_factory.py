@@ -1,37 +1,46 @@
-"""Factory for OrganizationDiscoveryStrategy implementations.
+"""Factory for organization-discovery strategies.
 
-Each discovery source is represented by a ProviderDiscoveryConfig row which
-specifies:
-- `organization_type` (e.g. "University", "Government", ...)
-- `discovery_strategy` (e.g. "link_discovery")
+A `ProviderDiscoveryConfig` row says *what* to discover (organization type)
+and *how* (discovery strategy). The factory turns that pair into a concrete
+strategy. Adding a surface type is a config operation; adding a genuinely new
+mechanism (sitemap, structured directory) is one registry entry.
 
-The factory maps those fields to a concrete `OrganizationDiscoveryStrategy`
-subclass.  Currently only `UniversityStrategy` is provided, but the
-architecture is extensible – adding a new strategy only requires adding it
-to the `_REGISTRY` dict.
+Resolution order:
+
+1. an explicit ``(organization_type, discovery_strategy)`` entry;
+2. ``link_discovery`` for any known ProviderType, using the generic strategy
+   with the configured organization type;
+3. otherwise ``KeyError`` — the caller records it rather than guessing.
 """
 
 from __future__ import annotations
 
 from typing import Type
 
-from services.ingestion.ecosystem_strategies.university_strategy import UniversityStrategy
-from services.ingestion.ecosystem_strategies import OrganizationDiscoveryStrategy
+from database.models.enums import ProviderType
 from database.models.provider_discovery_config import ProviderDiscoveryConfig
+from services.ingestion.ecosystem_strategies import OrganizationDiscoveryStrategy
+from services.ingestion.ecosystem_strategies.link_discovery import (
+    FoundationStrategy,
+    GovernmentStrategy,
+    LinkDiscoveryStrategy,
+    ResearchInstitutionStrategy,
+    ScholarshipAgencyStrategy,
+    UniversityStrategy,
+)
+
+_KNOWN_TYPES = {provider_type.value for provider_type in ProviderType}
 
 
 class StrategyFactory:
-    """Resolve a discovery strategy class from config.
-
-    The factory is deliberately simple: it looks up a tuple of
-    `(organization_type, discovery_strategy)` in the internal registry and
-    returns the corresponding class.  If no entry exists, it raises a
-    `KeyError` – the caller can then decide to log/skip the config.
-    """
+    """Resolve a discovery strategy class from config."""
 
     _REGISTRY: dict[tuple[str, str], Type[OrganizationDiscoveryStrategy]] = {
         ("University", "link_discovery"): UniversityStrategy,
-        # Future entries, e.g. ("Government", "api_discovery"): GovernmentStrategy,
+        ("Government", "link_discovery"): GovernmentStrategy,
+        ("Foundation", "link_discovery"): FoundationStrategy,
+        ("Scholarship Agency", "link_discovery"): ScholarshipAgencyStrategy,
+        ("Research Institution", "link_discovery"): ResearchInstitutionStrategy,
     }
 
     @classmethod
@@ -42,18 +51,23 @@ class StrategyFactory:
         surface_url: str,
         config: ProviderDiscoveryConfig,
     ) -> OrganizationDiscoveryStrategy:
-        """Return an instantiated strategy.
-
-        Args:
-            organization_type: The type of organization this config discovers.
-            country: The Country ORM object.
-            surface_url: The discovery surface URL from the config.
-            config: The full ProviderDiscoveryConfig row (allows strategies to
-                access `max_urls_per_source` or custom settings).
-        """
+        """Return an instantiated strategy, or raise KeyError with the pair."""
         key = (organization_type, config.discovery_strategy)
-        try:
-            StrategyCls = cls._REGISTRY[key]
-        except KeyError as exc:
-            raise KeyError(f"No discovery strategy registered for {key}") from exc
-        return StrategyCls(country, surface_url)
+        strategy_cls = cls._REGISTRY.get(key)
+
+        if strategy_cls is None:
+            if config.discovery_strategy == "link_discovery" and organization_type in _KNOWN_TYPES:
+                strategy_cls = LinkDiscoveryStrategy
+            else:
+                raise KeyError(
+                    f"No discovery strategy registered for {key}. "
+                    f"Known types: {sorted(_KNOWN_TYPES)}"
+                )
+
+        return strategy_cls(
+            country,
+            surface_url,
+            organization_type=organization_type,
+            allowed_tlds=list(config.allowed_tlds or []),
+            keyword_filters=list(config.keyword_filters or []),
+        )

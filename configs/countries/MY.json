@@ -1,0 +1,60 @@
+{
+  "iso2": "MY",
+  "country_name": "Malaysia",
+  "country_local": "Malaysia",
+  "languages": [
+    "en",
+    "ms"
+  ],
+  "search_locale": "en-MY",
+  "search_gl": "my",
+  "terminology": {
+    "scholarship": [
+      "scholarship",
+      "biasiswa",
+      "fellowship",
+      "grant",
+      "sponsorship"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "postgraduate",
+      "master",
+      "phd",
+      "pelajar antarabangsa"
+    ],
+    "provider": [
+      "university",
+      "ministry",
+      "foundation",
+      "kementerian",
+      "yayasan",
+      "university"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition fee waiver",
+      "full sponsorship",
+      "biayaan penuh"
+    ]
+  },
+  "soft_domain_signals": [
+    ".edu.my",
+    ".gov.my",
+    ".ac.uk"
+  ],
+  "seed_urls": [
+    "https://biasiswa.mohe.gov.my/biasiswa/",
+    "https://www.mohe.gov.my/en",
+    "https://www.mara.gov.my/en/",
+    "https://www.um.edu.my/",
+    "https://www.usm.my/en/",
+    "https://www.ukm.my/portal/",
+    "https://upm.edu.my/",
+    "https://www.utm.my/"
+  ],
+  "max_queries_per_run": 12,
+  "iso3": "MYS"
+}

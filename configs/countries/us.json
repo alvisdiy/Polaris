@@ -2,16 +2,46 @@
   "iso2": "US",
   "country_name": "United States",
   "country_local": "USA",
-  "languages": ["en"],
+  "languages": [
+    "en"
+  ],
   "search_locale": "en-US",
   "search_gl": "us",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "financial aid"],
-    "education": ["international students", "undergraduate", "graduate", "masters", "phd"],
-    "provider": ["university", "foundation", "agency", "government"],
-    "funding": ["full ride", "fully funded", "stipend", "tuition waiver"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "financial aid"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "graduate",
+      "masters",
+      "phd"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "agency",
+      "government"
+    ],
+    "funding": [
+      "full ride",
+      "fully funded",
+      "stipend",
+      "tuition waiver"
+    ]
   },
-  "soft_domain_signals": [".edu", ".gov"],
-  "seed_urls": [],
+  "soft_domain_signals": [
+    ".edu",
+    ".gov"
+  ],
+  "seed_urls": [
+    "https://educationusa.state.gov/",
+    "https://foreign.fulbrightonline.org/",
+    "https://www.state.gov/"
+  ],
   "max_queries_per_run": 12
 }

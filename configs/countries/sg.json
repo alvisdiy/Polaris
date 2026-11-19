@@ -2,17 +2,56 @@
   "iso2": "SG",
   "country_name": "Singapore",
   "country_local": "Singapura",
-  "languages": ["en", "zh"],
+  "languages": [
+    "en",
+    "zh"
+  ],
   "search_locale": "en-SG",
   "search_gl": "sg",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "bursary", "奖学金"],
-    "education": ["international students", "undergraduate", "master", "phd", "polytechnic"],
-    "provider": ["university", "foundation", "agency", "government", "大学"],
-    "funding": ["fully funded", "stipend", "tuition grant", "bond-free"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "bursary",
+      "奖学金"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "master",
+      "phd",
+      "polytechnic"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "agency",
+      "government",
+      "大学"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition grant",
+      "bond-free"
+    ]
   },
-  "soft_domain_signals": [".gov.sg", ".edu.sg", ".org.sg"],
-  "seed_urls": [],
-  "bounds": {"max_depth": 3, "max_candidates": 2000, "max_pages": 300, "max_pages_per_domain": 15},
+  "soft_domain_signals": [
+    ".gov.sg",
+    ".edu.sg",
+    ".org.sg"
+  ],
+  "seed_urls": [
+    "https://www.moe.gov.sg/financial-matters/scholarships",
+    "https://nus.edu.sg/oam/scholarships",
+    "https://www.ntu.edu.sg/admissions/undergraduate/scholarships"
+  ],
+  "bounds": {
+    "max_depth": 3,
+    "max_candidates": 2000,
+    "max_pages": 300,
+    "max_pages_per_domain": 15
+  },
   "max_queries_per_run": 12
 }

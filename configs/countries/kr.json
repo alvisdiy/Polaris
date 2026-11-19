@@ -2,16 +2,50 @@
   "iso2": "KR",
   "country_name": "South Korea",
   "country_local": "한국",
-  "languages": ["ko", "en"],
+  "languages": [
+    "ko",
+    "en"
+  ],
   "search_locale": "ko-KR",
   "search_gl": "kr",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "장학금", "학자금"],
-    "education": ["international students", "undergraduate", "graduate", "유학생", "대학원"],
-    "provider": ["university", "foundation", "agency", "government", "대학", "재단"],
-    "funding": ["fully funded", "stipend", "tuition waiver"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "장학금",
+      "학자금"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "graduate",
+      "유학생",
+      "대학원"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "agency",
+      "government",
+      "대학",
+      "재단"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition waiver"
+    ]
   },
-  "soft_domain_signals": [".go.kr", ".ac.kr", ".or.kr"],
-  "seed_urls": [],
+  "soft_domain_signals": [
+    ".go.kr",
+    ".ac.kr",
+    ".or.kr"
+  ],
+  "seed_urls": [
+    "https://www.studyinkorea.go.kr/en/main.do",
+    "https://www.gks.go.kr/",
+    "https://www.mofa.go.kr/eng/index.do"
+  ],
   "max_queries_per_run": 12
 }

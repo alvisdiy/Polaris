@@ -5,22 +5,20 @@ Orchestrates the discovery of new scholarship providers based on the Provider Di
 
 from __future__ import annotations
 
-import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse
 
 from loguru import logger
-from sqlalchemy import or_, select
+from sqlalchemy import or_
 
 from database.models.country import Country
 from database.models.enums import ProviderType
 from database.models.provider import Provider
 from database.models.provider_discovery_attempt import ProviderDiscoveryAttempt
 from database.models.provider_discovery_config import ProviderDiscoveryConfig
-from database.models.source_registry import SourceRegistry
 from services.ingestion.connectors.base_connector import ConnectorConfig
 from services.ingestion.connectors.generic_playwright import GenericPlaywrightConnector
 
@@ -423,7 +421,8 @@ class ProviderDiscoveryOrchestrator:
         duration = (self.metrics.finished_at - self.metrics.started_at).total_seconds()
 
         logger.info(
-            "Provider Discovery finished for {} in {:.1f}s. Created: {}, Updated: {}, Candidates pending review: {}, Auto-verified: {}",
+            "Provider Discovery finished for {} in {:.1f}s. Created: {}, "
+            "Updated: {}, Candidates pending review: {}, Auto-verified: {}",
             self.metrics.country_iso2,
             duration,
             self.metrics.providers_created,

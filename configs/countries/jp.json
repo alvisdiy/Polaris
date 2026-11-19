@@ -2,17 +2,60 @@
   "iso2": "JP",
   "country_name": "Japan",
   "country_local": "日本",
-  "languages": ["ja", "en"],
+  "languages": [
+    "ja",
+    "en"
+  ],
   "search_locale": "ja-JP",
   "search_gl": "jp",
   "terminology": {
-    "scholarship": ["scholarship", "fellowship", "grant", "奨学金", "給付"],
-    "education": ["international students", "undergraduate", "master", "phd", "留学生", "大学院"],
-    "provider": ["university", "foundation", "agency", "government", "大学", "財団", "機構"],
-    "funding": ["fully funded", "stipend", "tuition waiver", "給費"]
+    "scholarship": [
+      "scholarship",
+      "fellowship",
+      "grant",
+      "奨学金",
+      "給付"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "master",
+      "phd",
+      "留学生",
+      "大学院"
+    ],
+    "provider": [
+      "university",
+      "foundation",
+      "agency",
+      "government",
+      "大学",
+      "財団",
+      "機構"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition waiver",
+      "給費"
+    ]
   },
-  "soft_domain_signals": [".go.jp", ".ac.jp", ".or.jp", ".ad.jp"],
-  "seed_urls": [],
-  "bounds": {"max_depth": 3, "max_candidates": 2000, "max_pages": 300, "max_pages_per_domain": 15},
+  "soft_domain_signals": [
+    ".go.jp",
+    ".ac.jp",
+    ".or.jp",
+    ".ad.jp"
+  ],
+  "seed_urls": [
+    "https://www.studyinjapan.go.jp/en/planning/scholarships/",
+    "https://www.jasso.go.jp/en/ryugaku/scholarship_j/index.html",
+    "https://www.jsps.go.jp/english/e-fellow/"
+  ],
+  "bounds": {
+    "max_depth": 3,
+    "max_candidates": 2000,
+    "max_pages": 300,
+    "max_pages_per_domain": 15
+  },
   "max_queries_per_run": 12
 }

@@ -2,16 +2,47 @@
   "iso2": "GB",
   "country_name": "United Kingdom",
   "country_local": "UK",
-  "languages": ["en"],
+  "languages": [
+    "en"
+  ],
   "search_locale": "en-GB",
   "search_gl": "gb",
   "terminology": {
-    "scholarship": ["scholarship", "bursary", "fellowship", "studentship", "grant"],
-    "education": ["international students", "undergraduate", "masters", "phd", "postgraduate"],
-    "provider": ["university", "trust", "council", "government"],
-    "funding": ["fully funded", "stipend", "tuition fee waiver"]
+    "scholarship": [
+      "scholarship",
+      "bursary",
+      "fellowship",
+      "studentship",
+      "grant"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "masters",
+      "phd",
+      "postgraduate"
+    ],
+    "provider": [
+      "university",
+      "trust",
+      "council",
+      "government"
+    ],
+    "funding": [
+      "fully funded",
+      "stipend",
+      "tuition fee waiver"
+    ]
   },
-  "soft_domain_signals": [".ac.uk", ".gov.uk", ".org.uk"],
-  "seed_urls": [],
+  "soft_domain_signals": [
+    ".ac.uk",
+    ".gov.uk",
+    ".org.uk"
+  ],
+  "seed_urls": [
+    "https://www.chevening.org/scholarships/",
+    "https://www.britishcouncil.org/study-work-abroad/in-uk/scholarships",
+    "https://www.ukcisa.org.uk/"
+  ],
   "max_queries_per_run": 12
 }

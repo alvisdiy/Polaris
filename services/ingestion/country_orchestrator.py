@@ -1,8 +1,10 @@
-"""Country-centric discovery orchestrator.
+"""Country-centric discovery orchestrator (legacy).
 
-Orchestrates scholarship discovery across all sources in a country.
-Queries sources from the registry, dynamically instantiates connectors,
-runs discovery on each, and aggregates metrics.
+Kept for ``scripts/run_global_acquisition.py`` and historical tooling. New
+per-country work goes through ``services.exploration.engine``, which owns page
+intent, acquisition policy, aggregator blocking and the review boundary. This
+path still uses the older ``DiscoveryOrchestrator`` and is therefore marked
+legacy: fixing a precision bug in two places is how the two paths drift.
 """
 
 from __future__ import annotations
@@ -10,15 +12,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from loguru import logger
+from sqlalchemy import func
 
 from database.models.source_registry import SourceRegistry
+from services.domain.source_trust import is_blocked_source_host
 from services.ingestion.connectors import MEXTConnector
-from services.ingestion.connectors.generic_playwright import GenericPlaywrightConnector
 from services.ingestion.connectors.base_connector import ConnectorConfig
 from services.ingestion.connectors.generic_connector import GenericHTTPConnector
+from services.ingestion.connectors.generic_playwright import GenericPlaywrightConnector
 from services.ingestion.discovery import DiscoveryMetrics, DiscoveryOrchestrator
 
 if TYPE_CHECKING:
@@ -98,7 +101,7 @@ class CountryDiscoveryOrchestrator:
                 .join(Country)
                 .filter(
                     Country.iso2 == self.country_iso2,
-                    SourceRegistry.status.in_(["Active", "Provisional"]),
+                    func.lower(SourceRegistry.status).in_(["active", "provisional"]),
                 )
                 .all()
             )
@@ -133,20 +136,24 @@ class CountryDiscoveryOrchestrator:
             source.connector_name,
         )
 
-        # Look up connector class from dynamic map
-        connector_map = _CONNECTOR_MAP
-        # Choose connector based on crawl_method if not explicitly set
-        connector_class = None
-        if source.crawl_method == "Playwright":
-            # Prefer Playwright for JS-heavy sites
-            connector_class = _CONNECTOR_MAP.get("generic_playwright")
-        else:
-            connector_class = _CONNECTOR_MAP.get(source.connector_name)
-        if not connector_class:
-            logger.warning("Unknown connector: {}", source.connector_name)
-            self.report.errors.append(f"{source.source_name}: unknown connector {source.connector_name}")
+        # Choose the connector: an explicit connector name wins; a Playwright
+        # crawl method selects the Playwright connector when no name is set.
+        entry_url = source.crawl_entry_url or source.official_url
+        if not entry_url:
+            self.report.errors.append(
+                f"{source.source_name}: no crawl_entry_url or official_url"
+            )
+            return
+        if is_blocked_source_host(entry_url):
+            self.report.errors.append(
+                f"{source.source_name}: aggregator/social host is not an official source"
+            )
             return
 
+        if source.crawl_method == "Playwright":
+            connector_class = _CONNECTOR_MAP.get("generic_playwright")
+        else:
+            connector_class = _CONNECTOR_MAP.get(source.connector_name or "")
         if not connector_class:
             logger.warning("Unknown connector: {}", source.connector_name)
             self.report.errors.append(f"{source.source_name}: unknown connector {source.connector_name}")
@@ -155,7 +162,7 @@ class CountryDiscoveryOrchestrator:
         # Create config and connector
         config = ConnectorConfig(
             source_id=source.source_id,
-            url=source.crawl_entry_url,
+            url=entry_url,
             timeout=30,
             user_agent="PolarisBot/0.1 (scholarship research)",
         )

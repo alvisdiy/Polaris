@@ -21,6 +21,7 @@ from database.models.discovery_frontier import (
     DiscoveryFrontier,
     FrontierState,
 )
+from services.domain.source_trust import is_blocked_source_host
 from services.exploration.url_utils import domain_of, url_hash
 
 
@@ -73,6 +74,10 @@ class FrontierRepository:
         self.dedup_merges = 0
         self.admitted = 0
         self.rejected_by_bounds = 0
+        # Aggregator/social URLs are not candidates at all. Counted separately
+        # from bounds rejections: a listing site is not "too many pages", it is
+        # the wrong kind of page.
+        self.skipped_aggregators = 0
 
     # ------------------------------------------------------------------
     # Upsert with evidence merge
@@ -102,10 +107,32 @@ class FrontierRepository:
         normalized = url_hash(url)
         domain = domain_of(url)
 
+        # The one admission gate every path goes through: search results, seed
+        # URLs, known sources, authority candidates and link expansion. It used
+        # to live only in the search surface, so 32 globaladmissions.com URLs
+        # still entered a run through link expansion and spent fetch budget.
+        if is_blocked_source_host(url):
+            self.skipped_aggregators += 1
+            return self._existing_or_none(country_id, normalized), False
+
         # Admission bounds
+        #
+        # `max_candidates` is the per-run cap the country config advertises.
+        # It was declared on FrontierBounds and never read, so a run with
+        # expansion could admit without limit while the report claimed a
+        # bound. Counted per repository instance, which is per run.
+        if self.admitted >= self.bounds.max_candidates:
+            self.rejected_by_bounds += 1
+            return self._existing_or_none(country_id, normalized), False
         if depth > self.bounds.max_depth:
             self.rejected_by_bounds += 1
             return self._existing_or_none(country_id, normalized), False
+        # The domain budget is a *page* budget: it is consumed when a page is
+        # actually fetched (engine._process_candidate), not when a URL is
+        # merely queued. Incrementing here as well spent the same allowance
+        # twice — 15 admitted URLs plus 15 fetched pages exhausted a budget of
+        # 15 at roughly half the intended page count, and the excess was
+        # rejected before anything was read.
         if self.bounds.domain_budget_left(domain) <= 0:
             self.rejected_by_bounds += 1
             return self._existing_or_none(country_id, normalized), False
@@ -160,8 +187,6 @@ class FrontierRepository:
         self.session.add(candidate)
         self.session.flush()
         self.admitted += 1
-        if domain:
-            self.bounds.processed_domains[domain] = self.bounds.processed_domains.get(domain, 0) + 1
         return candidate, True
 
     def _existing_or_none(self, country_id, url_hash_value) -> DiscoveryFrontier | None:
@@ -184,6 +209,42 @@ class FrontierRepository:
         # Reassign (not mutate) so SQLAlchemy flags the JSONB column dirty
         candidate.evidence = evidence
         self.session.flush()
+
+    def record_page_signals(self, country_id, url: str, signals: dict[str, Any]) -> bool:
+        """Write what the page actually looked like into ``evidence.page_signals``.
+
+        The column has existed since the frontier was designed for exactly this
+        and nothing wrote to it: discovery recorded *why a URL was queued* and
+        acquisition recorded *what it decided*, so the two halves of a
+        candidate's story were never in one place. After a fetch the signals
+        explain the verdict — an index page's link count, the title that gave
+        it away, the text length that says the body was empty.
+
+        Signals are per-candidate state, not provenance: they are replaced
+        rather than appended, because they describe the page as it is now, not
+        as it was seen. ``observations`` keeps the history; this keeps the
+        present.
+
+        Returns False when no candidate matches, which is normal — the
+        acquisition path also runs over URLs that never entered the frontier.
+        """
+        row = (
+            self.session.query(DiscoveryFrontier)
+            .filter(
+                DiscoveryFrontier.country_id == country_id,
+                DiscoveryFrontier.url_hash == url_hash(url),
+            )
+            .first()
+        )
+        if row is None:
+            return False
+        evidence = dict(row.evidence or {})
+        evidence["page_signals"] = {**signals, "recorded_at": datetime.now(timezone.utc).isoformat()}
+        # Reassigned, not mutated: SQLAlchemy only flags a reassigned JSONB
+        # column dirty, so an in-place update would silently never persist.
+        row.evidence = evidence
+        self.session.flush()
+        return True
 
     # ------------------------------------------------------------------
     # Claiming (leases)
@@ -283,6 +344,33 @@ class FrontierRepository:
         candidate.lease_expires_at = None
         self.session.flush()
         return True
+
+    def mark_failed_by_id(self, candidate_id, error: str, max_retries: int) -> bool:
+        """Record a candidate failure without depending on a possibly-dead instance.
+
+        `session.rollback()` expires every loaded attribute of every persistent
+        instance and discards rows written in the aborted transaction. An
+        instance caught in that state raises ObjectDeletedError on its very
+        next attribute access, so the caller's error handler must not touch it.
+
+        Re-reading by primary key issues a fresh SELECT keyed on the id and
+        never consults the dead instance. A row that is simply gone — the
+        normal case for a candidate first written inside the aborted
+        transaction — yields None and is skipped rather than raising.
+
+        The transition itself is delegated to `mark_failed_transient` so retry
+        accounting, backoff and the history cap stay in exactly one place.
+
+        Returns True if the candidate will be retried. False means either the
+        row no longer exists or retries are exhausted; both are ordinary
+        outcomes, not errors.
+        """
+        if candidate_id is None:
+            return False
+        candidate = self.session.get(DiscoveryFrontier, candidate_id)
+        if candidate is None:
+            return False
+        return self.mark_failed_transient(candidate, error, max_retries)
 
     # ------------------------------------------------------------------
     # Counters

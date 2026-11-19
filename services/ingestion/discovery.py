@@ -19,7 +19,7 @@ from uuid import UUID
 
 from loguru import logger
 
-from services.ingestion.connectors.base_connector import BaseConnector, ConnectorConfig
+from services.ingestion.connectors.base_connector import BaseConnector
 from services.ingestion.repositories.raw_document_mapper import RawDocumentMapper
 from services.ingestion.repositories.raw_document_repository import RawDocumentRepository
 

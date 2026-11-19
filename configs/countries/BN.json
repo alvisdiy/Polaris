@@ -1,0 +1,52 @@
+{
+  "iso2": "BN",
+  "country_name": "Brunei",
+  "country_local": "Brunei Darussalam",
+  "languages": [
+    "en",
+    "ms"
+  ],
+  "search_locale": "en-BN",
+  "search_gl": "bn",
+  "terminology": {
+    "scholarship": [
+      "scholarship",
+      "biasiswa",
+      "fellowship",
+      "sponsorship",
+      "grant"
+    ],
+    "education": [
+      "international students",
+      "undergraduate",
+      "postgraduate",
+      "master",
+      "phd"
+    ],
+    "provider": [
+      "university",
+      "ministry",
+      "kementerian",
+      "government",
+      "college"
+    ],
+    "funding": [
+      "fully funded",
+      "allowance",
+      "tuition fee",
+      "air ticket"
+    ]
+  },
+  "soft_domain_signals": [
+    ".edu.bn",
+    ".gov.bn"
+  ],
+  "seed_urls": [
+    "https://www.moe.gov.bn/",
+    "https://www.mof.gov.bn/",
+    "https://ubd.edu.bn/",
+    "https://www.utb.edu.bn/"
+  ],
+  "max_queries_per_run": 10,
+  "iso3": "BRN"
+}

@@ -14,6 +14,11 @@ from sqlalchemy.orm import Session
 from database.models.country import Country
 from database.models.provider import Provider
 from database.models.source_registry import SourceRegistry
+from services.domain.lifecycle import (
+    PROVIDER_DISCOVERED,
+    SOURCE_ACTIVE,
+    normalize_source_status,
+)
 
 
 def _normalize_domain(url: str) -> str:
@@ -41,6 +46,7 @@ def _get_or_create_provider(
     provider_type: str,
     country_id: uuid.UUID,
     session: Session,
+    official_url: str | None = None,
 ) -> Provider:
     """Get existing Provider by code or create new one.
 
@@ -57,16 +63,27 @@ def _get_or_create_provider(
     # Check if provider already exists
     existing = session.query(Provider).filter(Provider.provider_code == provider_code).first()
     if existing:
+        # A legacy row may still carry the old "unverified" spelling. Normalise
+        # it on the way out so the next query sees a lifecycle state the rest of
+        # the system recognises.
+        if existing.verification_status == "unverified":
+            existing.verification_status = PROVIDER_DISCOVERED
+        # A provider created before this field was populated has no official
+        # URL, which makes the coverage orchestrator skip it. The source that
+        # registered it knows the URL; write it here.
+        if not existing.official_url and official_url:
+            existing.official_url = official_url
         return existing
 
-    # Create new provider with unverified status
+    # Create new provider with the canonical discovered state
     provider = Provider(
         provider_id=uuid.uuid4(),
         provider_code=provider_code,
         provider_name=provider_name,
         provider_type=provider_type,
         country_id=country_id,
-        verification_status="unverified",  # Lightweight creation, verify later
+        verification_status=PROVIDER_DISCOVERED,  # Lifecycle starts here; verify later
+        official_url=official_url,
     )
     session.add(provider)
     session.flush()  # Get provider_id without committing
@@ -82,7 +99,7 @@ def register_source(
     crawl_entry_url: Optional[str] = None,
     connector_name: str = "generic_http",
     crawl_method: str = "html_extraction",
-    status: str = "active",
+    status: str = SOURCE_ACTIVE,
     source_name: Optional[str] = None,
 ) -> tuple[Provider, SourceRegistry]:
     """Register a scholarship source, creating Provider if needed.
@@ -133,6 +150,7 @@ def register_source(
         provider_type=provider_type,
         country_id=country.country_id,
         session=session,
+        official_url=official_url,
     )
 
     # 4. Create SourceRegistry entry
@@ -145,7 +163,7 @@ def register_source(
         crawl_entry_url=crawl_entry_url or official_url,
         crawl_method=crawl_method,
         connector_name=connector_name,
-        status=status,
+        status=normalize_source_status(status),
         crawl_frequency="weekly",
         priority=5,
         robots_allowed=True,

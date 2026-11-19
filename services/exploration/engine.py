@@ -14,7 +14,6 @@ Discovery candidates are rarely rejected; verification is strict.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -30,8 +29,10 @@ from database.models.discovery_frontier import (
     DiscoveryFrontier,
     FrontierState,
 )
+from database.models.exploration_run import ExplorationRun
 from database.models.source_registry import SourceRegistry
-from services.exploration.acquisition_service import AcquisitionService, AcquisitionMetrics
+from services.domain.source_trust import is_aggregator_host
+from services.exploration.acquisition_service import AcquisitionService
 from services.exploration.authority_source_resolver import (
     AUTHORITY_CANDIDATES_FOUND,
     AUTHORITY_RESOLVED,
@@ -53,6 +54,7 @@ from services.exploration.search.base import SearchProvider
 from services.exploration.search.counting import CountingSearchProvider
 from services.exploration.url_utils import domain_of
 from services.exploration.verification_engine import (
+    STATE_NEEDS_REVIEW,
     STATE_VERIFIED,
     VerificationEngine,
 )
@@ -68,7 +70,14 @@ class ExplorationMetrics:
         self.queries_executed = 0
         self.discovery_queries = 0
         self.queries_failed = 0
+        self.search_failure_categories: dict[str, int] = {}
+        self.search_degraded_reason: str | None = None
         self.search_results = 0
+        # Search results that point at a known third-party listing site. They
+        # are never queued for country exploration: official-source-first, and
+        # the aggregator service already exists for tracing an article back to
+        # its provider.
+        self.aggregator_candidates_skipped = 0
         self.candidates_created = 0
         self.dedup_merges = 0
         self.candidates_by_origin: dict[str, int] = {}
@@ -87,10 +96,25 @@ class ExplorationMetrics:
         self.sources_verified = 0
         self.sources_needs_review = 0
         self.scholarships_persisted = 0
+        # V0.1.3: the successful-extraction counter. AcquisitionService has
+        # always produced it, but only the failure count was copied across, so
+        # `exploration_run.metrics` carried no numerator for extraction and
+        # every benchmark funnel printed "NOT MEASURABLE" for it. The two are
+        # accumulated from the same call site so they cannot drift apart.
+        self.extraction_succeeded = 0
         self.extraction_failures = 0
+        self.acquisition_failures = 0
         self.duplicates_collapsed = 0
         self.link_expansions = 0
         self.retries = 0
+        # V0.1.2: what the fetched pages actually were. Previously these lived
+        # only on AcquisitionMetrics and were never copied into the run
+        # snapshot, which is why "how many DETAIL vs UNKNOWN pages did we
+        # fetch" had no answer in the database.
+        self.page_intent_counts: dict[str, int] = {}
+        self.pages_skipped_not_detail = 0
+        self.pages_skipped_listing = 0
+        self.listing_signals: dict[str, int] = {}
         self.provenance_samples: list[dict] = []
 
     def to_dict(self) -> dict:
@@ -148,6 +172,13 @@ class CountryExplorationEngine:
         )
         self.acquisition = AcquisitionService(session, self.analyzer)
         self.metrics = ExplorationMetrics()
+        # A source is acquired at most once per run. Several candidates can
+        # resolve to one source (redirects, aliases), and re-fetching it would
+        # repeat the same pages without producing anything new.
+        self._acquired: set[UUID] = set()
+
+    def _acquired_this_run(self, source) -> bool:
+        return source.source_id in self._acquired
 
     # ------------------------------------------------------------------
     # Entry point
@@ -170,6 +201,18 @@ class CountryExplorationEngine:
             config=self.config.model_dump(),
             bounds=self.config.bounds.model_dump(),
         )
+        # Published on the engine, not just captured locally, so the benchmark
+        # harness can attribute run-scoped metrics by run_id: `start_run`
+        # commits, so the row survives, but a caller holding only the engine had
+        # no attribute to read.
+        #
+        # Deliberately NOT named `run`: `run` is this class's entry-point method,
+        # and assigning an instance attribute of that name shadows it, so
+        # `await engine.run()` would resolve to the ORM row and raise
+        # "ExplorationRun object is not callable". Measured, not assumed --
+        # test_exploration_loop.py::test_second_run_idempotent calls run()
+        # twice on one engine and caught exactly that.
+        self.current_run = run
         # Captured immediately: after a poisoned session the ORM attribute
         # would need a lazy load, which is exactly what turns a caught
         # pipeline error into a fatal PendingRollbackError (observed in the
@@ -191,6 +234,9 @@ class CountryExplorationEngine:
         # two numbers disagree with what the search backend actually served.
         self.metrics.queries_executed = self.search_provider.calls
         self.metrics.queries_failed = self.search_provider.failures
+        self.metrics.search_failure_categories = dict(self.search_provider.failure_categories)
+        if self.metrics.search_failure_categories and not self.metrics.search_degraded_reason:
+            self.metrics.search_degraded_reason = "one or more search queries failed"
         # Read the new-candidate distributions back from persisted state. They
         # were declared but never filled, so every report printed empty dicts.
         self.metrics.candidates_by_origin = self._created_distribution(
@@ -202,6 +248,7 @@ class CountryExplorationEngine:
         # The repo counter is the real merge record; the metrics field stayed
         # 0 forever because nothing ever copied it across.
         self.metrics.dedup_merges = self.frontier.dedup_merges
+        self.metrics.aggregator_candidates_skipped += self.frontier.skipped_aggregators
 
         self.metrics_dict = {**self.metrics.to_dict(), **getattr(self, "metrics_dict", {})}
         self.metrics_dict["runtime_seconds"] = round(time.monotonic() - started, 1)
@@ -235,7 +282,19 @@ class CountryExplorationEngine:
         """Execute discovery surfaces: web search (primary), seeds, known sources."""
         from services.exploration.surfaces.web_search import WebSearchSurface
 
-        plan = self.queries.generate_plan(run_offset=int(datetime.now(timezone.utc).timestamp()) % 7)
+        # Rotation offset from how many runs this country has already had, not
+        # from the wall clock. The clock made every run irreproducible: the same
+        # country on the same day produced different queries, so a bad run could
+        # not be re-run to confirm or refute it. This is stable, derived from
+        # persisted state, and still rotates successive runs onto different
+        # query combinations.
+        prior_runs = (
+            self.session.query(func.count())
+            .filter(ExplorationRun.country_id == self.country.country_id)
+            .scalar()
+            or 0
+        )
+        plan = self.queries.generate_plan(run_offset=int(prior_runs))
         surface = WebSearchSurface(self.search_provider)
         outcome = await surface.execute(
             plan,
@@ -250,12 +309,16 @@ class CountryExplorationEngine:
         self.metrics.discovery_queries += outcome.queries_executed
         self.metrics.search_results += outcome.results_received
         self.metrics.candidates_created += outcome.candidates_created
+        self.metrics.aggregator_candidates_skipped += outcome.skipped_aggregators
         if outcome.degraded_reason:
-            self.metrics_dict_degraded = outcome.degraded_reason
+            self.metrics.search_degraded_reason = outcome.degraded_reason
             logger.warning("WebSearchSurface degraded: {}", outcome.degraded_reason)
 
         # Seed URLs from config (optional accelerator)
         for url in self.config.seed_urls:
+            if is_aggregator_host(url):
+                self.metrics.aggregator_candidates_skipped += 1
+                continue
             _, created = self.frontier.upsert_candidate(
                 self.country.country_id,
                 url,
@@ -273,15 +336,19 @@ class CountryExplorationEngine:
             self.session.query(SourceRegistry)
             .filter(
                 SourceRegistry.country_id == self.country.country_id,
-                SourceRegistry.status.in_(["Active", "Provisional"]),
+                func.lower(SourceRegistry.status).in_(["active", "provisional"]),
             )
             .limit(20)
             .all()
         )
         for source in known:
+            entry_url = source.crawl_entry_url or source.official_url
+            if is_aggregator_host(entry_url):
+                self.metrics.aggregator_candidates_skipped += 1
+                continue
             _, created = self.frontier.upsert_candidate(
                 self.country.country_id,
-                source.crawl_entry_url or source.official_url,
+                entry_url,
                 origin=CandidateOrigin.KNOWN_SOURCE,
                 candidate_type=CandidateType.SOURCE,
                 origin_source_id=source.source_id,
@@ -322,15 +389,35 @@ class CountryExplorationEngine:
             if candidate is None:
                 break
 
+            # Read the identity off the candidate *before* the try block, and
+            # hold only immutable primitives.
+            #
+            # Processing can itself roll the session back — ProviderResolver
+            # does exactly that to recover from a provider UniqueViolation
+            # (provider_resolver.py). A rollback expires every loaded
+            # attribute of the candidate, so the instance in hand may be
+            # unusable by the time we get back here: reading `candidate.url`
+            # raises ObjectDeletedError. The earlier fix captured the URL as a
+            # string, which removed one touch but left the handler still
+            # handing the dead instance to mark_failed_transient. The handler
+            # then crashed while handling the crash and `run()` recorded the
+            # run as failed — 7 of 7 live runs died this way.
+            #
+            # So the handler is keyed on candidate_id alone and re-reads the
+            # row by primary key. A candidate whose row the rollback discarded
+            # is simply absent, which is an ordinary outcome.
+            candidate_url = candidate.url
+            candidate_id = candidate.candidate_id
+
             try:
                 await self._process_candidate(candidate, run_id)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Candidate {} processing error: {}", candidate.url, exc)
+                logger.warning("Candidate {} processing error: {}", candidate_url, exc)
                 # A failed flush poisons the session; recover the transaction
-                # before any further SQL (mark_failed_transient included).
+                # before any further SQL (mark_failed_by_id included).
                 self.session.rollback()
-                retried = self.frontier.mark_failed_transient(
-                    candidate, str(exc), self.config.bounds.max_retries
+                retried = self.frontier.mark_failed_by_id(
+                    candidate_id, str(exc), self.config.bounds.max_retries
                 )
                 if retried:
                     self.metrics.retries += 1
@@ -384,7 +471,10 @@ class CountryExplorationEngine:
 
         if classification.label in ("JOB", "VISA_JOB") and classification.routing == "reject":
             self.metrics.jobs_rejected += 1
-            self.frontier.mark_rejected(candidate, self._outcome(analyzed, classification, {"reason": "employment page"}))
+            self.frontier.mark_rejected(
+                candidate,
+                self._outcome(analyzed, classification, {"reason": "employment page"}),
+            )
             return
 
         # Scholarship-family, review, unknown → all retained (broad discovery)
@@ -488,20 +578,59 @@ class CountryExplorationEngine:
             }
             if verdict.state == STATE_VERIFIED:
                 self._register_source(candidate, analyzed, provider, verdict, run_id)
+            elif verdict.state == STATE_NEEDS_REVIEW:
+                # Persisted rather than counted. The queue is only truthful if
+                # a source that verification could not settle is actually in it.
+                self._register_needs_review(candidate, analyzed, provider, verdict, run_id)
 
         # ---- 13-14. SCHOLARSHIP ACQUISITION from verified sources ----
-        if candidate.candidate_type == CandidateType.SOURCE:
-            source = self._source_for_candidate(candidate)
-            if source is not None:
-                acq = await self.acquisition.acquire_from_source(source)
-                self.metrics.scholarships_persisted += acq.scholarships_persisted
-                self.metrics.extraction_failures += acq.extraction_failed
-                self.metrics.duplicates_collapsed += acq.duplicates_collapsed
-                resolution_outcome["acquisition"] = {
-                    "urls": acq.scholarship_urls_found,
-                    "fetched": acq.pages_fetched,
-                    "persisted": acq.scholarships_persisted,
-                }
+        # Any verified source is a candidate for acquisition, not only
+        # SOURCE-type candidates. M8 acquired 54 sources and left the 51
+        # verified sources born from opportunity/provider candidates entirely
+        # unused, because the gate below only looked at candidate_type.
+        #
+        # What stops this becoming "crawl everything" is the policy inside
+        # AcquisitionService: a source page is expanded for scholarship-bearing
+        # links and only those are fetched. Each source is acquired at most
+        # once per run, and acquisition state is recorded per source.
+        source = self._source_for_candidate(candidate)
+        if source is not None and source.is_verified() and not self._acquired_this_run(source):
+            acq = await self.acquisition.acquire_from_source(source)
+            self._acquired.add(source.source_id)
+            self.metrics.scholarships_persisted += acq.scholarships_persisted
+            self.metrics.extraction_succeeded += acq.extraction_succeeded
+            self.metrics.extraction_failures += acq.extraction_failed
+            self.metrics.duplicates_collapsed += acq.duplicates_collapsed
+            if acq.errors:
+                # Failures are counted, not hidden behind a zero count.
+                self.metrics.acquisition_failures += len(acq.errors)
+            resolution_outcome["acquisition"] = {
+                "page_type": source.page_type,
+                "urls": acq.scholarship_urls_found,
+                "fetched": acq.pages_fetched,
+                "persisted": acq.scholarships_persisted,
+                "errors": acq.errors[:5],
+                "state": source.acquisition_state,
+                # Which pages were fetched and what each one was judged. The
+                # frontier audit named this as unmeasurable: these counters
+                # existed on AcquisitionMetrics and were dropped on the floor
+                # at the call site, so the DETAIL/UNKNOWN/INDEX split for every
+                # fetched page was unrecoverable after a run finished. They are
+                # per-source and aggregate here.
+                "page_intent_counts": dict(acq.page_intent_counts),
+                "skipped_not_detail": acq.pages_skipped_not_detail,
+                "skipped_listing": acq.pages_skipped_listing,
+            }
+            for verdict_name, count in acq.page_intent_counts.items():
+                self.metrics.page_intent_counts[verdict_name] = (
+                    self.metrics.page_intent_counts.get(verdict_name, 0) + count
+                )
+            self.metrics.pages_skipped_not_detail += acq.pages_skipped_not_detail
+            self.metrics.pages_skipped_listing += acq.pages_skipped_listing
+            for signal_name, count in acq.listing_signals.items():
+                self.metrics.listing_signals[signal_name] = (
+                    self.metrics.listing_signals.get(signal_name, 0) + count
+                )
 
         # ---- 15. LINK EXPANSION (bounded, prioritized) ----
         expanded = self._expand_links(candidate, analyzed, classification, run_id)
@@ -529,23 +658,55 @@ class CountryExplorationEngine:
     ) -> None:
         """Register a verified authoritative source in SourceRegistry.
 
-        Idempotent on both unique keys (official_url, crawl_entry_url): the
-        first live JP run crashed here because a second candidate pointing at
-        the same site tried to INSERT a duplicate crawl_entry_url.
+        Identity is the URL *hash*, not the URL string. Before M9 the stored
+        value was the redirected final URL while lookups used the raw frontier
+        URL, so one redirect could register a source and then fail to find it
+        again. `resolve_url_identity` gives one canonical value and one hash;
+        `find_source` looks up by hash, falling back to the raw columns so
+        rows written before the column existed stay reachable.
+
+        Idempotent: re-running exploration over the same site updates the
+        existing row rather than inserting a duplicate.
         """
         from database.models.source_registry import SourceRegistry as SR
+        from services.exploration.acquisition_policy import (
+            AcquisitionState,
+            classify_page,
+            find_source,
+            resolve_url_identity,
+        )
 
         url = analyzed.final_url or analyzed.url
-        existing = (
-            self.session.query(SR)
-            .filter(
-                (SR.official_url == url) | (SR.crawl_entry_url == url)
-            )
-            .first()
-        )
+
+        # A blocked host is blocked here too. The frontier refuses aggregators
+        # and social platforms at admission, but this path is reached from
+        # candidates that were already admitted, and a site like wentchina.com
+        # (a study-in-China blog) was landing in the registry as an Active
+        # source with the same standing as a university. Review is where a
+        # human sees records, not where a rule the project already decided is
+        # quietly bypassed.
+        from services.domain.source_trust import is_blocked_source_host
+
+        if is_blocked_source_host(url):
+            logger.info("{}: not registering blocked source {}", type(self).__name__, url[:120])
+            return
+
+        canonical, digest = resolve_url_identity(url)
+        assessment = classify_page(url, title=analyzed.title or "")
+
+        existing = find_source(self.session, url)
         if existing is not None:
-            existing.verification_state = STATE_VERIFIED
-            existing.confidence = verdict.confidence
+            self._apply_verification(existing, verdict)
+            # A redirect must not silently disable acquisition: the reachable
+            # URL stays as the crawl entry, and the canonical form is recorded
+            # so the identity is stable from now on.
+            if analyzed.final_url and not existing.official_url:
+                existing.official_url = analyzed.final_url[:2048]
+            if canonical and not existing.canonical_url:
+                existing.canonical_url = canonical
+                existing.url_hash = digest
+            if assessment.page_type and not existing.page_type:
+                existing.page_type = assessment.page_type
             self.session.flush()
             return
 
@@ -555,6 +716,9 @@ class CountryExplorationEngine:
             provider_id=provider.provider_id if provider else None,
             official_url=url[:2048],
             crawl_entry_url=url[:2048],
+            canonical_url=canonical[:2048] if canonical else None,
+            url_hash=digest or None,
+            page_type=assessment.page_type,
             crawl_method="Playwright",
             connector_name="generic_playwright",
             crawl_frequency="monthly",
@@ -564,12 +728,15 @@ class CountryExplorationEngine:
             status="Active",
             verification_state=STATE_VERIFIED,
             confidence=verdict.confidence,
+            acquisition_state=AcquisitionState.PENDING,
             discovered_via={
                 "frontier_candidate": str(candidate.candidate_id),
                 "origin": candidate.origin,
                 "origin_query": candidate.origin_query,
                 "run_id": str(run_id),
                 "signals": verdict.signals,
+                "page_type": assessment.page_type,
+                "page_type_reasons": assessment.reasons,
             },
         )
         self.session.add(source)
@@ -580,29 +747,125 @@ class CountryExplorationEngine:
             # pre-flush SELECT cannot see rows another flush added since our
             # last read). Roll back the poisoned insert, reuse that row.
             self.session.rollback()
-            existing = (
-                self.session.query(SR)
-                .filter((SR.official_url == url) | (SR.crawl_entry_url == url))
-                .first()
-            )
+            existing = find_source(self.session, url)
             if existing is None:
                 raise
-            existing.verification_state = STATE_VERIFIED
-            existing.confidence = verdict.confidence
+            self._apply_verification(existing, verdict)
             self.session.flush()
             return
         self.metrics.sources_verified += 1
-        logger.info("Registered verified source: {}", url)
+        logger.info("Registered verified source: {} [{}]", url, assessment.page_type)
+
+    def _register_needs_review(
+        self,
+        candidate: DiscoveryFrontier,
+        analyzed: AnalyzedCandidate,
+        provider: "Provider | None",
+        verdict,
+        run_id: UUID,
+    ) -> None:
+        """Persist a source verification could not settle.
+
+        M8 initialised `sources_needs_review` and printed it, but nothing ever
+        incremented it, so the queue was always empty and the metric was a
+        lie by omission. A source whose verification is genuinely undecided is
+        now a real row in NEEDS_REVIEW, which is also what acquisition_state
+        and page_type get recorded on.
+        """
+        from database.models.source_registry import SourceRegistry as SR
+        from services.exploration.acquisition_policy import (
+            classify_page,
+            find_source,
+            resolve_url_identity,
+        )
+
+        url = analyzed.final_url or analyzed.url
+        canonical, digest = resolve_url_identity(url)
+        assessment = classify_page(url, title=analyzed.title or "")
+
+        existing = find_source(self.session, url)
+        if existing is not None:
+            if (
+                existing.verification_state != STATE_NEEDS_REVIEW
+                and existing.can_transition_to(STATE_NEEDS_REVIEW)
+            ):
+                existing.verification_state = STATE_NEEDS_REVIEW
+                # Counted on the transition, not on the verdict, so re-running
+                # exploration over the same site does not inflate the metric.
+                self.metrics.sources_needs_review += 1
+            existing.confidence = verdict.confidence
+            if assessment.page_type and not existing.page_type:
+                existing.page_type = assessment.page_type
+            self.session.flush()
+            return
+
+        source = SR(
+            source_name=(analyzed.title or url)[:255],
+            country_id=self.country.country_id,
+            provider_id=provider.provider_id if provider else None,
+            official_url=url[:2048],
+            crawl_entry_url=url[:2048],
+            canonical_url=canonical[:2048] if canonical else None,
+            url_hash=digest or None,
+            page_type=assessment.page_type,
+            crawl_method="Playwright",
+            connector_name="generic_playwright",
+            crawl_frequency="monthly",
+            priority=5,
+            robots_allowed=True,
+            requires_login=False,
+            status="Active",
+            verification_state=STATE_NEEDS_REVIEW,
+            confidence=verdict.confidence,
+            discovered_via={
+                "frontier_candidate": str(candidate.candidate_id),
+                "origin": candidate.origin,
+                "origin_query": candidate.origin_query,
+                "run_id": str(run_id),
+                "signals": verdict.signals,
+                "page_type": assessment.page_type,
+                "verification": "needs_review",
+            },
+        )
+        self.session.add(source)
+        try:
+            self.session.flush()
+        except IntegrityError:
+            self.session.rollback()
+            return
+        self.metrics.sources_needs_review += 1
+        logger.info("Registered source needing review: {}", url)
+
+    def _apply_verification(self, source, verdict) -> None:
+        """Move a source to VERIFIED, counting the transition only once.
+
+        The legality check is the model's, so an illegal move (a REJECTED
+        source resurrecting itself) is refused rather than silently applied.
+        Counting only real transitions is what keeps `sources_verified` equal
+        to the number of verified sources in the database.
+        """
+        already_verified = source.verification_state == STATE_VERIFIED
+        if not already_verified:
+            if not source.can_transition_to(STATE_VERIFIED):
+                logger.warning(
+                    "Refusing illegal verification transition {} -> {} for source {}",
+                    source.verification_state, STATE_VERIFIED, source.source_id,
+                )
+                return
+            source.verification_state = STATE_VERIFIED
+            if not already_verified:
+                self.metrics.sources_verified += 1
+        source.confidence = verdict.confidence
 
     def _source_for_candidate(self, candidate: DiscoveryFrontier):
-        """Find the SourceRegistry row for a SOURCE candidate (any state)."""
-        from database.models.source_registry import SourceRegistry as SR
+        """Find the SourceRegistry row for a candidate, any state.
 
-        return (
-            self.session.query(SR)
-            .filter(SR.official_url == candidate.url)
-            .first()
-        )
+        By URL hash rather than raw string, so a candidate whose URL
+        redirected during registration still resolves to its source.
+        """
+        from services.exploration.acquisition_policy import find_source
+
+        return find_source(self.session, candidate.url)
 
     # ------------------------------------------------------------------
     # Helpers
