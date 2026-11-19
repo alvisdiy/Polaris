@@ -79,7 +79,31 @@ Land the existing work in reviewable commits, in this order, without changing be
 
 Commits are a separate, explicitly approved milestone: nothing was staged here.
 
-## 7. Method and limits
+## 7. Landing record
+
+The approved follow-up landed the inventory as 13 commits, oldest first:
+
+| Commit | Group |
+|---|---|
+| `26b1994` | ops, Docker, CI and packaging |
+| `0fe1422` | domain vocabulary |
+| `5b2d053` | schema and 10 migrations |
+| `ea4de41` | catalog identity and freshness |
+| `7c04365` | shared URL helpers |
+| `18f5f7f` | extraction, fetch safety, enrichment |
+| `e3a89fa` | matching |
+| `b86eb98` | review service and admin API |
+| `43ac748` | exploration, provider discovery, aggregator, configs |
+| `28bd29a` | operational scripts |
+| `17260f6` | frontend and design docs |
+| `0ea5d9a` | tests |
+| `e9ca7d2` | docs, project status, this inventory |
+
+One fix was required during landing: CI set `DATABASE_URL` while the pytest guard reads `POLARIS_TEST_DATABASE_URL`, so both CI steps would have failed before the first test. `26b1994` points both at the disposable `polaris_test` service.
+
+Nothing was pushed. The 13 commits sit on `develop` on top of the three commits that were already unpushed.
+
+## 8. Method and limits
 
 - Commands used: `git rev-parse`, `git branch --show-current`, `git rev-list --left-right --count`, `git worktree list --porcelain`, `git status --short --untracked-files=all`, `git diff --stat`.
 - The raw list was generated with Git itself, not a shell truncation, so all 437 paths are present in `inventory-2026-11-19.txt`.
