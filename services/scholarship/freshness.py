@@ -31,7 +31,11 @@ from datetime import date
 _ROLLING_PATTERNS = (
     r"rolling\s+(?:admissions?|basis|deadline)",
     r"open\s+until\s+(?:all\s+)?(?:positions?|slots?|places?|funds?\s+are\s+exhausted|filled)",
-    r"until\s+(?:all\s+)?(?:positions?|slots?)\s+(?:are\s+)?filled",
+    # "places" appears alongside "positions" and "slots" in the first pattern
+    # but was missing here, so "applications continue until all places are
+    # filled" was not recognised as open-ended — and any deadline the same
+    # page also carried was published as a real closing date.
+    r"until\s+(?:all\s+)?(?:positions?|slots?|places?|seats?)\s+(?:are\s+|get\s+)?filled",
     r"open\s+(?:all\s+year|year[-\s]?round|throughout\s+the\s+year)",
     r"no\s+(?:application\s+)?deadline",
     r"applications?\s+(?:are\s+)?(?:accepted|reviewed)\s+on\s+a\s+rolling\s+basis",
