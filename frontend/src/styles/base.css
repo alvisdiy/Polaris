@@ -1,0 +1,244 @@
+/*
+ * Base layer: element defaults and the paper grain.
+ *
+ * Component styling lives in components. What is here is the material the whole
+ * interface is printed on — type, rules, links, focus — so a new component
+ * inherits the system rather than re-deciding it.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-family);
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  /* Two very low-opacity radial washes give the paper a light source instead of
+     a flat fill; the grain sits on top and is invisible at 3% except as texture. */
+  background-image:
+    radial-gradient(1200px 600px at 12% -10%, rgba(184, 64, 42, 0.06), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(44, 83, 71, 0.05), transparent 55%);
+  background-attachment: fixed;
+  color: var(--color-ink);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  /* Fraunces ships decorative f-ligatures and swashes. At display size the
+     "ffi" in "official" reads as a glitch rather than a flourish, so display
+     type keeps the ordinary ligatures and drops the discretionary ones. */
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: 'dlig' 0, 'swsh' 0, 'salt' 0;
+  line-height: 1.12;
+  margin: 0 0 var(--space-4);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--color-ink);
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: var(--font-size-2xl);
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+}
+
+p {
+  margin: 0 0 var(--space-4);
+  max-width: 68ch;
+}
+
+a {
+  color: var(--color-ink);
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color var(--motion-fast), text-decoration-color var(--motion-fast);
+}
+
+a:hover {
+  color: var(--color-brand);
+  text-decoration-color: currentColor;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--color-ink);
+}
+
+dl,
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+
+ul {
+  list-style: none;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-line);
+  margin: var(--space-5) 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-ink);
+}
+
+/* ---------------------------------------------------------------- small caps
+ * A recurring label style: mono, uppercase, tracked. Used for every piece of
+ * machine metadata so a reader can tell at a glance what is prose and what is
+ * a field. */
+.eyebrow,
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-secondary);
+}
+
+/* ------------------------------------------------------------------ buttons
+ * Components own their buttons; these are the two shared shapes used by pages
+ * that have no local button styles (hero calls to action, retry, pagination). */
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 46px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: transform var(--motion-fast), background var(--motion-fast),
+    border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.button-primary {
+  background: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  color: var(--color-paper);
+}
+
+.button-primary:hover {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.button-secondary {
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+}
+
+.button-secondary:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+  transform: translateY(-1px);
+}
+
+/* Skip link: first focusable element on every page */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -100%;
+  z-index: var(--z-dropdown);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition: top var(--motion-fast);
+}
+
+.skip-link:focus-visible {
+  top: var(--space-2);
+}
+
+/* ------------------------------------------------------------------- reveal
+ * One orchestrated entrance, used sparingly: results and hero blocks rise a few
+ * pixels. Respects prefers-reduced-motion below. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

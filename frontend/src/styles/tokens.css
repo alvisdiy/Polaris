@@ -1,0 +1,114 @@
+/*
+ * Polaris design tokens — "the ledger" system (docs/web-design.md, section 23).
+ *
+ * The interface reads as a research archive: warm paper, ink, one vermilion
+ * accent, hairline rules, and a serif for anything a person wrote. Colour is
+ * never the only carrier of meaning — every deadline state also has a word and
+ * an icon.
+ *
+ * Light is the default; [data-theme='dark'] redefines surfaces only, so both
+ * themes share geometry and type.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces and text */
+  --color-paper: #f3eddf;
+  --color-surface: #fbf7ec;
+  --color-surface-raised: #fffdf6;
+  --color-ink: #1a1512;
+  --color-ink-secondary: #5b5145;
+  --color-line: #d9ceba;
+  --color-line-strong: #b9ab92;
+
+  /* Brand: vermilion for action, moss for evidence */
+  --color-brand: #b8402a;
+  --color-brand-ink: #8f2f1e;
+  --color-brand-soft: #f6e2d9;
+  --color-evidence: #2c5347;
+  --color-evidence-soft: #e2ebe4;
+
+  /* Deadline semantics */
+  --color-sem-active: #1f6b3a;
+  --color-sem-rolling: #2c5347;
+  --color-sem-unknown: #8a5a00;
+  --color-sem-expired: #6a6258;
+  --color-sem-legacy: #8c8478;
+
+  /* Feedback */
+  --color-feedback-error: #9d2c1c;
+  --color-feedback-success: #1f6b3a;
+
+  /* Typography */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-family: 'Instrument Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.86rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.18rem;
+  --font-size-xl: 1.45rem;
+  --font-size-2xl: 1.95rem;
+  --font-size-3xl: 2.6rem;
+  --font-size-4xl: clamp(2.6rem, 5.4vw, 4.4rem);
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 7rem;
+
+  /* Geometry: near-square. Cards are paper slips, not app tiles. */
+  --radius-control: 2px;
+  --radius-card: 3px;
+  --radius-pill: 999px;
+
+  --shadow-overlay: 0 18px 40px rgba(26, 21, 18, 0.16);
+  --shadow-card: 0 1px 0 rgba(26, 21, 18, 0.04), 0 10px 24px rgba(26, 21, 18, 0.06);
+
+  /* Layout */
+  --container-max: 74rem;
+  --rail-width: 17rem;
+  --z-nav: 100;
+  --z-sheet: 200;
+  --z-dropdown: 300;
+
+  /* Motion */
+  --motion-fast: 140ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  --motion-sheet: 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-paper: #14110d;
+  --color-surface: #1c1813;
+  --color-surface-raised: #241f19;
+  --color-ink: #f2ead9;
+  --color-ink-secondary: #b8ab96;
+  --color-line: #3a332a;
+  --color-line-strong: #574d3f;
+
+  --color-brand: #e0704f;
+  --color-brand-ink: #f09273;
+  --color-brand-soft: #3a2019;
+  --color-evidence: #8fc0ac;
+  --color-evidence-soft: #1e2f28;
+
+  --color-sem-active: #7dc08f;
+  --color-sem-rolling: #8fc0ac;
+  --color-sem-unknown: #d9a441;
+  --color-sem-expired: #9a9184;
+  --color-sem-legacy: #7b7367;
+
+  --color-feedback-error: #e5726c;
+  --color-feedback-success: #7dc08f;
+
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.32);
+}
