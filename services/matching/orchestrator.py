@@ -44,6 +44,23 @@ class ScholarshipIntelligenceEngine:
         Returns:
             Top-N MatchResults with explanations, sorted by rank.
         """
+        return self.match_with_total(profile, scholarships)[0]
+
+    def match_with_total(
+        self,
+        profile: UserProfile,
+        scholarships: list[Scholarship],
+    ) -> tuple[list[MatchResult], int]:
+        """Run the pipeline and also report how many candidates matched.
+
+        ``total_filtered`` alone cannot answer "how many scholarships matched
+        this profile?" — it is the difference between the approved set and the
+        Top-N page, which conflates three different things.
+
+        Returns:
+            ``(top_n_results, total_matched)`` where ``total_matched`` counts
+            every candidate that survived the expiry filter, before Top-N.
+        """
         # L1: Filter — remove non-actionable (expired deadlines)
         filtered = self._filter.filter(profile, scholarships)
 
@@ -51,7 +68,7 @@ class ScholarshipIntelligenceEngine:
         scored = [(s, self._scoring.score(profile, s)) for s in filtered]
 
         # L3: Rank — sort by score, apply tiebreakers, Top-N
-        ranked = self._ranking.rank(scored)
+        ranked, total_matched = self._ranking.rank_with_total(scored)
 
         # L4: Explain — add explanations to each result
         explained = []
@@ -71,4 +88,4 @@ class ScholarshipIntelligenceEngine:
                 )
             )
 
-        return explained
+        return explained, total_matched

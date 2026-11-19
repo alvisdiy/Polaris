@@ -87,21 +87,45 @@ class ScoringEngine:
     def _score_degree(self, profile: UserProfile, scholarship: Scholarship) -> CriterionResult:
         """Degree match — binary. Full weight if match."""
         w = self._w.degree
-        if scholarship.degree == profile.degree:
+        # A multi-level award is open to the student when their level is one of
+        # the levels the page stated. Reading only ``scholarship.degree`` would
+        # score those awards zero on this criterion while the catalogue page
+        # lists them under the student's level.
+        levels = {row.degree for row in (scholarship.degree_levels or [])}
+        if scholarship.degree == profile.degree or profile.degree in levels:
             return CriterionResult(
                 criterion="degree", score=w, weight=w, matched=True,
                 reason=f"Degree '{profile.degree}' matches scholarship requirement.",
             )
+        if not scholarship.degree and not levels:
+            # The level is not published anywhere on the record. Absence of a
+            # stated requirement is not a requirement the student fails: scoring
+            # this zero would rank every "level not stated" award below awards
+            # that did state one, purely for being less documented.
+            return CriterionResult(
+                criterion="degree", score=w, weight=w, matched=True,
+                reason="The scholarship does not state a degree level, so it is not held against this profile.",
+            )
         return CriterionResult(
             criterion="degree", score=0.0, weight=w, matched=False,
-            reason=f"Scholarship requires '{scholarship.degree}', user has '{profile.degree}'.",
+            reason=(
+                f"Scholarship requires "
+                f"'{scholarship.degree or ', '.join(sorted(levels))}', "
+                f"user has '{profile.degree}'."
+            ),
         )
 
     def _score_field(self, profile: UserProfile, scholarship: Scholarship) -> CriterionResult:
-        """Field of study overlap — proportional to overlap ratio.
+        """Field of study overlap — proportional to the user's covered fields.
 
-        Score = (overlap_count / scholarship_field_count) * weight.
-        If scholarship has no field restriction, full score.
+        Score = (overlap_count / user_field_count) * weight. The denominator is
+        the user's list, not the scholarship's: a student who names one field
+        that the award supports is fully covered, while a student naming five
+        fields of which one overlaps has genuinely partial coverage. The
+        previous docstring said `scholarship_field_count`, which the code never
+        did.
+
+        If the scholarship has no field restriction, full score.
         """
         w = self._w.field_of_study
         if not scholarship.field_of_study:
@@ -117,7 +141,10 @@ class ScoringEngine:
         if not overlap:
             return CriterionResult(
                 criterion="field_of_study", score=0.0, weight=w, matched=False,
-                reason=f"No overlap between user fields {sorted(user_fields)} and scholarship fields {sorted(sch_fields)}.",
+                reason=(
+                    f"No overlap between user fields {sorted(user_fields)} "
+                    f"and scholarship fields {sorted(sch_fields)}."
+                ),
             )
 
         ratio = len(overlap) / len(user_fields)
@@ -211,7 +238,10 @@ class ScoringEngine:
             )
         return CriterionResult(
             criterion="funding", score=0.0, weight=w, matched=False,
-            reason=f"Funding type '{scholarship.funding_type}' does not match preference '{profile.funding_preference}'.",
+            reason=(
+                f"Funding type '{scholarship.funding_type}' does not match "
+                f"preference '{profile.funding_preference}'."
+            ),
         )
 
     def _score_research(self, profile: UserProfile, req) -> CriterionResult:
@@ -240,7 +270,10 @@ class ScoringEngine:
             sc = round(w / 2, 2)
             return CriterionResult(
                 criterion="research", score=sc, weight=w, matched=False,
-                reason=f"Research '{profile.research_experience}' is one level below '{req.research_experience}' — partial score.",
+                reason=(
+                    f"Research '{profile.research_experience}' is one level below "
+                    f"'{req.research_experience}' — partial score."
+                ),
             )
         return CriterionResult(
             criterion="research", score=0.0, weight=w, matched=False,
@@ -268,7 +301,10 @@ class ScoringEngine:
             sc = round(w / 2, 2)
             return CriterionResult(
                 criterion="work", score=sc, weight=w, matched=False,
-                reason=f"Work experience '{profile.work_experience}' is one level below '{req.work_experience}' — partial score.",
+                reason=(
+                    f"Work experience '{profile.work_experience}' is one level below "
+                    f"'{req.work_experience}' — partial score."
+                ),
             )
         return CriterionResult(
             criterion="work", score=0.0, weight=w, matched=False,

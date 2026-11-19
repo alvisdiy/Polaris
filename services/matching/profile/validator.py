@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from services.domain.vocabulary import DEGREE, EXPERIENCE, FUNDING_TYPE
 from services.matching.models.profile import UserProfile
 
-# Valid enum values from the Data Dictionary
-VALID_DEGREES = {"Bachelor", "Master", "PhD", "Exchange", "Short Course"}
-VALID_FUNDING_PREFERENCES = {"Fully Funded", "Partial Funded", "Tuition Only"}
-VALID_EXPERIENCE_LEVELS = {"Required", "Preferred", "Optional", "Not Required"}
+# Re-exported for the existing callers and tests, but defined once in
+# services/domain/vocabulary.py. These used to be independent literals, which is
+# how a value could end up valid for matching and invalid for ingestion.
+VALID_DEGREES = DEGREE.values
+VALID_FUNDING_PREFERENCES = FUNDING_TYPE.values
+VALID_EXPERIENCE_LEVELS = EXPERIENCE.values
 
 
 class ProfileValidator:

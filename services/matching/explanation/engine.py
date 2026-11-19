@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from database.models.scholarship import Scholarship
 from services.matching.models.profile import UserProfile
-from services.matching.models.result import CriteriaScores, CriterionResult, MatchExplanation
+from services.matching.models.result import CriteriaScores, MatchExplanation
 
 # Threshold: score/weight ratio below this is a gap
 _GAP_RATIO = 0.5

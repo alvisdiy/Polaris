@@ -38,17 +38,33 @@ class RankingEngine:
     ) -> list[MatchResult]:
         """Sort by score (desc), apply tiebreakers, return Top-N MatchResults.
 
+        Args:
+            scored: List of (Scholarship, CriteriaScores) tuples.
+
+        Returns:
+            Top-N MatchResults sorted by rank.
+        """
+        return self.rank_with_total(scored)[0]
+
+    def rank_with_total(
+        self,
+        scored: list[tuple[Scholarship, CriteriaScores]],
+    ) -> tuple[list[MatchResult], int]:
+        """Rank, and report how many candidates matched before the Top-N cut.
+
+        `rank` cannot tell a caller whether it returned everything it was given
+        or truncated at ``top_n``, and an API that reports ``total`` as the
+        length of a truncated page is lying about its own result set. The
+        pre-cut count is what a "total matching candidates" contract needs.
+
         Sort keys:
         1. Total score (descending)
         2. Deadline (nearest first, NULL last)
         3. Funding type (Fully Funded > Partial > Tuition Only)
         4. Data completeness (more non-null fields = higher)
 
-        Args:
-            scored: List of (Scholarship, CriteriaScores) tuples.
-
         Returns:
-            Top-N MatchResults sorted by rank.
+            ``(top_n_results, total_matched)``.
         """
         sorted_scored = sorted(
             scored,
@@ -56,10 +72,11 @@ class RankingEngine:
             reverse=True,
         )
 
-        results = []
-        for scholarship, scores in sorted_scored[: self._top_n]:
-            results.append(_to_match_result(scholarship, scores))
-        return results
+        results = [
+            _to_match_result(scholarship, scores)
+            for scholarship, scores in sorted_scored[: self._top_n]
+        ]
+        return results, len(sorted_scored)
 
     @staticmethod
     def _sort_key(scholarship: Scholarship, scores: CriteriaScores) -> tuple[float, float, float, float, str]:

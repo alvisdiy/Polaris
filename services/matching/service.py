@@ -29,8 +29,8 @@ class MatchedScholarship:
     scholarship_id: str
     scholarship_name: str
     deadline: date | None
-    provider_name: str
-    country: str
+    provider_name: str | None
+    country: str | None
     match_score: float
     recommendation_category: str
     summary: str
@@ -42,10 +42,22 @@ class MatchedScholarship:
 
 @dataclass(frozen=True)
 class MatchingOutput:
-    """Output container for the matching service, containing results and stats."""
+    """Output container for the matching service, containing results and stats.
+
+    ``total_matched`` is every approved, non-expired scholarship that matched
+    the profile. ``len(results)`` is the Top-N page actually returned. The two
+    are different whenever more than ``top_n`` scholarships match, and an API
+    that reports the second as the first tells a client it has seen
+    everything when it has not.
+
+    ``total_filtered`` is the complement of ``total_matched`` within the loaded
+    approved set — in practice the expired records the deadline filter removed,
+    since country/degree/field are scored rather than filtered.
+    """
 
     results: list[MatchedScholarship]
     total_filtered: int
+    total_matched: int = 0
 
 
 class MatchingService:
@@ -99,7 +111,7 @@ class MatchingService:
         total_loaded = len(scholarships)
 
         # 4. Run the matching pipeline
-        results = self._engine.match(normalized, scholarships)
+        results, total_matched = self._engine.match_with_total(normalized, scholarships)
 
         # 5. Map to application DTOs (MatchedScholarship)
         matched_scholarships = []
@@ -116,8 +128,8 @@ class MatchingService:
                         if scholarship.timeline
                         else None
                     ),
-                    provider_name=scholarship.provider.provider_name if scholarship.provider else "",
-                    country=scholarship.country.name if scholarship.country else "",
+                    provider_name=scholarship.provider.provider_name if scholarship.provider else None,
+                    country=scholarship.country.name if scholarship.country else None,
                     match_score=result.match_score,
                     recommendation_category=result.recommendation_category,
                     summary=result.explanation.summary,
@@ -130,7 +142,8 @@ class MatchingService:
 
         return MatchingOutput(
             results=matched_scholarships,
-            total_filtered=total_loaded - len(results),
+            total_filtered=total_loaded - total_matched,
+            total_matched=total_matched,
         )
 
     @property

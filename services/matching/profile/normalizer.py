@@ -2,30 +2,19 @@
 
 from __future__ import annotations
 
+from services.domain.vocabulary import DEGREE, EXPERIENCE, FUNDING_TYPE
 from services.matching.models.profile import UserProfile
 
-# Degree aliases → canonical form
-_DEGREE_ALIASES: dict[str, str] = {
-    "master": "Master",
-    "masters": "Master",
-    "master's": "Master",
-    "m.sc.": "Master",
-    "msc": "Master",
-    "bachelor": "Bachelor",
-    "bachelors": "Bachelor",
-    "bachelor's": "Bachelor",
-    "b.sc.": "Bachelor",
-    "bsc": "Bachelor",
-    "phd": "PhD",
-    "ph.d": "PhD",
-    "ph.d.": "PhD",
-    "doctorate": "PhD",
-    "exchange": "Exchange",
-    "short course": "Short Course",
-    "shortcourse": "Short Course",
-}
-
-# Field of study aliases → canonical form
+# Alias tables for degree, experience level and funding now live in
+# services/domain/vocabulary.py, so the matching normalizer, the ingestion
+# validator, the review boundary and the database constraint cannot disagree.
+#
+# Field of study is deliberately NOT in that module. It is an open taxonomy,
+# not a controlled vocabulary: "Nursing" and "Architecture" are perfectly valid
+# values that nobody has added to an enum yet, and an unknown major is
+# title-cased and passed through rather than rejected. Treating it as a closed
+# set would reject real scholarships every time a source mentioned a subject
+# Polaris had not enumerated.
 _FIELD_ALIASES: dict[str, str] = {
     "ai": "Artificial Intelligence",
     "artificial intelligence": "Artificial Intelligence",
@@ -53,29 +42,10 @@ _FIELD_ALIASES: dict[str, str] = {
 }
 
 # Experience level aliases → canonical form
-_EXPERIENCE_ALIASES: dict[str, str] = {
-    "required": "Required",
-    "mandatory": "Required",
-    "preferred": "Preferred",
-    "recommended": "Preferred",
-    "optional": "Optional",
-    "not required": "Not Required",
-    "not_required": "Not Required",
-    "none": "Not Required",
-}
+_EXPERIENCE_ALIASES: dict[str, str] = EXPERIENCE.aliases
 
 # Funding preference aliases → canonical form
-_FUNDING_ALIASES: dict[str, str] = {
-    "fully funded": "Fully Funded",
-    "full": "Fully Funded",
-    "full funding": "Fully Funded",
-    "partial funded": "Partial Funded",
-    "partial funding": "Partial Funded",
-    "partial": "Partial Funded",
-    "tuition only": "Tuition Only",
-    "tuition-only": "Tuition Only",
-    "tuition waiver": "Tuition Only",
-}
+_FUNDING_ALIASES: dict[str, str] = FUNDING_TYPE.aliases
 
 
 class ProfileNormalizer:
@@ -117,8 +87,13 @@ class ProfileNormalizer:
 
     @staticmethod
     def _normalize_degree(value: str) -> str:
-        """Map degree aliases to canonical form."""
-        canonical = _DEGREE_ALIASES.get(value.strip().lower())
+        """Map degree aliases to canonical form.
+
+        Falls back to the cleaned input when nothing matches, and validation
+        then reports it. Normalising an unrecognised degree to Bachelor would
+        make an invalid profile look valid (ADR-016).
+        """
+        canonical = DEGREE.normalize(value)
         return canonical if canonical is not None else value.strip()
 
     @staticmethod
