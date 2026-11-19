@@ -17,7 +17,7 @@ class Timeline(BaseModel):
 
     application_open: str | None = None
     application_deadline: str | None = None  # Optional: not all sources provide deadlines
-    application_cycle: str | None = None     # Cohort label, e.g. "2027" or "AY2027/28" — NOT a date
+    application_cycle: str | None = None  # Cohort label, e.g. "2027" or "AY2027/28" — NOT a date
     interview_date: str | None = None
     result_date: str | None = None
     study_start: str | None = None
@@ -54,25 +54,53 @@ class Benefits(BaseModel):
 
 
 class ExtractedScholarship(BaseModel):
-    """Structured scholarship data extracted by LLM."""
+    """Structured scholarship data extracted by LLM.
 
-    model_config = ConfigDict(frozen=True)
+    This model is the *whole* surface the extractor is allowed to answer on.
+    Anything a client returns that is not a field here is refused rather than
+    dropped, because a silently discarded publication-state key would leave a
+    record that reads as if the model had been trusted with a decision it has
+    no authority over — the failure would be invisible.
 
-    scholarship_name: str
-    provider_name: str
+    There is deliberately no review or publication field here (M10). The
+    extractor's only output is facts about a scholarship; the review state is
+    written by the mapper as ``pending_review`` and changed by the review
+    service alone.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # M9: nullable. The extractor reports "I could not identify this
+    # scholarship" as None, which routes the record to review. The M8
+    # placeholder string ("Unknown Scholarship") was indistinguishable from
+    # a real name once persisted, and 134 records carried it.
+    scholarship_name: str | None = None
+    # M10: nullable for the same reason as the name. A page that does not name
+    # its provider gets None, not the string "Unknown" — a provider called
+    # "Unknown" is indistinguishable from a real one once it reaches the
+    # Provider table, exactly as "Unknown Scholarship" was in the name column.
+    # The mapper resolves an unresolved provider from the SourceRegistry row,
+    # which is genuine provenance rather than a guess.
+    provider_name: str | None = None
     scholarship_type: str | None = None  # Optional: fallback to provider type if missing
-    country: str | None = None          # Will be defaulted to ecosystem country if None
+    country: str | None = None  # Will be defaulted to ecosystem country if None
     university: str | None = None
-    degree: str | None = None           # Optional: unknown degree allowed
-    funding_type: str | None = None    # Optional: unknown funding type allowed
+    degree: str | None = None  # Optional: unknown degree allowed
+    # A national database can state the award's levels as a set. Those are
+    # recorded here instead of collapsing into one level or into NULL.
+    degree_levels: list[str] = Field(default_factory=list)
+    funding_type: str | None = None  # Optional: unknown funding type allowed
     field_of_study: list[str] = Field(default_factory=list)  # May be empty if not mentioned
-    application_url: str
-    official_source: str
+    # These may be unknown when the page does not expose a clearly labelled
+    # destination. The article itself is provenance, never a substitute URL.
+    application_url: str | None = None
+    official_source: str | None = None
     timeline: "Timeline" = Field(default_factory=lambda: Timeline())
     eligibility: "Eligibility" = Field(default_factory=lambda: Eligibility())
     benefits: "Benefits" = Field(default_factory=lambda: Benefits())
-    verification_status: str = "pending_review"
-
+    # M9 extraction provenance, produced by the extractor and consumed by
+    # the mapper/persistence layer. Never used to publish anything.
+    extraction_meta: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExtractedDocument(BaseModel):

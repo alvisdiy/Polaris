@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from services.domain.vocabulary import DEGREE, FUNDING_TYPE, SCHOLARSHIP_TYPE
 from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship
 
 
@@ -57,46 +58,89 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
     s: ExtractedScholarship = doc.scholarship
 
     # 1. Required Field Validations
-    if not s.scholarship_name.strip():
-        issues.append(ValidationIssue(field="scholarship_name", message="Scholarship name cannot be empty"))
-    if not s.provider_name.strip():
+    # A missing name is a hard failure. M8 accepted "Unknown Scholarship" as
+    # a name; M9 refuses to persist a record whose identity the extractor
+    # could not establish.
+    if s.scholarship_name is None or not s.scholarship_name.strip():
+        meta = s.extraction_meta or {}
+        reasons = (meta.get("name_verdict") or {}).get("reasons") or []
+        detail = f" ({'; '.join(reasons[:3])})" if reasons else ""
+        issues.append(
+            ValidationIssue(
+                field="scholarship_name",
+                message=(
+                    "Scholarship name could not be identified from the page"
+                    + detail
+                    + " — a human must identify this record from its source page"
+                ),
+            )
+        )
+    # M10: an unresolved provider is not an extraction error. The page simply
+    # did not name its provider, and the mapper resolves one from the
+    # SourceRegistry row that produced this document — which is better
+    # provenance than a regex reading a sentence off a portal page. The
+    # publication gate is what refuses to publish a record whose provider
+    # could not be resolved at all.
+    if s.provider_name is not None and not s.provider_name.strip():
         issues.append(ValidationIssue(field="provider_name", message="Provider name cannot be empty"))
 
     # 2. Enum Validations (optional)
-    valid_types = {"Government", "University", "Foundation", "NGO", "Company"}
-    if s.scholarship_type is not None and s.scholarship_type not in valid_types:
+    if s.scholarship_type is not None and not SCHOLARSHIP_TYPE.is_valid(s.scholarship_type):
         issues.append(
             ValidationIssue(
                 field="scholarship_type",
-                message=f"Invalid scholarship type '{s.scholarship_type}'. Must be one of {sorted(valid_types)}",
+                message=(
+                    f"Invalid scholarship type '{s.scholarship_type}'. Must be one of {SCHOLARSHIP_TYPE.describe()}"
+                ),
             )
         )
 
-    valid_degrees = {"Bachelor", "Master", "PhD", "Exchange", "Short Course"}
-    if s.degree is not None and s.degree not in valid_degrees:
+    # Controlled vocabularies come from services/domain/vocabulary.py. This list
+    # used to be a private literal identical to three others, which is how the
+    # extractor's "Doctorate" ended up valid here and invalid everywhere else.
+    if s.degree is not None and not DEGREE.is_valid(s.degree):
         issues.append(
             ValidationIssue(
-                field="degree", message=f"Invalid degree '{s.degree}'. Must be one of {sorted(valid_degrees)}"
+                field="degree",
+                message=(
+                    f"Invalid degree '{s.degree}'. Must be one of "
+                    f"{DEGREE.describe()}, or empty when the source does not state one"
+                ),
             )
         )
 
-    valid_fundings = {"Fully Funded", "Partial Funded", "Tuition Only"}
-    if s.funding_type is not None and s.funding_type not in valid_fundings:
+    if s.funding_type is not None and not FUNDING_TYPE.is_valid(s.funding_type):
         issues.append(
             ValidationIssue(
                 field="funding_type",
-                message=f"Invalid funding type '{s.funding_type}'. Must be one of {sorted(valid_fundings)}",
+                message=(f"Invalid funding type '{s.funding_type}'. Must be one of {FUNDING_TYPE.describe()}"),
             )
         )
 
     # 3. URL Validations
-    if not validate_url(s.application_url):
+    if s.application_url and not validate_url(s.application_url):
         issues.append(
             ValidationIssue(field="application_url", message=f"Invalid application URL: '{s.application_url}'")
         )
-    if not validate_url(s.official_source):
+    elif not s.application_url:
+        issues.append(
+            ValidationIssue(
+                field="application_url",
+                message="Application URL was not identified from a labelled link",
+                severity="warning",
+            )
+        )
+    if s.official_source and not validate_url(s.official_source):
         issues.append(
             ValidationIssue(field="official_source", message=f"Invalid official source URL: '{s.official_source}'")
+        )
+    elif not s.official_source:
+        issues.append(
+            ValidationIssue(
+                field="official_source",
+                message="Official source URL was not identified from a labelled link",
+                severity="warning",
+            )
         )
 
     # 4. Timeline Date Validations (optional)

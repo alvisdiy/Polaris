@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import re
 from typing import List, Optional
@@ -8,6 +7,8 @@ import httpx
 from bs4 import BeautifulSoup
 
 from services.ingestion.connectors.base_connector import BaseConnector, ConnectorConfig, FetchResult
+from services.ingestion.fetch_safety import SafeFetch
+from services.ingestion.robots import RobotsPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +42,28 @@ class GenericHTTPConnector(BaseConnector):
     def __init__(self, config: ConnectorConfig):
         super().__init__(config)
         self.client: Optional[httpx.AsyncClient] = None
+        self.robots = RobotsPolicy(
+            user_agent=(self.config.user_agent or RobotsPolicy().user_agent)
+        )
+
+    def _safe(self) -> SafeFetch:
+        return SafeFetch(
+            self.client,
+            max_retries=self.config.max_retries,
+            backoff_factor=self.config.backoff_factor,
+            robots=self.robots,
+        )
 
     async def connect(self) -> bool:
         """Initialize HTTP client."""
         self.client = httpx.AsyncClient(
             timeout=self.config.timeout,
             headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                )
             },
             follow_redirects=True,
         )
@@ -60,29 +76,77 @@ class GenericHTTPConnector(BaseConnector):
             self.client = None
 
     async def discover(self) -> List[str]:
-        """Discover links ending in .pdf or .html or matching scholarship keywords."""
+        """Same-site links on the entry page that name a funding opportunity.
+
+        M11. Two defects in the previous version:
+
+        1. It fetched the entry page with ``self.client.get`` directly, which
+           bypasses SafeFetch. Discovery was therefore the one path that did
+           not honour robots.txt or the URL-safety boundary — the crawler
+           reading a page it would have refused to fetch. It now goes through
+           the same ``_safe()`` path as ``fetch``.
+        2. It returned ``[entry_url]`` on failure, which handed the entry
+           page to the extractor as though it were a scholarship link. A
+           failed discovery now returns nothing, and says why.
+        """
         if not self.client:
             await self.connect()
 
+        entry_url = str(self.config.url)
         try:
-            response = await self.client.get(str(self.config.url))
+            response = await self._safe().get(entry_url)
             response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-
-            discovered = []
-            for a in soup.find_all("a", href=True):
-                href = a["href"]
-                if any(kw in href.lower() for kw in ["scholarship", "grant", "fellowship", "funding"]):
-                    full_url = urljoin(str(self.config.url), href)
-                    discovered.append(full_url.rstrip("/"))
-
-            unique = list(set(discovered))
-            if not unique:
-                unique = [str(self.config.url)]
-            return unique
         except Exception as e:
-            logger.error(f"Error discovering generic URLs: {e}")
-            return [str(self.config.url)]
+            logger.warning("Generic discovery failed for {}: {}", entry_url, e)
+            return []
+
+        custom = self.config.custom_settings or {}
+        if custom.get("url_pattern"):
+            return self.extract_candidate_links(response.text, entry_url)
+
+        # An award's URL often says nothing about funding — `/edge-programme`,
+        # `/nus-merit-scholarship` aside, `/tp-eng-scholars-2026.html`. The
+        # anchor text is the signal that is actually about the scholarship, so
+        # it is read as well as the href.
+        keywords = [kw.lower() for kw in custom.get("keywords", DEFAULT_DISCOVERY_KEYWORDS)]
+        allow_subdomains = custom.get("allow_subdomains", True)
+        base_domain = urlparse(entry_url).netloc.lower()
+        base_root = _root_domain(base_domain)
+
+        seen: set[str] = set()
+        discovered: List[str] = []
+        for anchor in BeautifulSoup(response.text, "html.parser").find_all("a", href=True):
+            href = (anchor.get("href") or "").strip()
+            if not href or href.startswith(("#", "javascript:", "mailto:", "tel:")):
+                continue
+            full_url = urljoin(entry_url, href)
+            parsed = urlparse(full_url)
+            target_domain = parsed.netloc.lower()
+            if not target_domain:
+                continue
+            if allow_subdomains:
+                if _root_domain(target_domain) != base_root:
+                    continue
+            elif target_domain != base_domain:
+                continue
+            path_lower = parsed.path.lower()
+            if any(path_lower.endswith(ext) for ext in DEFAULT_EXCLUDE_EXTENSIONS):
+                continue
+
+            label = " ".join(anchor.get_text(" ", strip=True).split()).lower()
+            url_signal = (parsed.path + "?" + parsed.query).lower()
+            if not (
+                any(kw in url_signal for kw in keywords)
+                or any(kw in label for kw in keywords)
+            ):
+                continue
+
+            normalized = full_url.split("#")[0].rstrip("/")
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            discovered.append(normalized)
+        return discovered
 
     # Compatibility alias for scholarship-first discovery interface
     def discover_scholarship_urls(self) -> List[str]:
@@ -158,7 +222,7 @@ class GenericHTTPConnector(BaseConnector):
         if not self.client:
             await self.connect()
 
-        response = await self.client.get(url)
+        response = await self._safe().get(url)
         response.raise_for_status()
 
         return FetchResult(
