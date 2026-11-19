@@ -1,0 +1,437 @@
+ M .env.example
+ M .github/workflows/ci.yml
+ M .gitignore
+ M README.md
+ M api/app.py
+ M api/routers/recommendations.py
+ M api/routers/scholarships.py
+ M api/schemas.py
+ M configs/countries/au.json
+ M configs/countries/cn.json
+ M configs/countries/de.json
+ M configs/countries/fr.json
+ M configs/countries/gb.json
+ M configs/countries/id.json
+ M configs/countries/jp.json
+ M configs/countries/kr.json
+ M configs/countries/sg.json
+ M configs/countries/us.json
+ M database/config.py
+ M database/migrations/versions/b01651cfc4c4_make_degree_funding_type_nullable.py
+ M database/migrations/versions/c9d2e7f1a4b8_add_scholarship_deadline_state.py
+ M database/models/__init__.py
+ M database/models/provider.py
+ M database/models/provider_discovery_config.py
+ M database/models/scholarship.py
+ M database/models/scholarship_version.py
+ M database/models/source_registry.py
+ M docs/project-status.md
+ M docs/v0.1/ADR-015-scholarship-domain-model.md
+ M docs/v0.1/country-exploration-specification.md
+ M frontend/package.json
+ M frontend/src/App.vue
+ D frontend/src/components/ScholarshipBenefitDetail.vue
+ D frontend/src/components/ScholarshipRequirementDetail.vue
+ D frontend/src/components/ScholarshipTimelineDetail.vue
+ M frontend/src/index.html
+ M frontend/src/main.ts
+ D frontend/src/style.css
+ M frontend/tsconfig.json
+ M frontend/vite.config.ts
+ M pyproject.toml
+ M scripts/discover_providers.py
+ M scripts/discover_providers_from_csv.py
+ M scripts/discover_scholarships.py
+ M scripts/register_source.py
+ M scripts/run_country_coverage.py
+ M scripts/run_country_exploration.py
+ M scripts/run_global_acquisition.py
+ M scripts/run_mext_pipeline.py
+ M scripts/run_provider_discovery.py
+ M scripts/seed_manual_scholarships.py
+ M scripts/seed_provider_discovery_config.py
+ M scripts/seed_source_registry.py
+ M scripts/validate_discovery_framework.py
+ M services/discovery/__init__.py
+ M services/discovery/scholarship_discovery.py
+ M services/discovery/source_registration.py
+ M services/exploration/acquisition_service.py
+ M services/exploration/candidate_analyzer.py
+ M services/exploration/config_loader.py
+ M services/exploration/engine.py
+ M services/exploration/provider_resolver.py
+ M services/exploration/query_generation.py
+ M services/exploration/repositories/frontier_repository.py
+ M services/exploration/search/__init__.py
+ M services/exploration/search/counting.py
+ M services/exploration/surfaces/web_search.py
+ M services/exploration/url_utils.py
+ M services/exploration/verification_engine.py
+ M services/ingestion/cleaner.py
+ M services/ingestion/connectors/generic_connector.py
+ M services/ingestion/connectors/generic_playwright.py
+ M services/ingestion/connectors/government/mext_connector.py
+ M services/ingestion/country_coverage_orchestrator.py
+ M services/ingestion/country_orchestrator.py
+ M services/ingestion/discovery.py
+ M services/ingestion/ecosystem_discovery.py
+ M services/ingestion/ecosystem_strategies/base.py
+ M services/ingestion/ecosystem_strategies/university_strategy.py
+ M services/ingestion/extractor.py
+ M services/ingestion/orchestrator.py
+ M services/ingestion/provider_discovery.py
+ M services/ingestion/real_extractor.py
+ M services/ingestion/strategy_factory.py
+ M services/ingestion/validator.py
+ M services/matching/explanation/engine.py
+ M services/matching/orchestrator.py
+ M services/matching/profile/normalizer.py
+ M services/matching/profile/validator.py
+ M services/matching/ranking/engine.py
+ M services/matching/scoring/__init__.py
+ M services/matching/scoring/engine.py
+ M services/matching/service.py
+ M services/scholarship/freshness.py
+ M services/scholarship/mapper.py
+ M services/scholarship/repository.py
+ M tests/api/test_recommendations.py
+ M tests/conftest.py
+ M tests/integration/_exploration_isolation.py
+ M tests/integration/test_acquisition_service.py
+ M tests/integration/test_exploration_loop.py
+ M tests/integration/test_freshness_acquisition.py
+ M tests/integration/test_frontier_repository.py
+ M tests/integration/test_mext_pipeline.py
+ M tests/integration/test_phase2_university_vertical_slice.py
+ M tests/integration/test_real_data_matching.py
+ M tests/integration/test_scholarship_first_flow.py
+ M tests/unit/test_ecosystem_discovery.py
+ M tests/unit/test_global_acquisition_metrics.py
+ M tests/unit/test_matching_service.py
+ M tests/unit/test_opportunity_classifier.py
+ M tests/unit/test_orchestrator.py
+ M tests/unit/test_provider_discovery.py
+ M tests/unit/test_provider_resolver.py
+ M tests/unit/test_query_generation.py
+ M tests/unit/test_real_extractor.py
+ M tests/unit/test_scholarship_discovery.py
+ M tests/unit/test_scholarship_mapper.py
+ M tests/unit/test_scholarship_repository.py
+ M tests/unit/test_scoring_engine.py
+ M tests/unit/test_search_providers.py
+ M tests/unit/test_source_registration.py
+ M tests/unit/test_university_strategy.py
+?? .claude/worktrees/agent-a45ed9916e54ede16/
+?? .claude/worktrees/agent-a5c1e4a34ddfe1068/
+?? .claude/worktrees/agent-a9813aef290fed75a/
+?? .claude/worktrees/agent-a9d80d11849d9a22a/
+?? .claude/worktrees/agent-aa4dc73932a64101e/
+?? .claude/worktrees/agent-ad3a50940352c37d7/
+?? .dockerignore
+?? Dockerfile
+?? PHASE2_STATUS.md
+?? PRODUCT.md
+?? _strings_audit_report.txt
+?? _strings_dump.txt
+?? api/auth.py
+?? api/routers/review.py
+?? configs/aggregators.json
+?? configs/countries/BN.json
+?? configs/countries/MY.json
+?? database/migrations/versions/a4c7e91b2d05_backfill_canonical_scholarship_identity.py
+?? database/migrations/versions/a7c8d9e0f1b2_backfill_provider_official_url.py
+?? database/migrations/versions/b8d9e0f1a2c3_retire_placeholder_source.py
+?? database/migrations/versions/c4d5e6f7a8b9_m91_version_uniqueness.py
+?? database/migrations/versions/c9e0f1a2b3d4_scholarship_degree_level.py
+?? database/migrations/versions/d2e3f4a5b6c7_m9_review_curation.py
+?? database/migrations/versions/d5e6f7a8b9c0_m91_controlled_vocabulary.py
+?? database/migrations/versions/e7f8a9b0c1d2_m91_funding_vocabulary_reconcile.py
+?? database/migrations/versions/f5a6b7c8d9e0_m91_candidate_revisions.py
+?? database/migrations/versions/f6b7c8d9e0a1_normalize_lifecycle_vocabulary.py
+?? database/models/scholarship_candidate_revision.py
+?? database/models/scholarship_degree_level.py
+?? database/models/scholarship_review_action.py
+?? docker-compose.yml
+?? docs/PRODUCTION-READINESS.md
+?? docs/PROJECT-CODEBASE-REVIEW-AND-NEXT-STEPS.md
+?? docs/RUNBOOK.md
+?? docs/audit/2026-10-12_17-21_full-audit.md
+?? docs/audit/2026-10-15_quarantine_manifest.json
+?? docs/audit/DISCOVERY-PIPELINE-FORENSIC-AUDIT.md
+?? docs/design/DESIGN.md
+?? docs/design/screenshots/about.png
+?? docs/design/screenshots/detail.png
+?? docs/design/screenshots/discover.png
+?? docs/design/screenshots/hero-title.png
+?? docs/design/screenshots/home.png
+?? docs/design/screenshots/match.png
+?? docs/progress/AGGREGATOR-RADAR-2026-11-13.md
+?? docs/progress/AS-IS-RECOMMENDATION-2026-11-09.md
+?? docs/progress/AUTONOMOUS-PIPELINE-2026-11-12.md
+?? docs/progress/CATALOGUE-INTEGRITY-2026-11-12.md
+?? docs/progress/CHINA-DISCOVERY-2026-11-11.md
+?? docs/progress/COUNTRY-EXHAUSTIVE-CRAWL-2026-11-11.md
+?? docs/progress/COUNTRY-SERVICE-FIX-2026-11-11.md
+?? docs/progress/DATA-EXPANSION-AND-AUTONOMY-2026-11-12.md
+?? docs/progress/FRONTEND-REDESIGN-2026-11-16.md
+?? docs/progress/M11-DISCOVERY-ACQUISITION.md
+?? docs/progress/MULTI-LEVEL-DEGREE-2026-11-11.md
+?? docs/progress/PHASE2-COMPLETENESS-2026-11-12.md
+?? docs/progress/POST-M10.md
+?? docs/progress/PRECISION-GATE-2026-11-10.md
+?? docs/progress/PROVIDER-DISCOVERY-PER-COUNTRY-2026-11-11.md
+?? docs/progress/PUBLIC-LAUNCH-BASELINE-2026-11-19.md
+?? docs/progress/RELEASE-2026-11-11.md
+?? docs/progress/REVIEW-QUEUE-2026-11-10.md
+?? docs/progress/REVIEW-TRIAGE-2026-11-11.md
+?? docs/progress/SCHOLARSHIP-DISCOVERY-EXPANSION.md
+?? docs/progress/SCHOLARSHIP-IDENTITY-HARDENING.md
+?? docs/progress/V0.1-PRODUCTION-CUT.md
+?? docs/progress/V0.1-SHIP-AUDIT.md
+?? docs/progress/V0.1.1-ACQUISITION-GUARD.md
+?? docs/progress/V0.1.1-FORENSIC-FINDING.md
+?? docs/progress/V013-BENCHMARK-HARNESS-AUDIT.md
+?? docs/progress/V013-LIVE-DISCOVERY-BASELINE.md
+?? docs/progress/benchmark_runs.json
+?? docs/progress/benchmark_runs_batch1_invalid.json
+?? docs/superpowers/plans/2026-11-19-public-launch-baseline.md
+?? docs/superpowers/specs/2026-11-19-public-launch-recovery-design.md
+?? docs/v0.1/ADR-016-degree-vocabulary.md
+?? docs/v0.1/ADR-017-direct-approval-paths.md
+?? docs/v0.1/ADR-018-vocabulary-gap-decisions.md
+?? docs/v0.1/ADR-019-legacy-data-condition.md
+?? docs/v0.1/llm-extraction-contract.md
+?? docs/web-design.md
+?? frontend/package-lock.json
+?? frontend/src/api/client.ts
+?? frontend/src/api/composables.ts
+?? frontend/src/api/types.ts
+?? frontend/src/components/CompareToggle.vue
+?? frontend/src/components/DeadlineBadge.vue
+?? frontend/src/components/EmptyState.vue
+?? frontend/src/components/ErrorState.vue
+?? frontend/src/components/ExplanationPanel.vue
+?? frontend/src/components/FilterChip.vue
+?? frontend/src/components/FooterBar.vue
+?? frontend/src/components/GlobalSearch.vue
+?? frontend/src/components/HeroGlobe.vue
+?? frontend/src/components/MobileMenuSheet.vue
+?? frontend/src/components/NavBar.vue
+?? frontend/src/components/ProfileForm.vue
+?? frontend/src/components/ProgressLine.vue
+?? frontend/src/components/SaveButton.vue
+?? frontend/src/components/ScholarshipCard.vue
+?? frontend/src/components/ScoreBadge.vue
+?? frontend/src/components/SkeletonBlock.vue
+?? frontend/src/components/SourceCitation.vue
+?? frontend/src/components/ThemeToggle.vue
+?? frontend/src/lib/format.ts
+?? frontend/src/router.ts
+?? frontend/src/stores/compare.ts
+?? frontend/src/stores/profile.ts
+?? frontend/src/stores/shortlist.ts
+?? frontend/src/stores/theme.ts
+?? frontend/src/styles/base.css
+?? frontend/src/styles/tokens.css
+?? frontend/src/tests/client.test.ts
+?? frontend/src/tests/compare.test.ts
+?? frontend/src/tests/format.test.ts
+?? frontend/src/views/AboutView.vue
+?? frontend/src/views/CompareView.vue
+?? frontend/src/views/DiscoverView.vue
+?? frontend/src/views/HomeView.vue
+?? frontend/src/views/MatchView.vue
+?? frontend/src/views/NotFoundView.vue
+?? frontend/src/views/SavedView.vue
+?? frontend/src/views/ScholarshipDetailView.vue
+?? mofa_view_759978.html
+?? p10_expansion_metrics.json
+?? p10_v01_catalogue_metrics.json
+?? p10_v01_catalogue_metrics2.json
+?? p11_discovery_metrics.json
+?? polaris.db
+?? scripts/apply_quarantine_manifest.py
+?? scripts/auto_review.py
+?? scripts/backfill_degree_levels.py
+?? scripts/country_status.py
+?? scripts/discover_china.py
+?? scripts/discover_official_pages.py
+?? scripts/docker-entrypoint.sh
+?? scripts/enrich_records.py
+?? scripts/fix_provider_identity.py
+?? scripts/harvest_aggregators.py
+?? scripts/import_studyinjapan.py
+?? scripts/m10_bypass_audit.py
+?? scripts/m10_extraction_metrics.py
+?? scripts/m10_integrity_audit.py
+?? scripts/m10_pilot.py
+?? scripts/m10_show_pages.py
+?? scripts/m11_baseline.py
+?? scripts/m11_build_golden.py
+?? scripts/m11_discovery_run.py
+?? scripts/m11_frontier_profile.py
+?? scripts/m11_intent_probe.py
+?? scripts/m91_audit_approvals.py
+?? scripts/m91_baseline_probe.py
+?? scripts/m91_curate_pfp.py
+?? scripts/m91_inspect_providers.py
+?? scripts/m91_repro_reacquisition.py
+?? scripts/m91_verify_publication.py
+?? scripts/m91_verify_reacquisition.py
+?? scripts/m91_verify_vocabulary.py
+?? scripts/p10_expansion.py
+?? scripts/p10_legacy_reextract.py
+?? scripts/p10_legacy_triage.py
+?? scripts/p10_name_baseline.py
+?? scripts/p10_replay.py
+?? scripts/p10_retire_orphans.py
+?? scripts/p10_review_pilot.py
+?? scripts/p10_state.py
+?? scripts/p10_vocabulary_gap.py
+?? scripts/pipeline_run.py
+?? scripts/review_queue.py
+?? scripts/run_aggregator_discovery.py
+?? scripts/run_country_crawl.py
+?? scripts/ship_audit.py
+?? scripts/v011_listing_guard_smoke.py
+?? scripts/v012_funding_coverage_measure.py
+?? scripts/v013_db_integrity_snapshot.py
+?? scripts/v013_discovery_benchmark.py
+?? scripts/v013_probe_identity.py
+?? scripts/v013_reextract_funding_candidates.py
+?? scripts/v01_apply_chevening.py
+?? scripts/v01_apply_phase2.py
+?? scripts/v01_apply_phase3_rejections.py
+?? scripts/v01_apply_phase3b_rejections.py
+?? scripts/v01_backfill_last_verified.py
+?? scripts/v01_curate.py
+?? scripts/v01_e2e_browser.py
+?? scripts/v01_final_curation.py
+?? scripts/v01_frontier_hygiene.py
+?? scripts/v01_funding_evidence.py
+?? scripts/v01_gen_listing_fixtures.py
+?? scripts/v01_perf_baseline.py
+?? scripts/v01_phase3_acquire.py
+?? scripts/v01_probe_urls.py
+?? scripts/v01_smoke.py
+?? scripts/v01_snapshot.py
+?? scripts/v01_store_evidence.py
+?? scripts/v01_verify_legacy.py
+?? services/aggregator_discovery/__init__.py
+?? services/aggregator_discovery/adapters.py
+?? services/aggregator_discovery/ingestion.py
+?? services/domain/__init__.py
+?? services/domain/degree_fallback.py
+?? services/domain/degree_levels.py
+?? services/domain/lifecycle.py
+?? services/domain/page_labels.py
+?? services/domain/source_trust.py
+?? services/domain/vocabulary.py
+?? services/enrichment/__init__.py
+?? services/enrichment/completion.py
+?? services/exploration/acquisition_policy.py
+?? services/exploration/benchmark_metrics.py
+?? services/exploration/listing_guard.py
+?? services/exploration/page_intent.py
+?? services/exploration/robots_rules.py
+?? services/exploration/run_guard.py
+?? services/exploration/search/ddgs.py
+?? services/ingestion/ecosystem_strategies/link_discovery.py
+?? services/ingestion/extraction_quality.py
+?? services/ingestion/fetch_safety.py
+?? services/ingestion/robots.py
+?? services/ingestion/untrusted.py
+?? services/ingestion/url_safety.py
+?? services/review/__init__.py
+?? services/review/auto_review.py
+?? services/review/publication.py
+?? services/review/quality.py
+?? services/review/service.py
+?? services/scholarship/identity.py
+?? tests/api/test_admin_auth.py
+?? tests/api/test_public_api_robustness.py
+?? tests/api/test_publication_boundary.py
+?? tests/api/test_review.py
+?? tests/api/test_review_vocabulary.py
+?? tests/api/test_route_consistency.py
+?? tests/api/test_v01_contract.py
+?? tests/api/test_v01_deployment.py
+?? tests/fixtures/__init__.py
+?? tests/fixtures/listing_pages.py
+?? tests/golden/discovery_golden.json
+?? tests/golden/extraction_golden.json
+?? tests/golden/scholarship_name_labels.json
+?? tests/integration/fixtures/connectors/__init__.py
+?? tests/integration/fixtures/connectors/bulletin_pages.py
+?? tests/integration/test_acquisition_listing_guard.py
+?? tests/integration/test_acquisition_page_intent.py
+?? tests/integration/test_acquisition_policy_integration.py
+?? tests/integration/test_aggregator_ingestion_isolated.py
+?? tests/integration/test_apply_quarantine_manifest.py
+?? tests/integration/test_benchmark_metrics.py
+?? tests/integration/test_candidate_concurrency.py
+?? tests/integration/test_controlled_vocabulary.py
+?? tests/integration/test_direct_approval_guard.py
+?? tests/integration/test_discovery_intent.py
+?? tests/integration/test_discovery_reliability.py
+?? tests/integration/test_end_to_end_curation.py
+?? tests/integration/test_entry_page_eligibility.py
+?? tests/integration/test_entry_page_not_acquired.py
+?? tests/integration/test_expired_scholarship_regression.py
+?? tests/integration/test_extraction_contract.py
+?? tests/integration/test_extraction_review_integration.py
+?? tests/integration/test_frontier_rollback_recovery.py
+?? tests/integration/test_generic_playwright_discover.py
+?? tests/integration/test_generic_playwright_discovery.py
+?? tests/integration/test_golden_extraction.py
+?? tests/integration/test_identity_backfill.py
+?? tests/integration/test_identity_dedup_invariant.py
+?? tests/integration/test_m91_closure_invariants.py
+?? tests/integration/test_page_signals_recording.py
+?? tests/integration/test_provenance_correction.py
+?? tests/integration/test_provider_resolution_safety.py
+?? tests/integration/test_reacquisition_boundary.py
+?? tests/integration/test_review_queue_cli.py
+?? tests/integration/test_review_service.py
+?? tests/integration/test_source_lifecycle.py
+?? tests/integration/test_version_concurrency.py
+?? tests/security/test_adversarial_extraction.py
+?? tests/security/test_connector_wiring.py
+?? tests/security/test_prompt_injection.py
+?? tests/security/test_url_safety.py
+?? tests/unit/test_acquisition_overview_expansion.py
+?? tests/unit/test_acquisition_policy.py
+?? tests/unit/test_aggregator_discovery.py
+?? tests/unit/test_aggregator_ingestion.py
+?? tests/unit/test_aggregator_radar.py
+?? tests/unit/test_aggregator_runner.py
+?? tests/unit/test_auto_review.py
+?? tests/unit/test_candidate_analyzer_robots.py
+?? tests/unit/test_cleaner_anchor_links.py
+?? tests/unit/test_controlled_vocabulary.py
+?? tests/unit/test_country_runner.py
+?? tests/unit/test_database_config.py
+?? tests/unit/test_ddgs_search_provider.py
+?? tests/unit/test_deadline_contradiction.py
+?? tests/unit/test_degree_fallback.py
+?? tests/unit/test_degree_levels.py
+?? tests/unit/test_extraction_quality.py
+?? tests/unit/test_extractor_link_targets.py
+?? tests/unit/test_funding_reextraction_guard.py
+?? tests/unit/test_link_discovery_types.py
+?? tests/unit/test_listing_guard.py
+?? tests/unit/test_name_evidence_ranking.py
+?? tests/unit/test_page_intent.py
+?? tests/unit/test_page_intent_sections.py
+?? tests/unit/test_page_labels.py
+?? tests/unit/test_provider_name_noise.py
+?? tests/unit/test_review_quality.py
+?? tests/unit/test_robots_rules.py
+?? tests/unit/test_run_guard.py
+?? tests/unit/test_scholarship_discovery_expansion.py
+?? tests/unit/test_scholarship_identity.py
+?? tests/unit/test_scholarship_name_labels.py
+?? tests/unit/test_site_suffix.py
+?? tests/unit/test_source_trust.py
+?? tests/unit/test_vocabulary_gap_decisions.py
+?? tests/unit/test_web_search_surface.py

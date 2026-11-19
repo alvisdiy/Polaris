@@ -1,0 +1,513 @@
+{
+  "manifest_version": 1,
+  "generated_at": "2026-10-15",
+  "generated_by": "catalogue-trust-sprint-task-2",
+  "repository": "C:\\data\\AINGMAUNGG\\Polaris",
+  "scope": "Read-only preparation. No record was modified while producing this manifest. Proposed actions are executed only by scripts/apply_quarantine_manifest.py with --execute, and only for entries carrying reviewed_by + reviewed_at.",
+  "baseline": {
+    "query": "SELECT extraction_status, count(*) FROM scholarship GROUP BY 1",
+    "total_records": 209,
+    "approved": 41,
+    "pending_review": 10,
+    "needs_correction": 1,
+    "rejected": 157
+  },
+  "verification_method": {
+    "db": "Read-only SQL over scholarship, provider, country, scholarship_timeline and source_registry.",
+    "live_fetch": "HTTP GET of each official_page_url on 2026-10-15 with User-Agent PolarisCatalogueAudit/1.0, recording status, final URL, <title> and keyword signals (studentship, salary, closing date, scholarship, deadline).",
+    "no_host_whitelist": "Hostname was never used as a reason on its own. Every record in categories A and B carries per-record evidence from the page it points at."
+  },
+  "counts": {
+    "A_test_or_placeholder_source": 1,
+    "B_likely_non_scholarship": 10,
+    "C_possible_duplicates_needing_identity_review": 11,
+    "C_cleared_no_duplicate_evidence": 3,
+    "D_metadata_defects_report_only": 19
+  },
+  "entries": [
+    {
+      "scholarship_id": "0a47fab7-cdae-46f7-9de3-0b070be975f3",
+      "current_status": "approved",
+      "category": "A",
+      "title": "MEXT Scholarship (Test)",
+      "provider": "JASSO",
+      "country": "JP",
+      "official_url": "https://example.com/mext",
+      "evidence": [
+        {"fact": "official_page_url host is example.com, a name reserved by RFC 2606 that cannot resolve to a provider page", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "scholarship_name contains the marker \"(Test)\"", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "identity_key is NULL, so the record is outside the deduplication index entirely", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "recorded source is 'Scholarships | College of Graduate Research' at graduatestudies.smu.edu.sg, while the provider is recorded as JASSO (Japan) — source and provider disagree", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "reviewed_by and reviewed_at are NULL despite the record being in the published state", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "the publication gate now reports publishable=False, blocking=['official_source'] for this record", "how": "read-only call to ReviewService.evaluate_quality", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": false,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+
+    {
+      "scholarship_id": "3f3619ce-9c25-4813-a035-7ae022f5bc1b",
+      "current_status": "approved",
+      "category": "B",
+      "title": "Announcing 3 PhD Studentships within Royal Holloway funded by the AHRC Doctoral Landscape Awards",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTB328/announcing-3-phd-studentships-within-royal-holloway-funded-by-the-ahrc-doctoral-landscape-awards",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"Announcing 3 PhD Studentships within Royal Holloway funded by the AHRC Doctoral Landscape Awards at Royal Holloway, University of London\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries the signals studentship, salary and stipend — a salaried doctoral post, not an award a student applies for", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "the record's provider is \"Find a PhD\", the recruitment aggregator; the employing institution on the page (Royal Holloway) is not recorded as provider", "how": "db-query + live-fetch", "observed": "2026-10-15"},
+        {"fact": "source is https://www.jobs.ac.uk/search/phds, a job search results page; acquisition origin phase3_acquisition", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "the title is an announcement covering three posts rather than one opportunity, and no deadline is recorded", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "e15e4077-b2f0-42bc-bd1a-968f66ee4f54",
+      "current_status": "approved",
+      "category": "B",
+      "title": "Leverhulme Trust PhD Studentship: The Slavery-War Nexus in Historical/Contemporary Contexts",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTB383/leverhulme-trust-phd-studentship-the-slavery-war-nexus-in-historical-contemporary-contexts",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"Leverhulme Trust PhD Studentship: The Slavery-War Nexus in Historical/Contemporary Contexts at King's College London\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary, stipend and application deadline — a funded post with a closing date, recruited at King's College London", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not King's College London", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "no application deadline recorded on the record although the page publishes one", "how": "db-query + live-fetch", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "c6efb7de-1c70-428a-999c-2c0bb678d52a",
+      "current_status": "approved",
+      "category": "B",
+      "title": "Magdalen Vernon PhD Studentship in Psychology, Neuroscience, Psycholinguistics, or Clinical Language Science",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTB024/magdalen-vernon-phd-studentship-in-psychology-neuroscience-psycholinguistics-or-clinical-language-science",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"Magdalen Vernon PhD Studentship in Psychology, Neuroscience, Psycholinguistics, or Clinical Language Science at University of Reading\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary, stipend and application deadline", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not University of Reading", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "no deadline recorded on the record", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "bbfac79e-fe16-457e-9f31-057d72fce379",
+      "current_status": "approved",
+      "category": "B",
+      "title": "PhD Studentship - Long-distance Continuous Variable Quantum Key Distribution with Amplifiers and Memories",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTA400/phd-studentship-long-distance-continuous-variable-quantum-key-distribution-with-amplifiers-and-memories",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"PhD Studentship - Long-distance Continuous Variable Quantum Key Distribution with Amplifiers and Memories at Manchester Metropolitan University\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary and stipend", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not Manchester Metropolitan University", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "funding_type is NULL although the page states funding", "how": "db-query + live-fetch", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "ab72b590-095d-4a7a-820e-683a46c2c86e",
+      "current_status": "approved",
+      "category": "B",
+      "title": "PhD Studentship: Actuated Microdevices for Oral Delivery of Biologics",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTB407/phd-studentship-actuated-microdevices-for-oral-delivery-of-biologics",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"PhD Studentship: Actuated Microdevices for Oral Delivery of Biologics at University of Birmingham\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary and stipend", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not University of Birmingham", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "95e4efd8-0bb3-47a0-8d0f-014a7b37cfc7",
+      "current_status": "approved",
+      "category": "B",
+      "title": "PhD Studentship: Mechanisms Driving Water use in Tree-based Agricultural Systems (TROPS lab, Newcastle University)",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTA558/phd-studentship-mechanisms-driving-water-use-in-tree-based-agricultural-systems-trops-lab-newcastle-university",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"PhD Studentship: Mechanisms Driving Water use in Tree-based Agricultural Systems (TROPS lab, Newcastle University) at Newcastle University\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary and closing date — a recruited post", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not Newcastle University", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "recorded deadline 2026-10-15 is today, i.e. the advert closes today", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "92316f15-709e-4296-a92a-f60d485bc90a",
+      "current_status": "approved",
+      "category": "B",
+      "title": "PhD Studentship: Research Studentship in Control and Engineering Biology",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTA504/phd-studentship-research-studentship-in-control-and-engineering-biology",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"PhD Studentship: Research Studentship in Control and Engineering Biology at University of Oxford\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary, stipend and application deadline", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not University of Oxford", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "funding_type is Fully Funded on the record while no deadline is recorded", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "3d722d48-11ce-484e-9b44-cbe556481592",
+      "current_status": "approved",
+      "category": "B",
+      "title": "PhD Studentship: Wildlife Connectivity Potential of Tree-Based Agricultural Systems (TROPS lab, Newcastle University)",
+      "provider": "Find a PhD",
+      "country": "GB",
+      "official_url": "https://www.jobs.ac.uk/job/DTA545/phd-studentship-wildlife-connectivity-potential-of-tree-based-agricultural-systems-trops-lab-newcastle-university",
+      "evidence": [
+        {"fact": "HTTP 200; live page title is \"PhD Studentship: Wildlife Connectivity Potential of Tree-Based Agricultural Systems (TROPS lab, Newcastle University) at Newcastle University\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "page carries studentship, salary and closing date", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "provider recorded as \"Find a PhD\" (aggregator), not Newcastle University", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "recorded title duplicates the shape of 95e4efd8 from the same lab — reviewed separately, not grouped as duplicates because the adverts are distinct", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "high",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "review_note": null
+    },
+    {
+      "scholarship_id": "e2a5bfd4-2636-4869-90fa-dcd0f75d1a8a",
+      "current_status": "approved",
+      "category": "B",
+      "title": "Polytechnic Foundation Programme (PFP)",
+      "provider": "Temasek Polytechnic",
+      "country": "SG",
+      "official_url": "https://www.tp.edu.sg/schools-and-courses/students/schools/eng/scholarships/tp-eng-scholars-2020.html",
+      "evidence": [
+        {"fact": "live page title is \"TP-Eng-scholars-2020 | Temasek Polytechnic\", which does not name the Polytechnic Foundation Programme at all — the record's title and its source page describe different things", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "the record's own field_provenance for degree, written by m91-curation after human review, states: \"source describes the qualification as a polytechnic diploma; Polaris has no degree level for it (ADR-016)\" — a diploma study qualification, not an award", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "degree is NULL as a result of that curation, so the matching engine cannot score this record at all", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "this is the record the m9.1 controlled-vocabulary migration documents as the single grandfathered degree='Polytechnic' row", "how": "database/migrations/versions/d5e6f7a8b9c0_m91_controlled_vocabulary.py", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "review_note": "CONFLICTS WITH A PRIOR HUMAN DECISION. This record was deliberately curated and left published by m91-curation on 2026-10-03. Reversing that needs a person, which is why human_review_required is true.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "db381848-e67f-4c27-ae22-9086f9496028",
+      "current_status": "approved",
+      "category": "B",
+      "title": "University-wide Student Exchange Program (USTEP) Type U",
+      "provider": "The University of Tokyo",
+      "country": "JP",
+      "official_url": "https://www.u-tokyo.ac.jp/en/current-students/ustep-typeu.html",
+      "evidence": [
+        {"fact": "live page title is \"University-wide Student Exchange Program (USTEP) Type U | The University of Tokyo\"", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "the URL path is /en/current-students/, i.e. the page addresses students already enrolled at the University of Tokyo rather than an open call to applicants", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "degree was machine-extracted from the source string \"exchange program\"; funding_type and deadline are both absent, so no funding evidence exists on the record", "how": "db-query (field_provenance)", "observed": "2026-10-15"},
+        {"fact": "the record is in the published state with reviewed_by='phase3-acquisition', i.e. an acquisition actor rather than a reviewer", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "reject",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "quarantine",
+      "review_note": "Exchange programmes are inside DEGREE_LEVELS, so this is a scope judgement rather than an obvious defect: if Polaris intends to publish exchange mobility, keep the record and instead correct the audience/eligibility fields.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+
+    {
+      "scholarship_id": "87714df1-cb2c-49de-b3fe-80d8ba5fc7cd",
+      "current_status": "approved",
+      "category": "C",
+      "title": "LPDP Beasiswa Reguler (PhD)",
+      "provider": "Lembaga Pengelola Dana Pendidikan",
+      "country": "ID",
+      "official_url": "https://lpdp.kemenkeu.go.id/en/beasiswa/umum/beasiswa-reguler/",
+      "evidence": [
+        {"fact": "shares its official_url with 1b1d40ee (LPDP Beasiswa Reguler (Master)); only the degree column differs", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "the shared page returned HTTP 200 but produced no readable <title> in the fetch, so the two programmes could not be separated from the page alone", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "the same page is recorded for both Master and PhD with identical deadline 2027-06-30 and funding Fully Funded", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "1b1d40ee-b546-49b2-965c-e73d624c7f5c",
+      "current_status": "approved",
+      "category": "C",
+      "title": "LPDP Beasiswa Reguler (Master)",
+      "provider": "Lembaga Pengelola Dana Pendidikan",
+      "country": "ID",
+      "official_url": "https://lpdp.kemenkeu.go.id/en/beasiswa/umum/beasiswa-reguler/",
+      "evidence": [
+        {"fact": "shares its official_url with 87714df1; identity_key differs only because degree differs", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "same deadline, same funding, same source row as the PhD record", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "e5aceb68-425f-42d3-bf4f-797aab299336",
+      "current_status": "approved",
+      "category": "C",
+      "title": "DAAD Research Grants - Short-Term Grants",
+      "provider": "Deutscher Akademischer Austauschdienst",
+      "country": "DE",
+      "official_url": "https://www.daad.de/go/en/stipa57742121",
+      "evidence": [
+        {"fact": "shares its official_url with 7272c9ec (DAAD Research Grants - Doctoral Programmes in Germany)", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "the URL redirects to www2.daad.de/.../21148-scholarship-database/?detail=57742121 whose live title is \"Research Grants in Germany - DAAD\", which is a programme family, not either recorded title", "how": "live-fetch", "observed": "2026-10-15"},
+        {"fact": "the record's own application_url is the generic DAAD database landing page rather than a detail page for this programme", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "review_note": "Likely defect is the official_url (both records point at one generic redirect) rather than duplication — needs a reviewer to attach per-programme URLs.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "7272c9ec-4d50-4d3b-ba0c-36cc8d35c70b",
+      "current_status": "approved",
+      "category": "C",
+      "title": "DAAD Research Grants - Doctoral Programmes in Germany",
+      "provider": "Deutscher Akademischer Austauschdienst",
+      "country": "DE",
+      "official_url": "https://www.daad.de/go/en/stipa57742121",
+      "evidence": [
+        {"fact": "shares its official_url with e5aceb68; both resolve to detail=57742121 titled \"Research Grants in Germany - DAAD\"", "how": "db-query + live-fetch", "observed": "2026-10-15"},
+        {"fact": "recorded degree is PhD and deadline 2027-10-31 while the sibling record on the same URL is Short Course with deadline 2027-04-30 — inconsistent facts from one page", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "medium",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "07b12100-b74e-427e-8eec-4e2ef9cc46b3",
+      "current_status": "approved",
+      "category": "C",
+      "title": "MEXT Scholarship for Japanese Studies Students",
+      "provider": "Ministry of Education, Culture, Sports, Science and Technology",
+      "country": "JP",
+      "official_url": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
+      "evidence": [
+        {"fact": "one listing URL is shared by four MEXT records (07b12100, d3c91104, fa209cf2, 4c8838bb); only degree and deadline differ", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "the four titles are distinct MEXT tracks and all four carry Fully Funded with distinct deadlines, so the evidence points to a shared non-programme-specific URL rather than four copies", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "review_note": "Provisionally distinct; the fix is a programme-specific official_url, not deletion.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "d3c91104-ea7d-4498-b028-2b45a6f61256",
+      "current_status": "approved",
+      "category": "C",
+      "title": "MEXT Scholarship (University Recommendation)",
+      "provider": "Ministry of Education, Culture, Sports, Science and Technology",
+      "country": "JP",
+      "official_url": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
+      "evidence": [
+        {"fact": "same shared MEXT listing URL as 07b12100, fa209cf2, 4c8838bb", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "distinct title, degree (PhD) and deadline (2027-02-15) from its siblings", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "fa209cf2-d7d9-497c-b949-50f2273c1f4e",
+      "current_status": "approved",
+      "category": "C",
+      "title": "MEXT Scholarship for Undergraduate Students",
+      "provider": "Ministry of Education, Culture, Sports, Science and Technology",
+      "country": "JP",
+      "official_url": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
+      "evidence": [
+        {"fact": "same shared MEXT listing URL as its three siblings", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "distinct title, degree (Bachelor) and deadline (2027-05-31)", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "4c8838bb-0fd5-4d77-9db5-020783c9b24b",
+      "current_status": "approved",
+      "category": "C",
+      "title": "MEXT Scholarship for Research Students",
+      "provider": "Ministry of Education, Culture, Sports, Science and Technology",
+      "country": "JP",
+      "official_url": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
+      "evidence": [
+        {"fact": "same shared MEXT listing URL as its three siblings", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "distinct title, degree (Master) and deadline (2027-05-31)", "how": "db-query", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": true,
+      "disposition": "manual_identity_review",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "8c41cea7-1922-48ca-89a7-a9ec8480a6dd",
+      "current_status": "approved",
+      "category": "C",
+      "title": "International Postgraduate Scholarship 2026",
+      "provider": "The University of Sheffield",
+      "country": "GB",
+      "official_url": "https://sheffield.ac.uk/international/fees-and-funding/scholarships/postgraduate/international-postgraduate-scholarship",
+      "evidence": [
+        {"fact": "suspected duplicate of d0334076 and 040c598e; checked individually", "how": "db-query", "observed": "2026-10-15"},
+        {"fact": "HTTP 200 with live title \"International Postgraduate Scholarship 2026 | International students | The University of Sheffield\" — distinct URL and distinct cohort year from its siblings", "how": "live-fetch", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": false,
+      "disposition": "cleared",
+      "review_note": "Cleared: three distinct Sheffield pages confirmed live. Not duplicates.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "d0334076-8f61-4dee-92d0-b3c14f00ff1f",
+      "current_status": "approved",
+      "category": "C",
+      "title": "International Postgraduate Scholarship 2027 (mainland China)",
+      "provider": "The University of Sheffield",
+      "country": "GB",
+      "official_url": "https://sheffield.ac.uk/international/fees-and-funding/scholarships/postgraduate/china-2027",
+      "evidence": [
+        {"fact": "HTTP 200 with live title \"International Postgraduate Scholarship 2027 (mainland China)\" — distinct URL and distinct eligibility region from its siblings", "how": "live-fetch", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": false,
+      "disposition": "cleared",
+      "review_note": "Cleared: distinct page and distinct regional eligibility.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "scholarship_id": "040c598e-dfec-4be4-a6af-315122c36473",
+      "current_status": "approved",
+      "category": "C",
+      "title": "International Postgraduate Scholarship 2027 (selected regions)",
+      "provider": "The University of Sheffield",
+      "country": "GB",
+      "official_url": "https://sheffield.ac.uk/international/fees-and-funding/scholarships/postgraduate/2027",
+      "evidence": [
+        {"fact": "HTTP 200 with live title \"International Postgraduate Scholarship 2027 (selected regions)\" — distinct URL and distinct eligibility region from its siblings", "how": "live-fetch", "observed": "2026-10-15"}
+      ],
+      "proposed_action": "none",
+      "confidence": "low",
+      "human_review_required": false,
+      "disposition": "cleared",
+      "review_note": "Cleared: distinct page and distinct regional eligibility.",
+      "reviewed_by": null,
+      "reviewed_at": null
+    }
+  ],
+  "metadata_defects": {
+    "note": "Category D. Reported for completeness and never proposed as a reason to quarantine. No entry below is an executable action.",
+    "proposed_action": "report_only",
+    "aggregate_counts": {
+      "records_in_approved_state": 41,
+      "funding_type_null": 24,
+      "deadline_null": 20,
+      "deadline_state_unknown_or_null": 21,
+      "degree_null": 6,
+      "provider_name_three_chars_or_fewer": 3,
+      "identity_key_null": 1
+    },
+    "records": [
+      {"scholarship_id": "7e857dfe-d43b-495b-8e3b-740fef608f75", "title": "PFP Study Award", "defects": ["provider_name is \"Sp\", a truncated form of Singapore Polytechnic, and is rendered as the provider in the public API", "degree is NULL"], "live_check": "page title \"PFP Study Award\" on sp.edu.sg returns 200 with scholarship and deadline signals — the record itself is a genuine award, only its metadata is wrong"},
+      {"scholarship_id": "cade57e1-c5a3-4a5f-b58e-8dfeb446fa8b", "title": "SP Scholarship & SP Engineering Scholarship", "defects": ["provider_name is \"Sp\"", "degree is NULL"], "live_check": "page title matches the record exactly and returns 200 with scholarship and deadline signals"},
+      {"scholarship_id": "06d7ce8b-37e7-43d2-8073-a0b2c8dea416", "title": "SP Undergraduate Scholarship", "defects": ["provider_name is \"Sp\"", "degree is NULL although the title states Undergraduate"], "live_check": "page title matches and returns 200 with scholarship and deadline signals"},
+      {"scholarship_id": "87b80e5f-2814-415f-a7a4-2124567bbf9d", "title": "Loughborough University Bursary", "defects": ["degree is Master but the official_url lives under /study/undergraduate/ and the live title is \"Loughborough University Bursary | Undergraduate study\""], "live_check": "HTTP 200, title confirms undergraduate audience"},
+      {"scholarship_id": "a2d61ab4-ac6f-4b25-a143-50b4a6fd6ef1", "title": "Loughborough University Sanctuary Scholarships", "defects": ["degree is Master but the official_url lives under /study/undergraduate/"], "live_check": "official_url is the undergraduate scholarships path"},
+      {"scholarship_id": "da387a2d-25ad-4f67-a49b-398271c62917", "title": "International Excellence Scholarships", "defects": ["record title differs from the live page title \"Undergraduate Excellence Scholarships\"; the requested URL redirects to /excellence-scholarships/"], "live_check": "HTTP 200 after redirect"},
+      {"scholarship_id": "b447e2e3-776d-4d5c-8a71-5eb3270729c5", "title": "Women in Science Bursary", "defects": ["degree is NULL"], "live_check": "HTTP 200, live title matches, scholarship and deadline signals present — genuine award"},
+      {"scholarship_id": "4ab7a46f-7c84-4540-91ea-7572fbe6bba7", "title": "NTU Opportunity Grant (NOG)", "defects": ["degree is NULL", "funding_type is NULL"], "live_check": "HTTP 200, live title matches; page sits under financial-aid — genuine aid, not a scholarship badge"}
+    ],
+    "not_a_defect_note": "95e4efd8 having deadline 2026-10-15 (today) is recorded as deadline_state active and is a freshness matter, not a metadata defect. The 24 records with a NULL funding_type are deliberate: services/domain/vocabulary.py requires classify-only-when-the-page-states-it, so NULL means no evidence rather than missing data."
+  }
+}

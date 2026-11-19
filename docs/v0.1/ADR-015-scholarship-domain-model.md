@@ -31,8 +31,24 @@ No UNIQUE constraint is used for deduplication.
 Represented by `extraction_status` on the Scholarship table.
 
 ```text
-pending_review → approved | rejected | superseded → archived
+pending_review    → approved | rejected | needs_correction
+needs_correction  → pending_review | approved | rejected
+approved          → pending_review | rejected
+rejected          → pending_review
 ```
+
+**Correction (M9.1 closure audit).** This section originally read
+`pending_review → approved | rejected | superseded → archived`. `superseded`
+and `archived` were never implemented and are deliberately **not** added now:
+nothing in the acquisition, review or publication path produces them, and a
+state with no producer is a state nothing tests. When a scholarship is
+genuinely replaced by a newer cycle, `rejected` or `pending_review` already
+express the decision, and the candidate-revision mechanism (ADR M9.1 Phase 2)
+is how a *field* change is proposed against a published record.
+
+`needs_correction` was missing from this list even though it is implemented and
+reachable; the state machine in `services/review/service.py` is the
+authoritative definition.
 
 ### Application Cycle
 

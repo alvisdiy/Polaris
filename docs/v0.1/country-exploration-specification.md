@@ -146,13 +146,22 @@ Implementations shipped:
 - `SerperSearchProvider` — real adapter (Google via Serper.dev API). Endpoint,
   key (env `POLARIS_SERPER_API_KEY`), and result count configured via
   environment. httpx-based, no new dependency.
+- `DDGSearchProvider` — free DuckDuckGo metasearch via the `ddgs` library
+  (env `POLARIS_SEARCH_PROVIDER=ddgs`). No API key; the library is imported
+  lazily behind one module-level seam, so it stays an optional dependency.
+  Timeouts map to `TimeoutError`, other upstream errors (including "No
+  results found." and rate limits) to `RuntimeError`, which the surface counts
+  as failed queries. Upstream may throttle or block at any time — it is a
+  best-effort backend, not a guaranteed one, and it never bypasses CAPTCHAs
+  or access controls. Optional `DDGS_PROXY` env is honored by the library.
 - `NullSearchProvider` — returns no results, records every query. Used in
   tests, `--dry-run`, and as safe fallback when no key is configured.
 
 Selection: `POLARIS_SEARCH_PROVIDER` env var (default `serper`). Missing API
 key ⇒ WebSearchSurface reports degraded; the run continues with seeds, known
-sources, and link expansion. The core engine never knows which provider is
-active — it depends only on the interface.
+sources, and link expansion. An unknown provider name fails fast with
+`ValueError` rather than silently selecting another provider. The core engine
+never knows which provider is active — it depends only on the interface.
 
 **Query accounting:** the engine wraps the configured provider in
 `CountingSearchProvider`, so every call — discovery queries and
@@ -510,8 +519,9 @@ Country configuration is version-controlled JSON (data, not code, no config
 table): `configs/countries/{iso2}.json` — languages, locale, terminology
 packs, seed_urls (optional), bounds, rate limits, routing thresholds, soft
 domain signals. Global defaults in `services/exploration/config_loader.py`.
-Search provider selection via env: `POLARIS_SEARCH_PROVIDER`,
-`POLARIS_SERPER_API_KEY`.
+Search provider selection via env: `POLARIS_SEARCH_PROVIDER`
+(`serper` | `ddgs` | `null`), `POLARIS_SERPER_API_KEY` (serper only),
+`DDGS_PROXY` (ddgs only, optional).
 
 # 27. Testing Strategy
 
@@ -550,10 +560,10 @@ no specific provider required for success; no fabricated numbers.
 **Prerequisites for a true zero-seed run:**
 
 1. A configured `SearchProvider` — `POLARIS_SERPER_API_KEY` in the environment
-   (or another adapter via `POLARIS_SEARCH_PROVIDER`). Without credentials the
-   run is *degraded*, not zero-seed: web discovery yields nothing and only the
-   seeded known sources can be processed. A degraded run is not evidence of
-   zero-seed capability and must be reported as such.
+   for serper, or `POLARIS_SEARCH_PROVIDER=ddgs` (no key needed). Without a
+   working backend the run is *degraded*, not zero-seed: web discovery yields
+   nothing and only the seeded known sources can be processed. A degraded run
+   is not evidence of zero-seed capability and must be reported as such.
 2. An empty frontier for the country. Leftover `REJECTED` rows are terminal
    (§9), so a country whose earlier runs condemned its known-source URLs will
    sit dormant until discovery supplies new URLs. Do not read that as a bug in

@@ -1,0 +1,719 @@
+[
+  {
+    "country": "KR",
+    "started_at": "2026-10-04T12:25:37.035525+00:00",
+    "finished_at": "2026-10-04T12:32:13.986189+00:00",
+    "duration_seconds": 397.0,
+    "plan": {
+      "country": "KR",
+      "run_offset": 2,
+      "plan_hash": "d923ef507ca7e43889dd63c6549d1cbeb87f170d06250fd674569a1c2fe83402",
+      "query_count": 12,
+      "distinct_query_count": 12,
+      "families": {
+        "degree": 2,
+        "ecosystem": 2,
+        "funding": 2,
+        "localized": 2,
+        "official_source": 1,
+        "opportunity": 1,
+        "provider": 2
+      },
+      "queries": {
+        "stipend fellowship South Korea": "funding",
+        "international students fellowship South Korea": "degree",
+        "South Korea foundation scholarship programme": "ecosystem",
+        "South Korea university scholarship": "provider",
+        "\ud55c\uad6d \uc7a5\ud559\uae08 \uc720\ud559\uc0dd": "localized",
+        "scholarship in South Korea for international students": "opportunity",
+        "South Korea university scholarship application": "official_source",
+        "stipend grant South Korea undergraduate": "funding",
+        "South Korea graduate grant programme": "degree",
+        "ministry of education fellowship South Korea": "ecosystem",
+        "South Korea government fellowship": "provider",
+        "\ud55c\uad6d \ud559\uc790\uae08 \uc720\ud559\uc0dd": "localized"
+      },
+      "bounds": {
+        "max_depth": 3,
+        "max_candidates": 2000,
+        "max_pages": 300,
+        "max_pages_per_domain": 15,
+        "max_runtime_minutes": 45,
+        "max_retries": 3
+      },
+      "plan_identifier": "7_family_expansion"
+    },
+    "metrics": {
+      "queries_executed": 64,
+      "discovery_queries": 12,
+      "queries_failed": 0,
+      "search_results": 120,
+      "candidates_created": 169,
+      "dedup_merges": 144,
+      "candidates_by_origin": {
+        "link_expansion": 140,
+        "web_search": 26
+      },
+      "candidates_by_type": {
+        "opportunity": 10,
+        "provider": 3,
+        "source": 153
+      },
+      "pages_fetched": 33,
+      "fetch_failures": 12,
+      "classification_labels": {
+        "SCHOLARSHIP": 26,
+        "UNKNOWN": 3,
+        "JOB": 4
+      },
+      "jobs_rejected": 4,
+      "opportunities_retained": 18,
+      "providers_created": 7,
+      "providers_resolved": 19,
+      "providers_needs_review": 0,
+      "authority_resolved": 0,
+      "authority_candidates_found": 24,
+      "authority_unresolved": 2,
+      "sources_verified": 1,
+      "sources_needs_review": 14,
+      "scholarships_persisted": 0,
+      "extraction_failures": 0,
+      "acquisition_failures": 0,
+      "duplicates_collapsed": 0,
+      "link_expansions": 122,
+      "retries": 3,
+      "page_intent_counts": {},
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "listing_signals": {},
+      "provenance_samples": [
+        {
+          "url": "https://eng.nrf.re.kr/page/5301bb32-ad33-4031-8de1-a8b3275956a2",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:36:33.692208+00:00",
+            "rank": 8,
+            "title": "Programs - National Research Foundation of Korea",
+            "origin": "web_search",
+            "run_id": "a2cff6a9-4675-44f6-95f4-424197011ddf",
+            "snippet": "Fellow-ship Group. Provides research funds for up to 9 years to selected science and engineering university research institutes at university",
+            "origin_query": "South Korea university fellowship",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.mofa.go.kr/eng/wpge/m_5720/contents.do",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:36:33.692208+00:00",
+            "rank": 5,
+            "title": "Korea Foundation | Ministry of Foreign Affairs, Republic ...",
+            "origin": "web_search",
+            "run_id": "a2cff6a9-4675-44f6-95f4-424197011ddf",
+            "snippet": "This fellowship provides professors, graduate students and Korea-related professionals with an opportunity to take an intensive Korean language course up to ...",
+            "origin_query": "South Korea university fellowship",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.cochlear.com/us/en/corporate/media-center/media-releases/2026/2026-academic-scholarship-recipients",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "84de783e-7c6f-4828-9615-680e8df3fef4",
+            "source_url": "https://www.cochlear.com/us/en/home/ongoing-care-and-support/connect-with-us/scholarships",
+            "anchor_text": "authority candidate (0.42)"
+          }
+        },
+        {
+          "url": "https://admissions.umd.edu/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "84de783e-7c6f-4828-9615-680e8df3fef4",
+            "source_url": "https://admissions.umd.edu/tuition/freshman-merit-scholarships",
+            "anchor_text": "authority candidate (0.42)"
+          }
+        },
+        {
+          "url": "https://www.eng.auburn.edu/giving/godfrey-scholarship.html",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "84de783e-7c6f-4828-9615-680e8df3fef4",
+            "source_url": "https://eng.auburn.edu/bsen/academics/undergrad/scholarships.html",
+            "anchor_text": "authority candidate (0.42)"
+          }
+        }
+      ]
+    },
+    "frontier_states": {
+      "done": 135,
+      "failed": 4,
+      "pending": 839,
+      "rejected": 130
+    },
+    "metrics_summary": {
+      "queries_executed": 64,
+      "discovery_queries": 12,
+      "search_results": 120,
+      "candidates_created": 169,
+      "sources_verified": 1,
+      "pages_fetched": 33,
+      "page_intent_counts": {},
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "extraction_succeeded": null,
+      "extraction_failed": null,
+      "duplicates_collapsed": 0,
+      "scholarships_persisted": 0,
+      "opportunities_retained": 18
+    }
+  },
+  {
+    "country": "ID",
+    "started_at": "2026-10-04T12:32:13.990693+00:00",
+    "finished_at": "2026-10-04T12:41:56.440508+00:00",
+    "duration_seconds": 582.4,
+    "plan": {
+      "country": "ID",
+      "run_offset": 1,
+      "plan_hash": "50bf3acd327b8e87b37ac0886f875eda7952427c08c8166baae0a9c22255b1a8",
+      "query_count": 12,
+      "distinct_query_count": 12,
+      "families": {
+        "degree": 2,
+        "ecosystem": 2,
+        "funding": 2,
+        "localized": 1,
+        "official_source": 2,
+        "opportunity": 1,
+        "provider": 2
+      },
+      "queries": {
+        "Indonesia university fellowship application": "official_source",
+        "stipend grant Indonesia pascasarjana": "funding",
+        "Indonesia pascasarjana fellowship programme": "degree",
+        "national scholarship Indonesia official": "ecosystem",
+        "Indonesia government scholarship": "provider",
+        "Indonesia beasiswa master": "localized",
+        "mahasiswa grant Indonesia": "opportunity",
+        "Indonesia fellowship official site": "official_source",
+        "beasiswa penuh grant Indonesia": "funding",
+        "undergraduate beasiswa Indonesia": "degree",
+        "Indonesia universitas grant programme": "ecosystem",
+        "Indonesia university scholarship": "provider"
+      },
+      "bounds": {
+        "max_depth": 3,
+        "max_candidates": 2000,
+        "max_pages": 300,
+        "max_pages_per_domain": 15,
+        "max_runtime_minutes": 45,
+        "max_retries": 3
+      },
+      "plan_identifier": "7_family_expansion"
+    },
+    "metrics": {
+      "queries_executed": 148,
+      "discovery_queries": 12,
+      "queries_failed": 0,
+      "search_results": 120,
+      "candidates_created": 480,
+      "dedup_merges": 227,
+      "candidates_by_origin": {
+        "link_expansion": 264,
+        "web_search": 45
+      },
+      "candidates_by_type": {
+        "opportunity": 40,
+        "provider": 38,
+        "source": 231
+      },
+      "pages_fetched": 76,
+      "fetch_failures": 16,
+      "classification_labels": {
+        "SCHOLARSHIP": 68,
+        "UNKNOWN": 6,
+        "JOB": 2
+      },
+      "jobs_rejected": 1,
+      "opportunities_retained": 57,
+      "providers_created": 18,
+      "providers_resolved": 50,
+      "providers_needs_review": 0,
+      "authority_resolved": 14,
+      "authority_candidates_found": 53,
+      "authority_unresolved": 1,
+      "sources_verified": 5,
+      "sources_needs_review": 48,
+      "scholarships_persisted": 0,
+      "extraction_failures": 0,
+      "acquisition_failures": 1,
+      "duplicates_collapsed": 0,
+      "link_expansions": 375,
+      "retries": 5,
+      "page_intent_counts": {},
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "listing_signals": {},
+      "provenance_samples": [
+        {
+          "url": "https://www.schoters.com/id/beasiswa",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:51:29.796912+00:00",
+            "rank": 10,
+            "title": "Cek Kalender Beasiswa Terbaru dan Terlengkap Disini",
+            "origin": "web_search",
+            "run_id": "f5992052-4812-4bc3-bd8c-23e230cbea72",
+            "snippet": "Kalender dan informasi beasiswa terlengkap dari semua jenjang S1, S2, & S3 di setiap negara dan kampus impian beserta persyaratan dan proses pendaftarannya.",
+            "origin_query": "Indonesia university beasiswa",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://luarkampus.id/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:51:29.796912+00:00",
+            "rank": 5,
+            "title": "Luarkampus: Asisten Pencarian Beasiswa Nomor #1 di ...",
+            "origin": "web_search",
+            "run_id": "f5992052-4812-4bc3-bd8c-23e230cbea72",
+            "snippet": "Asisten pencarian beasiswa nomor #1 di Indonesia yang telah membantu ribuan member untuk meraih beasiswa baik di dalam maupun luar negeri di berbagai ...",
+            "origin_query": "Indonesia university beasiswa",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.hotcourses.co.id/study/international-scholarships.html",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "link_expansion",
+            "run_id": "f5992052-4812-4bc3-bd8c-23e230cbea72",
+            "source_url": "https://www.hotcourses.co.id/study-abroad-info/student-finance/daftar-beasiswa-top-s2-luar-negeri-fully-funded/",
+            "anchor_text": "Cari beasiswa luar negeriDaftar lengkap beasiswa S1, S2 dan S3 di luar negeri"
+          }
+        },
+        {
+          "url": "https://www.idp.com/indonesia/study-abroad/scholarships/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "link_expansion",
+            "run_id": "f5992052-4812-4bc3-bd8c-23e230cbea72",
+            "source_url": "https://www.idp.com/indonesia/blog/scholarships-for-indonesian-students/?lang=en",
+            "anchor_text": "Scholarships for Indonesian students"
+          }
+        },
+        {
+          "url": "https://spmb.uns.ac.id/berita/show/273",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "f5992052-4812-4bc3-bd8c-23e230cbea72",
+            "source_url": "https://uns.ac.id/en/home/",
+            "anchor_text": "authority candidate (0.35)"
+          }
+        }
+      ]
+    },
+    "frontier_states": {
+      "done": 121,
+      "failed": 2,
+      "pending": 796,
+      "rejected": 94
+    },
+    "metrics_summary": {
+      "queries_executed": 148,
+      "discovery_queries": 12,
+      "search_results": 120,
+      "candidates_created": 480,
+      "sources_verified": 5,
+      "pages_fetched": 76,
+      "page_intent_counts": {},
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "extraction_succeeded": null,
+      "extraction_failed": null,
+      "duplicates_collapsed": 0,
+      "scholarships_persisted": 0,
+      "opportunities_retained": 57
+    }
+  },
+  {
+    "country": "GB",
+    "started_at": "2026-10-04T12:41:56.444636+00:00",
+    "finished_at": "2026-10-04T12:54:49.775659+00:00",
+    "duration_seconds": 773.3,
+    "plan": {
+      "country": "GB",
+      "run_offset": 1,
+      "plan_hash": "e199496700428351ba0d451128fd591761fd32e833c45c8de2a94144d2624373",
+      "query_count": 12,
+      "distinct_query_count": 12,
+      "families": {
+        "degree": 2,
+        "ecosystem": 2,
+        "funding": 2,
+        "localized": 1,
+        "official_source": 2,
+        "opportunity": 1,
+        "provider": 2
+      },
+      "queries": {
+        "United Kingdom university scholarship application": "official_source",
+        "stipend studentship United Kingdom undergraduate": "funding",
+        "United Kingdom undergraduate fellowship programme": "degree",
+        "national grant United Kingdom official": "ecosystem",
+        "United Kingdom government studentship": "provider",
+        "UK scholarship phd": "localized",
+        "masters fellowship United Kingdom": "opportunity",
+        "United Kingdom studentship official site": "official_source",
+        "stipend fellowship United Kingdom": "funding",
+        "phd studentship United Kingdom": "degree",
+        "United Kingdom trust grant programme": "ecosystem",
+        "United Kingdom council studentship": "provider"
+      },
+      "bounds": {
+        "max_depth": 3,
+        "max_candidates": 2000,
+        "max_pages": 300,
+        "max_pages_per_domain": 15,
+        "max_runtime_minutes": 45,
+        "max_retries": 3
+      },
+      "plan_identifier": "7_family_expansion"
+    },
+    "metrics": {
+      "queries_executed": 194,
+      "discovery_queries": 12,
+      "queries_failed": 0,
+      "search_results": 117,
+      "candidates_created": 964,
+      "dedup_merges": 450,
+      "candidates_by_origin": {
+        "known_source": 4,
+        "link_expansion": 658,
+        "web_search": 57
+      },
+      "candidates_by_type": {
+        "opportunity": 57,
+        "provider": 43,
+        "source": 619
+      },
+      "pages_fetched": 109,
+      "fetch_failures": 27,
+      "classification_labels": {
+        "SCHOLARSHIP": 91,
+        "JOB": 9,
+        "UNKNOWN": 8,
+        "VISA_JOB": 1
+      },
+      "jobs_rejected": 2,
+      "opportunities_retained": 82,
+      "providers_created": 29,
+      "providers_resolved": 62,
+      "providers_needs_review": 0,
+      "authority_resolved": 17,
+      "authority_candidates_found": 72,
+      "authority_unresolved": 2,
+      "sources_verified": 24,
+      "sources_needs_review": 35,
+      "scholarships_persisted": 3,
+      "extraction_failures": 0,
+      "acquisition_failures": 0,
+      "duplicates_collapsed": 0,
+      "link_expansions": 828,
+      "retries": 4,
+      "page_intent_counts": {
+        "SCHOLARSHIP_DETAIL": 3
+      },
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "listing_signals": {},
+      "provenance_samples": [
+        {
+          "url": "https://www.thescholarshiphub.org.uk/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:44:13.496535+00:00",
+            "rank": 4,
+            "title": "The Scholarship Hub | Apply for UK Student Scholarships",
+            "origin": "web_search",
+            "run_id": "413eea21-c2f2-4f4f-89c4-e2f40fa1470d",
+            "snippet": "The Scholarship Hub, owned by Blackbullion, is dedicated to helping students find extra finance for university. Browse our open scholarships.",
+            "origin_query": "United Kingdom scholarship official site",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.birmingham.ac.uk/study/international/fees/scholarships",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:44:13.496535+00:00",
+            "rank": 7,
+            "title": "Scholarships for international students",
+            "origin": "web_search",
+            "run_id": "413eea21-c2f2-4f4f-89c4-e2f40fa1470d",
+            "snippet": "Explore our wide variety of scholarships available for international students. United Kingdom Tel:+44 (0)121 414 3344 University of Birmingham",
+            "origin_query": "United Kingdom scholarship official site",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.scholarshipbob.com/scholarships-by-organisation/unesco",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "413eea21-c2f2-4f4f-89c4-e2f40fa1470d",
+            "source_url": "https://www.unesco.org/en/fellowships",
+            "anchor_text": "authority candidate (0.35)"
+          }
+        },
+        {
+          "url": "https://www.birmingham.ac.uk/study/international/fees/scholarships",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:44:13.496535+00:00",
+            "rank": 7,
+            "title": "Scholarships for international students",
+            "origin": "web_search",
+            "run_id": "413eea21-c2f2-4f4f-89c4-e2f40fa1470d",
+            "snippet": "Explore our wide variety of scholarships available for international students. United Kingdom Tel:+44 (0)121 414 3344 University of Birmingham",
+            "origin_query": "United Kingdom scholarship official site",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.thescholarshiphub.org.uk/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T09:44:13.496535+00:00",
+            "rank": 4,
+            "title": "The Scholarship Hub | Apply for UK Student Scholarships",
+            "origin": "web_search",
+            "run_id": "413eea21-c2f2-4f4f-89c4-e2f40fa1470d",
+            "snippet": "The Scholarship Hub, owned by Blackbullion, is dedicated to helping students find extra finance for university. Browse our open scholarships.",
+            "origin_query": "United Kingdom scholarship official site",
+            "search_provider": "serper"
+          }
+        }
+      ]
+    },
+    "frontier_states": {
+      "failed": 4,
+      "rejected": 123,
+      "pending": 1011,
+      "done": 151
+    },
+    "metrics_summary": {
+      "queries_executed": 194,
+      "discovery_queries": 12,
+      "search_results": 117,
+      "candidates_created": 964,
+      "sources_verified": 24,
+      "pages_fetched": 109,
+      "page_intent_counts": {
+        "SCHOLARSHIP_DETAIL": 3
+      },
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "extraction_succeeded": null,
+      "extraction_failed": null,
+      "duplicates_collapsed": 0,
+      "scholarships_persisted": 3,
+      "opportunities_retained": 82
+    }
+  },
+  {
+    "country": "SG",
+    "started_at": "2026-10-04T12:54:49.787671+00:00",
+    "finished_at": "2026-10-04T13:05:34.972568+00:00",
+    "duration_seconds": 645.2,
+    "plan": {
+      "country": "SG",
+      "run_offset": 3,
+      "plan_hash": "42eccc69cf6da22b08b22cce8d6cdf55c01dde12880d0ca48406125e42f7dec4",
+      "query_count": 12,
+      "distinct_query_count": 12,
+      "families": {
+        "degree": 2,
+        "ecosystem": 2,
+        "funding": 1,
+        "localized": 2,
+        "official_source": 1,
+        "opportunity": 2,
+        "provider": 2
+      },
+      "queries": {
+        "Singapore international students bursary programme": "degree",
+        "ministry of education grant Singapore": "ecosystem",
+        "Singapore government grant": "provider",
+        "Singapura \u5956\u5b66\u91d1 phd": "localized",
+        "tuition grant fellowship Singapore phd": "opportunity",
+        "Singapore bursary official site": "official_source",
+        "stipend grant Singapore": "funding",
+        "polytechnic bursary Singapore": "degree",
+        "national scholarship Singapore official": "ecosystem",
+        "Singapore foundation grant": "provider",
+        "Singapura \u5956\u5b66\u91d1 international students": "localized",
+        "international students fellowship Singapore": "opportunity"
+      },
+      "bounds": {
+        "max_depth": 3,
+        "max_candidates": 2000,
+        "max_pages": 300,
+        "max_pages_per_domain": 15,
+        "max_runtime_minutes": 45,
+        "max_retries": 3
+      },
+      "plan_identifier": "7_family_expansion"
+    },
+    "metrics": {
+      "queries_executed": 156,
+      "discovery_queries": 12,
+      "queries_failed": 1,
+      "search_results": 120,
+      "candidates_created": 388,
+      "dedup_merges": 378,
+      "candidates_by_origin": {
+        "link_expansion": 353,
+        "web_search": 19
+      },
+      "candidates_by_type": {
+        "opportunity": 24,
+        "provider": 7,
+        "source": 341
+      },
+      "pages_fetched": 81,
+      "fetch_failures": 27,
+      "classification_labels": {
+        "SCHOLARSHIP": 72,
+        "JOB": 4,
+        "UNKNOWN": 2,
+        "INTERNSHIP": 1,
+        "OTHER": 2
+      },
+      "jobs_rejected": 3,
+      "opportunities_retained": 63,
+      "providers_created": 16,
+      "providers_resolved": 56,
+      "providers_needs_review": 0,
+      "authority_resolved": 15,
+      "authority_candidates_found": 54,
+      "authority_unresolved": 3,
+      "sources_verified": 21,
+      "sources_needs_review": 37,
+      "scholarships_persisted": 1,
+      "extraction_failures": 0,
+      "acquisition_failures": 1,
+      "duplicates_collapsed": 1,
+      "link_expansions": 324,
+      "retries": 1,
+      "page_intent_counts": {
+        "SCHOLARSHIP_DETAIL": 2
+      },
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "listing_signals": {},
+      "provenance_samples": [
+        {
+          "url": "https://nusgs.nus.edu.sg/scholarships/nus-research-scholarship",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "link_expansion",
+            "run_id": "a80e6c46-21b8-485b-94be-71c0699f8395",
+            "source_url": "https://nusgs.nus.edu.sg/scholarships/",
+            "anchor_text": "NUS GRADUATE SCHOOLNUS Research ScholarshipPhD StudentsMaster's (Research) StudentsUp to SGD 3,800 / monthFor all nationalities"
+          }
+        },
+        {
+          "url": "https://www.singaporetech.edu.sg/moe-start-scheme/overseas-phd-scholarship",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T10:06:03.104745+00:00",
+            "rank": 6,
+            "title": "Overseas PhD Scholarship | Singapore ...",
+            "origin": "web_search",
+            "run_id": "238c85ed-f4c4-4a94-93ed-1a5de27cd72c",
+            "snippet": "Explore the MOE START Overseas PhD Scholarship at SIT, supporting Singapore citizens pursuing an overseas PhD and an academic career with the University.",
+            "origin_query": "Singapura \u5956\u5b66\u91d1 phd",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.a-star.edu.sg/scholarships/home/scholarships",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T10:06:03.104745+00:00",
+            "rank": 3,
+            "title": "Scholarships",
+            "origin": "web_search",
+            "run_id": "238c85ed-f4c4-4a94-93ed-1a5de27cd72c",
+            "snippet": "The National Science Scholarship (BS-PhD) is the only through-train scholarship in Singapore which provides for your undergraduate studies to PhD training.",
+            "origin_query": "Singapura \u5956\u5b66\u91d1 phd",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://graduatestudies.smu.edu.sg/phd/awards-funding/scholarships",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": "2026-09-26T10:06:03.104745+00:00",
+            "rank": 5,
+            "title": "Scholarships | College of Graduate Research Studies",
+            "origin": "web_search",
+            "run_id": "238c85ed-f4c4-4a94-93ed-1a5de27cd72c",
+            "snippet": "SMU awards scholarships, fellowships and other financial assistance schemes to PhD students on a competitive basis. We assess applicants for different award ...",
+            "origin_query": "Singapura \u5956\u5b66\u91d1 phd",
+            "search_provider": "serper"
+          }
+        },
+        {
+          "url": "https://www.rsaf.gov.sg/about-us/",
+          "label": "SCHOLARSHIP",
+          "observation": {
+            "at": null,
+            "origin": "authority_resolution",
+            "run_id": "238c85ed-f4c4-4a94-93ed-1a5de27cd72c",
+            "source_url": "https://www.rsaf.gov.sg/careers/scholarships-and-sponsorships/saf-polytechnic-sponsorship-mdes/",
+            "anchor_text": "authority candidate (0.5)"
+          }
+        }
+      ]
+    },
+    "frontier_states": {
+      "done": 196,
+      "failed": 8,
+      "pending": 1053,
+      "rejected": 189
+    },
+    "metrics_summary": {
+      "queries_executed": 156,
+      "discovery_queries": 12,
+      "search_results": 120,
+      "candidates_created": 388,
+      "sources_verified": 21,
+      "pages_fetched": 81,
+      "page_intent_counts": {
+        "SCHOLARSHIP_DETAIL": 2
+      },
+      "pages_skipped_not_detail": 0,
+      "pages_skipped_listing": 0,
+      "extraction_succeeded": null,
+      "extraction_failed": null,
+      "duplicates_collapsed": 1,
+      "scholarships_persisted": 1,
+      "opportunities_retained": 63
+    }
+  }
+]
