@@ -100,7 +100,15 @@ uvicorn api.app:app --reload --port 8000
 # 5. Frontend (terminal terpisah)
 cd frontend
 npm ci
-npm run dev        # http://localhost:3000, proxy /api → :8000
+npm run dev        # http://localhost:3000, proxy /api/v1 → :8000
+```
+
+Atau dari root repo, satu perintah untuk API dan frontend sekaligus (API
+ditunggu sampai `/health` hijau sebelum Vite dinyalakan, dan keduanya berhenti
+bersama):
+
+```bash
+npm run dev        # API :8000 + frontend :3000
 ```
 
 Build produksi frontend:
@@ -130,12 +138,13 @@ npm run build      # menghasilkan frontend/dist, dilayani API sebagai SPA
 ## Frontend
 
 Vue 3 + Vite, arah visual "research ledger": kertas hangat, Fraunces/Instrument
-Sans/IBM Plex Mono, satu aksen vermilion, dan satu globe Three.js di hero
-(dinamis, dilewati di mobile & reduced-motion). Sistem desain lengkap:
+Sans/IBM Plex Mono, satu aksen vermilion, dan globe wireframe SVG di hero
+(dekoratif, tanpa dependency dan tanpa animasi). Sistem desain lengkap:
 [docs/design/DESIGN.md](docs/design/DESIGN.md).
 
 ```bash
-cd frontend && npm install && npm run dev     # dev server
+npm run dev                                   # dari root: API + frontend
+cd frontend && npm install && npm run dev     # frontend saja
 npm run build                                 # build ke frontend/dist
 ```
 

@@ -90,9 +90,9 @@ function urlOf(item: string): string | null {
 
 .heading {
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   margin: 0 0 var(--space-2);
 }

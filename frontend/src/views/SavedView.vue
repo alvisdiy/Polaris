@@ -15,7 +15,9 @@ const state = ref<'loading' | 'success' | 'error'>('loading')
 const error = ref<ApiError | null>(null)
 const droppedCount = ref(0)
 
-onMounted(async () => {
+async function load() {
+  state.value = 'loading'
+  error.value = null
   if (ids.value.length === 0) {
     state.value = 'success'
     return
@@ -44,12 +46,12 @@ onMounted(async () => {
     items.value = loaded
     state.value = 'success'
   }
-})
+}
 
-async function retry() {
-  state.value = 'loading'
-  error.value = null
-  window.location.reload()
+onMounted(load)
+
+function retry() {
+  void load()
 }
 </script>
 

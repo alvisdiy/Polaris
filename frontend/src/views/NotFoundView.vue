@@ -35,7 +35,7 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: var(--tracking-eyebrow);
   color: var(--color-brand);
   margin: 0 0 var(--space-2);
 }

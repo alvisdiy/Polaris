@@ -31,24 +31,30 @@ withDefaults(
 }
 
 .skeleton-line {
+  position: relative;
   height: 0.8rem;
   border-radius: 1px;
+  overflow: hidden;
+  background: var(--color-line);
+}
+
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
   background: linear-gradient(
     90deg,
-    var(--color-line) 0%,
-    var(--color-surface-raised) 40%,
-    var(--color-line) 80%
+    transparent 0%,
+    var(--color-surface-raised) 50%,
+    transparent 100%
   );
-  background-size: 300% 100%;
   animation: sweep 1.4s ease-in-out infinite;
 }
 
 @keyframes sweep {
-  0% {
-    background-position: 100% 0;
-  }
   100% {
-    background-position: 0 0;
+    transform: translateX(100%);
   }
 }
 </style>

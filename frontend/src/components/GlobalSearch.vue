@@ -47,8 +47,8 @@ defineEmits<{ (e: 'submit'): void }>()
 .search-input::placeholder {
   color: var(--color-ink-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.64rem;
+  letter-spacing: var(--tracking-label);
+  font-size: 0.7rem;
 }
 
 .search-input:focus-visible {

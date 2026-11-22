@@ -20,6 +20,8 @@ field was stated by the page or left unknown. Nothing is decorated away.
 - **Ink Secondary** (#5B5145) — metadata, captions, secondary prose
 - **Rule** (#D9CEBA) — hairline borders; **Rule Strong** (#B9AB92) — structural rules
 - **Vermilion** (#B8402A) — single accent: actions, active nav, key numbers
+- **On brand** — text on a vermilion fill: white in light, ink (#14110D) in dark;
+  white on the dark accent reads 3.2:1 and is not allowed
 - **Moss** (#2C5347) — evidence and "verified" semantics, never decorative
 - **Deadline semantics** — Active #1F6B3A, Rolling #2C5347, Unknown #8A5A00,
   Expired #6A6258; always paired with a word and an icon, never colour alone

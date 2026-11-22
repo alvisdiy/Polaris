@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useScholarshipList } from '../api/composables'
 import ScholarshipCard from '../components/ScholarshipCard.vue'
@@ -32,22 +32,46 @@ const COUNTRIES = [
 
 const DEGREES = ['Bachelor', 'Master', 'PhD', 'Exchange', 'Short Course']
 
-/* URL is the source of truth (web-design.md section 27). */
-const q = ref(typeof route.query.q === 'string' ? route.query.q : '')
-const country = ref(typeof route.query.country === 'string' ? route.query.country : '')
-const degree = ref(typeof route.query.degree === 'string' ? route.query.degree : '')
-const page = ref(Number(route.query.page) > 0 ? Number(route.query.page) : 1)
+function readQueryState(query: Record<string, unknown>) {
+  return {
+    q: typeof query.q === 'string' ? query.q : '',
+    country: typeof query.country === 'string' ? query.country : '',
+    degree: typeof query.degree === 'string' ? query.degree : '',
+    page: Number(query.page) > 0 ? Number(query.page) : 1,
+  }
+}
 
+/* URL is the source of truth (web-design.md section 27). */
+const initial = readQueryState(route.query as Record<string, unknown>)
+const q = ref(initial.q)
+const country = ref(initial.country)
+const degree = ref(initial.degree)
+const page = ref(initial.page)
+
+const filterDetails = ref<HTMLDetailsElement | null>(null)
 const hasActiveFilters = computed(
   () => Boolean(q.value) || Boolean(country.value) || Boolean(degree.value),
+)
+const activeFilterCount = computed(
+  () => [q.value.trim(), country.value, degree.value].filter(Boolean).length,
 )
 
 const total = computed(() => data.value?.total ?? 0)
 const results = computed(() => data.value?.results ?? [])
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
-const showOffset = computed(() => (page.value - 1) * PAGE_SIZE)
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
+let syncingFromRoute = false
+
+function buildParams() {
+  return {
+    q: q.value.trim() || undefined,
+    country: country.value || undefined,
+    degree: degree.value || undefined,
+    limit: PAGE_SIZE,
+    offset: (page.value - 1) * PAGE_SIZE,
+  }
+}
 
 function syncUrl() {
   const query: Record<string, string> = {}
@@ -58,75 +82,121 @@ function syncUrl() {
   router.replace({ path: '/discover', query })
 }
 
+function runFetch() {
+  syncUrl()
+  fetchList(buildParams())
+}
+
+function scheduleFetch(debounced: boolean) {
+  clearTimeout(debounceTimer)
+  if (debounced) {
+    debounceTimer = setTimeout(runFetch, 300)
+  } else {
+    runFetch()
+  }
+}
+
 function fetchCurrent() {
-  fetchList({
-    q: q.value.trim() || undefined,
-    country: country.value || undefined,
-    degree: degree.value || undefined,
-    limit: PAGE_SIZE,
-    offset: (page.value - 1) * PAGE_SIZE,
+  clearTimeout(debounceTimer)
+  runFetch()
+}
+
+/* Debounced typing for the query field. */
+watch(q, () => {
+  if (syncingFromRoute) return
+  page.value = 1
+  scheduleFetch(true)
+})
+
+function onCountryChange(event: Event) {
+  country.value = (event.target as HTMLSelectElement).value
+  page.value = 1
+  scheduleFetch(false)
+}
+
+function onDegreeChange(event: Event) {
+  degree.value = (event.target as HTMLSelectElement).value
+  page.value = 1
+  scheduleFetch(false)
+}
+
+function suppressAndApply(mutate: () => void) {
+  syncingFromRoute = true
+  mutate()
+  scheduleFetch(false)
+  nextTick(() => {
+    syncingFromRoute = false
   })
 }
 
-/* Debounced typing for the query field; immediate for selects and paging. */
-watch(q, () => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
+function removeKeyword() {
+  suppressAndApply(() => {
+    q.value = ''
     page.value = 1
-    syncUrl()
-    fetchCurrent()
-  }, 300)
-})
+  })
+}
 
-watch([country, degree], () => {
-  page.value = 1
-  syncUrl()
-  fetchCurrent()
-})
+function removeCountry() {
+  suppressAndApply(() => {
+    country.value = ''
+    page.value = 1
+  })
+}
 
-watch(page, () => {
-  syncUrl()
-  fetchCurrent()
-})
-
-/* Back/forward navigation re-reads the URL. */
-watch(
-  () => route.query,
-  (query) => {
-    const nextQ = typeof query.q === 'string' ? query.q : ''
-    const nextCountry = typeof query.country === 'string' ? query.country : ''
-    const nextDegree = typeof query.degree === 'string' ? query.degree : ''
-    const nextPage = Number(query.page) > 0 ? Number(query.page) : 1
-    if (
-      nextQ !== q.value ||
-      nextCountry !== country.value ||
-      nextDegree !== degree.value ||
-      nextPage !== page.value
-    ) {
-      q.value = nextQ
-      country.value = nextCountry
-      degree.value = nextDegree
-      page.value = nextPage
-      fetchCurrent()
-    }
-  },
-)
-
-onMounted(fetchCurrent)
+function removeDegree() {
+  suppressAndApply(() => {
+    degree.value = ''
+    page.value = 1
+  })
+}
 
 function clearFilters() {
-  q.value = ''
-  country.value = ''
-  degree.value = ''
-  page.value = 1
-  syncUrl()
-  fetchCurrent()
+  suppressAndApply(() => {
+    q.value = ''
+    country.value = ''
+    degree.value = ''
+    page.value = 1
+  })
 }
 
 function goToPage(target: number) {
   if (target < 1 || target > totalPages.value || target === page.value) return
   page.value = target
+  scheduleFetch(false)
 }
+
+/* Back/forward navigation re-reads the URL. */
+watch(
+  () => route.query,
+  (query) => {
+    const next = readQueryState(query as Record<string, unknown>)
+    if (
+      next.q === q.value &&
+      next.country === country.value &&
+      next.degree === degree.value &&
+      next.page === page.value
+    ) {
+      return
+    }
+    syncingFromRoute = true
+    q.value = next.q
+    country.value = next.country
+    degree.value = next.degree
+    page.value = next.page
+    clearTimeout(debounceTimer)
+    fetchList(buildParams())
+    nextTick(() => {
+      syncingFromRoute = false
+    })
+  },
+)
+
+onMounted(() => {
+  if (filterDetails.value && window.matchMedia('(min-width: 901px)').matches) {
+    filterDetails.value.open = true
+  }
+  fetchCurrent()
+})
 
 function announceCount(): string {
   return state.value === 'success' ? `${total.value} scholarships found` : ''
@@ -146,37 +216,45 @@ function announceCount(): string {
 
       <div class="layout">
         <aside class="filter-rail" aria-label="Filters">
-          <div class="filter-group">
-            <label class="filter-label" for="filter-q">Keyword</label>
-            <input
-              id="filter-q"
-              v-model="q"
-              type="search"
-              class="filter-input"
-              placeholder="Scholarship name"
-            />
-          </div>
+          <details ref="filterDetails" class="filter-disclosure">
+            <summary class="filter-summary">
+              <span>Filters</span>
+              <span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }} active</span>
+            </summary>
+            <div class="filter-body">
+              <div class="filter-group">
+                <label class="filter-label" for="filter-q">Keyword</label>
+                <input
+                  id="filter-q"
+                  v-model="q"
+                  type="search"
+                  class="filter-input"
+                  placeholder="Scholarship name"
+                />
+              </div>
 
-          <div class="filter-group">
-            <label class="filter-label" for="filter-country">Country</label>
-            <select id="filter-country" v-model="country" class="filter-select">
-              <option value="">All countries</option>
-              <option v-for="c in COUNTRIES" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
+              <div class="filter-group">
+                <label class="filter-label" for="filter-country">Country</label>
+                <select id="filter-country" :value="country" class="filter-select" @change="onCountryChange">
+                  <option value="">All countries</option>
+                  <option v-for="c in COUNTRIES" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
 
-          <div class="filter-group">
-            <label class="filter-label" for="filter-degree">Degree</label>
-            <select id="filter-degree" v-model="degree" class="filter-select">
-              <option value="">All degrees</option>
-              <option v-for="d in DEGREES" :key="d" :value="d">{{ d }}</option>
-            </select>
-          </div>
+              <div class="filter-group">
+                <label class="filter-label" for="filter-degree">Degree</label>
+                <select id="filter-degree" :value="degree" class="filter-select" @change="onDegreeChange">
+                  <option value="">All degrees</option>
+                  <option v-for="d in DEGREES" :key="d" :value="d">{{ d }}</option>
+                </select>
+              </div>
 
-          <p class="filter-note">
-            Funding, field of study, and deadline-status filters will arrive with a backend
-            update. They are not yet available.
-          </p>
+              <p class="filter-note">
+                Funding, field of study, and deadline-status filters will arrive with a backend
+                update. They are not yet available.
+              </p>
+            </div>
+          </details>
         </aside>
 
         <section class="results" aria-label="Results" :aria-busy="state === 'loading'">
@@ -188,34 +266,19 @@ function announceCount(): string {
               v-if="q"
               label="Keyword"
               :value="q"
-              @remove="
-                q = '';
-                page = 1;
-                syncUrl();
-                fetchCurrent()
-              "
+              @remove="removeKeyword"
             />
             <FilterChip
               v-if="country"
               label="Country"
               :value="country"
-              @remove="
-                country = '';
-                page = 1;
-                syncUrl();
-                fetchCurrent()
-              "
+              @remove="removeCountry"
             />
             <FilterChip
               v-if="degree"
               label="Degree"
               :value="degree"
-              @remove="
-                degree = '';
-                page = 1;
-                syncUrl();
-                fetchCurrent()
-              "
+              @remove="removeDegree"
             />
             <button type="button" class="clear-all" @click="clearFilters">Clear all</button>
           </div>
@@ -321,9 +384,45 @@ function announceCount(): string {
 .filter-rail {
   position: sticky;
   top: 5.5rem;
+}
+
+.filter-disclosure {
+  margin: 0;
+}
+
+.filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.filter-summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-count {
+  color: var(--color-brand);
+  letter-spacing: var(--tracking-meta);
+}
+
+.filter-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  margin-top: var(--space-4);
 }
 
 .filter-group {
@@ -334,9 +433,9 @@ function announceCount(): string {
 
 .filter-label {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 
@@ -374,7 +473,7 @@ function announceCount(): string {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   margin: 0 0 var(--space-3);
 }
@@ -393,7 +492,7 @@ function announceCount(): string {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-brand);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -425,7 +524,7 @@ function announceCount(): string {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
 }
 
 .page-button:disabled {
@@ -440,8 +539,18 @@ function announceCount(): string {
 .page-indicator {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
+}
+
+@media (min-width: 901px) {
+  .filter-summary {
+    display: none;
+  }
+
+  .filter-body {
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 900px) {

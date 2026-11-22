@@ -57,7 +57,7 @@ function onChange(event: Event) {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 
@@ -70,7 +70,7 @@ function onChange(event: Event) {
 
 .full-notice {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   color: var(--color-sem-unknown);
   white-space: nowrap;
 }

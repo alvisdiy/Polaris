@@ -1,0 +1,56 @@
+1: """AcquisitionService — frontier-aware scholarship acquisition.
+
+Reuses the existing pipeline untouched:
+  fetch → RawDocument → cleaner → extractor (DeterministicLLMClient) →
+  validator → Scholarship persistence
+
+Adds: scholarship identity dedup (one canonic
+33: """Canonical identity for one scholarship.
+
+    Delegates to :mod:`services.scholarship.identity`, which every creation
+    path shares. This function previously lowercased and collapsed
+    whitespace inline, which produced a *different* key from the reposito
+75: """Feeds verified sources into the existing extraction pipeline.
+
+    The pipeline is unchanged; what changed is what gets fed into it. A
+    verified source is a *place to look*, not a scholarship, so this service
+    classifies the page first and extracts on
+96: """Discover scholarship URLs on a verified source and run the pipeline.
+
+        Acquisition outcome is recorded on the source row. M9 forbids silent
+        failure: a source that could not be fetched, or that yielded no
+        scholarship pages, is distingu
+179: "source entry page (its own URL, not just its links)"
+219:  links found, none classified as a scholarship page; "
+                    "entry page examined, yielded no extractable scholarship"
+223: "Source {} yielded no scholarship pages ({} links; entry page examined)"
+243: """Fetch one page and run it through intent → listing guard → extraction.
+
+        Shared by the source's own entry page and every ranked link, so both
+        faces the same boundaries: page intent decides what kind of page it
+        is, the listing guard st
+286: "Skipping extraction of {}: page intent {} ({}). Evidence: {}"
+352: """Persist page signals onto the frontier candidate for ``url``, if any.
+
+        Best-effort by design: acquisition also runs over URLs that were never
+        admitted to the frontier, and a missing candidate row is not a reason
+        to fail a fetch that 
+372: """What kind of page did we actually fetch, and what did it look like?
+
+        V0.1 wiring of M11's classifier into the production path. The URL policy
+        in `acquisition_policy` reads the *address*; this reads the page. A
+        URL like ``/scholarship
+426: """Persist through the existing mapper/repository with identity dedup."""
+502: """What a re-discovery saw, reduced to proposable published fields.
+
+        Only fields the reviewer could legitimately act on are collected. A
+        re-crawl that changes nothing yields an empty dict, which the candidate
+        path treats as "nothing to 
+554: """Fold a re-discovery into the canonical scholarship.
+
+        Two paths, and the distinction between them is the M9.1 invariant:
+
+        **Published record** — nothing is written. The observation is handed to
+        ``ReviewService.propose_candidate`` and 
+592: "re-acquisition observed field differences; "
+                    "published values unchanged pending review"

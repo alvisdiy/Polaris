@@ -42,8 +42,8 @@ async function retry() {
     </section>
 
     <section class="how" aria-labelledby="how-heading">
-      <div class="section-inner">
-        <h2 id="how-heading">How Polaris works</h2>
+      <div class="section-inner how-inner">
+        <h2 id="how-heading" class="how-title">How Polaris works</h2>
         <div class="how-steps">
           <div class="how-step">
             <h3>Collected from official sources</h3>
@@ -172,9 +172,9 @@ async function retry() {
 .hero-eyebrow {
   grid-area: eyebrow;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: var(--tracking-eyebrow);
   color: var(--color-brand);
   margin: 0 0 var(--space-4);
   padding-bottom: var(--space-3);
@@ -236,10 +236,23 @@ async function retry() {
   margin-bottom: var(--space-6);
 }
 
+.how-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-7);
+  align-items: start;
+}
+
+.how-title {
+  position: sticky;
+  top: 6rem;
+  margin: 0;
+}
+
 .how-steps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
   counter-reset: step;
 }
 
@@ -255,7 +268,7 @@ async function retry() {
   display: block;
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  letter-spacing: var(--tracking-eyebrow);
   color: var(--color-brand);
   margin-bottom: var(--space-2);
 }
@@ -279,7 +292,7 @@ async function retry() {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink);
   text-decoration: none;
 }
@@ -311,8 +324,20 @@ async function retry() {
 
 .examples-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-4);
+}
+
+.examples-grid:has(> :nth-child(2)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.examples-grid:has(> :nth-child(3):last-child) {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.examples-grid:has(> :nth-child(3):last-child) > :first-child {
+  grid-row: 1 / span 2;
 }
 
 .examples-empty {
@@ -342,9 +367,23 @@ async function retry() {
     display: none;
   }
 
-  .how-steps,
-  .examples-grid {
+  .how-inner {
     grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .how-title {
+    position: static;
+  }
+
+  .examples-grid,
+  .examples-grid:has(> :nth-child(2)),
+  .examples-grid:has(> :nth-child(3):last-child) {
+    grid-template-columns: 1fr;
+  }
+
+  .examples-grid:has(> :nth-child(3):last-child) > :first-child {
+    grid-row: auto;
   }
 }
 </style>

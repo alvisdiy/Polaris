@@ -44,7 +44,7 @@ defineEmits<{ (e: 'retry'): void }>()
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
 }
 
 .retry-button:hover {

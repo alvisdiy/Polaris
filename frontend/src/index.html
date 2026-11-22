@@ -3,15 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="Polaris is a scholarship intelligence platform. Every record is traced to the provider's own page, with the deadline and funding the page actually states."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Polaris" />
+    <meta property="og:title" content="Polaris | Scholarship Intelligence" />
+    <meta
+      property="og:description"
+      content="Polaris is a scholarship intelligence platform. Every record is traced to the provider's own page, with the deadline and funding the page actually states."
+    />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Runs before the stylesheet so a dark-theme reader never sees a light
+      // flash. Keep the choice in sync with stores/theme.ts.
+      ;(function () {
+        var stored = null
+        try {
+          stored = localStorage.getItem('polaris.theme')
+        } catch (error) {
+          stored = null
+        }
+        var theme =
+          stored === 'dark' || stored === 'light'
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
     <meta name="theme-color" content="#f3eddf" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <title>Polaris | Scholarship Intelligence</title>

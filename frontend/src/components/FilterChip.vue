@@ -38,7 +38,7 @@ defineEmits<{ (e: 'remove'): void }>()
 
 .chip-label {
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 

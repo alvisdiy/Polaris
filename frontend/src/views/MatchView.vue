@@ -127,9 +127,7 @@ function retry() {
             v-else-if="state === 'idle'"
             title="Fill in your profile to see matches"
             description="The matching engine compares your profile against every approved scholarship and explains each result."
-          >
-            <template />
-          </EmptyState>
+          />
         </section>
       </div>
     </div>
@@ -183,7 +181,7 @@ function retry() {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 
@@ -191,7 +189,7 @@ function retry() {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   margin: 0 0 var(--space-4);
 }
@@ -216,7 +214,7 @@ function retry() {
 .result-rank {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
   color: var(--color-brand);
 }
 
@@ -224,7 +222,7 @@ function retry() {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,8 @@
+{
+  "name": "polaris",
+  "private": true,
+  "description": "Repository-level scripts. The frontend has its own package.json in frontend/.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs"
+  }
+}

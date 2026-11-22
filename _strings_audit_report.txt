@@ -1,0 +1,30 @@
+Polaris _strings_dump.txt otomatis audit
+============================================================
+
+File               : _strings_dump.txt
+ada di filesystem  : True
+tracked di git     : False
+git status         : ?? _strings_dump.txt
+ukuran(bytes)      : 2998
+byte awalan(hex)   : 313a202222224163
+jumlah baris       : 56
+garis CRLF         : 55
+UTF-8 decode       : True
+git blob hash      : 09144ce979d0c87d4399512ac062d18148ab032a
+
+Pengecekan marker (ada di dalam file):
+  FutureTrace        : False
+  json.dumps         : False
+  https://empty.com  : False
+  generic_playwright : False
+  class FakeConnector: False
+
+6 baris pertama:
+1: """AcquisitionService — frontier-aware scholarship acquisition.
+
+Reuses the existing pipeline untouched:
+  fetch → RawDocument → cleaner → extractor (DeterministicLLMClient) →
+  validator → Scholarship persistence
+
+
+dihasilkan pada     : 2026-10-13T09:58:04.044650+00:00

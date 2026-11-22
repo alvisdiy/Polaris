@@ -158,9 +158,15 @@ function formatOpen(value: string | null): string {
       </EmptyState>
 
       <template v-else>
-        <p class="selection-note" aria-live="polite">
-          Comparing {{ columns.length }} scholarships ({{ loadedCount }} loaded)
-        </p>
+        <div class="selection-bar">
+          <p class="selection-note" aria-live="polite">
+            Comparing {{ columns.length }} scholarships ({{ loadedCount }} loaded)
+          </p>
+          <RouterLink v-if="columns.length < 4" to="/discover" class="add-link">
+            Add scholarship
+          </RouterLink>
+          <span v-else class="limit-note">Limit reached (4)</span>
+        </div>
 
         <div class="table-wrap" role="region" aria-label="Comparison table" tabindex="0">
           <table class="compare-table">
@@ -311,13 +317,48 @@ function formatOpen(value: string | null): string {
   max-width: 58ch;
 }
 
+.selection-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
 .selection-note {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
-  margin-bottom: var(--space-4);
+  margin: 0;
+}
+
+.add-link,
+.limit-note {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.add-link {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.add-link::after {
+  content: ' →';
+  color: var(--color-brand);
+}
+
+.add-link:hover {
+  color: var(--color-brand);
+}
+
+.limit-note {
+  color: var(--color-ink-secondary);
 }
 
 .table-wrap {
@@ -344,9 +385,9 @@ function formatOpen(value: string | null): string {
 .row-head-col,
 .row-head {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   width: 12rem;
   background: var(--color-paper);
@@ -369,9 +410,9 @@ function formatOpen(value: string | null): string {
   background: none;
   color: var(--color-ink-secondary);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
 }
 
 .col-remove:hover {
@@ -394,9 +435,9 @@ function formatOpen(value: string | null): string {
 
 .official-link {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
 }
 
 .stack {

@@ -297,9 +297,9 @@ defineExpose({ mapServerErrors })
 
 .field-label {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 
@@ -338,9 +338,9 @@ defineExpose({ mapServerErrors })
 
 .fieldset legend {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   padding: 0 var(--space-1);
 }
@@ -385,7 +385,7 @@ defineExpose({ mapServerErrors })
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
 }
 
 .tag-list {
@@ -403,9 +403,9 @@ defineExpose({ mapServerErrors })
   border: 1px solid var(--color-line-strong);
   background: var(--color-paper);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
 }
 
 .tag-remove {
@@ -429,14 +429,14 @@ defineExpose({ mapServerErrors })
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   margin-top: var(--space-2);
 }
 
 .submit-button:hover {
   background: var(--color-brand);
   border-color: var(--color-brand);
-  color: #fff;
+  color: var(--color-on-brand);
 }
 
 @media (max-width: 560px) {

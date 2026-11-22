@@ -11,7 +11,7 @@ const menuOpen = ref(false)
   <a class="skip-link" href="#main-content">Skip to content</a>
   <NavBar @open-menu="menuOpen = true" />
   <MobileMenuSheet :open="menuOpen" @close="menuOpen = false" />
-  <main id="main-content" class="app-main">
+  <main id="main-content" class="app-main" tabindex="-1">
     <RouterView />
   </main>
   <FooterBar />
@@ -19,6 +19,12 @@ const menuOpen = ref(false)
 
 <style scoped>
 .app-main {
-  min-height: calc(100vh - 8rem);
+  min-height: calc(100dvh - 8rem);
+}
+
+/* The skip link focuses <main> programmatically; the ring would appear around
+   the whole page, so the target stays silently focusable. */
+.app-main:focus {
+  outline: none;
 }
 </style>

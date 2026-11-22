@@ -20,13 +20,16 @@ export function useScholarshipList(initial: ListParams = {}) {
   const state = ref<RequestState>('idle')
   const error = shallowRef<ApiError | null>(null)
   const loadedParams = ref<ListParams>(initial)
+  let requestSeq = 0
 
   async function fetchList(params: ListParams) {
+    const seq = ++requestSeq
     state.value = 'loading'
     error.value = null
     loadedParams.value = params
     try {
       const response = await listScholarships(params)
+      if (seq !== requestSeq) return
       // Defensive: an empty page with a nonzero total is treated as an error
       // (web-design.md section 8).
       if (response.results.length === 0 && response.total > 0 && (params.offset ?? 0) > 0) {
@@ -35,7 +38,9 @@ export function useScholarshipList(initial: ListParams = {}) {
       data.value = response
       state.value = 'success'
     } catch (err) {
+      if (seq !== requestSeq) return
       error.value = err instanceof ApiError ? err : new ApiError('server', 'Something went wrong.')
+      state.value = 'error'
     }
   }
 

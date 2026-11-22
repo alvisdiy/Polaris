@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import GlobalSearch from './GlobalSearch.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import { useCompare } from '../stores/compare'
@@ -9,6 +9,7 @@ import { useTheme } from '../stores/theme'
 defineEmits<{ (e: 'open-menu'): void }>()
 
 const route = useRoute()
+const router = useRouter()
 const { ids } = useCompare()
 const { theme } = useTheme()
 
@@ -16,6 +17,7 @@ const links = [
   { to: '/discover', label: 'Browse' },
   { to: '/match', label: 'Match profile' },
   { to: '/compare', label: 'Compare' },
+  { to: '/saved', label: 'Saved' },
   { to: '/about', label: 'About' },
 ]
 
@@ -23,7 +25,7 @@ const searchQuery = ref('')
 
 function submitSearch() {
   if (!searchQuery.value.trim()) return
-  window.location.assign(`/discover?q=${encodeURIComponent(searchQuery.value.trim())}`)
+  router.push({ path: '/discover', query: { q: searchQuery.value.trim() } })
 }
 
 function isActive(path: string): boolean {
@@ -111,7 +113,7 @@ function isActive(path: string): boolean {
 .links {
   display: flex;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .link {
@@ -119,7 +121,7 @@ function isActive(path: string): boolean {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   text-decoration: none;
   padding: 0.35rem 0;
@@ -161,8 +163,8 @@ function isActive(path: string): boolean {
   padding: 0 0.25rem;
   border-radius: var(--radius-pill);
   background: var(--color-brand);
-  color: #fff;
-  font-size: 0.62rem;
+  color: var(--color-on-brand);
+  font-size: 0.7rem;
   letter-spacing: 0;
 }
 

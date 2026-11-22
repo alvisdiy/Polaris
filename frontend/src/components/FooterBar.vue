@@ -16,6 +16,8 @@ const year = new Date().getFullYear()
         <RouterLink to="/discover">Browse</RouterLink>
         <RouterLink to="/match">Match profile</RouterLink>
         <RouterLink to="/about">About and method</RouterLink>
+        <RouterLink to="/privacy">Privacy</RouterLink>
+        <RouterLink to="/terms">Terms</RouterLink>
       </nav>
     </div>
     <p class="copyright">Polaris {{ year }}</p>
@@ -66,7 +68,7 @@ const year = new Date().getFullYear()
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   text-decoration: none;
 }
@@ -82,7 +84,7 @@ const year = new Date().getFullYear()
   border-top: 1px solid var(--color-line);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
   color: var(--color-ink-secondary);
 }

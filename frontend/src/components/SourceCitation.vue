@@ -34,9 +34,9 @@ const host = computed(() => hostOf(props.url))
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-line);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 

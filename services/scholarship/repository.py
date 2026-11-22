@@ -20,6 +20,16 @@ from services.scholarship.identity import (
 )
 
 
+def _escape_like(value: str) -> str:
+    """Literal match for LIKE: a typed `%` or `_` is text, not a wildcard."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _contains(value: str) -> str:
+    """Substring pattern for :func:`_escape_like`-escaped user input."""
+    return f"%{_escape_like(value)}%"
+
+
 class ScholarshipRepository:
     """Persistence layer for Scholarship. No business logic."""
 
@@ -224,13 +234,16 @@ class ScholarshipRepository:
         q = self.session.query(Scholarship).filter(public_filter())
 
         if query:
-            q = q.filter(Scholarship.scholarship_name.ilike(f"%{query}%"))
+            q = q.filter(Scholarship.scholarship_name.ilike(_contains(query), escape="\\"))
 
         if country:
             # Check country name or iso3
             from database.models.country import Country
             q = q.join(Scholarship.country).filter(
-                or_(Country.name.ilike(f"%{country}%"), Country.iso3.ilike(country))
+                or_(
+                    Country.name.ilike(_contains(country), escape="\\"),
+                    Country.iso3.ilike(_escape_like(country), escape="\\"),
+                )
             )
 
         if degree:
@@ -250,11 +263,17 @@ class ScholarshipRepository:
             )
 
         total = q.count()
+        # The id is a tiebreaker, not a sort preference: many programmes share a
+        # name across providers, and PostgreSQL leaves tied rows in arbitrary
+        # order. Without it, offset pagination can repeat one row on page two
+        # and never show another at all.
         results = q.options(
             joinedload(Scholarship.timeline),
             joinedload(Scholarship.country),
             joinedload(Scholarship.provider),
-        ).order_by(Scholarship.scholarship_name).limit(limit).offset(offset).all()
+        ).order_by(
+            Scholarship.scholarship_name, Scholarship.scholarship_id
+        ).limit(limit).offset(offset).all()
 
         return results, total
 

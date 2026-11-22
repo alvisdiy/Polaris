@@ -1,161 +1,201 @@
 <script setup lang="ts">
 /*
- * A restrained Three.js accent for the home hero: a wireframe globe with a slow
- * constellation of points, drawn in the interface's own ink and vermilion.
+ * A decorative wireframe globe for the home hero, drawn as inline SVG.
  *
- * Why this and not a ThreeUI landing template: Polaris is a search product, and
- * its first screen has to stay readable and fast. The scene is therefore
- * decorative only — it carries no information, it is hidden from assistive
- * technology, it never intercepts pointer events, and it is skipped entirely for
- * people who ask for reduced motion or who are on a small screen. three.js is
- * imported dynamically so it never lands in the initial bundle.
+ * It replaces a Three.js scene that shipped a 753 kB chunk for one aria-hidden
+ * element. The shape is the same idea in the interface's own material: hairlines
+ * for the graticule, a shell of vermilion points, one tilted orbit. Nothing here
+ * carries information, nothing animates, and it costs no dependency and no
+ * runtime frames.
+ *
+ * The dot field is a Fibonacci sphere projected orthographically; depth is
+ * expressed as opacity and radius so the near face reads closer than the far one.
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-
-const host = ref<HTMLDivElement | null>(null)
-
-let cleanup: (() => void) | undefined
-
-onMounted(async () => {
-  const element = host.value
-  if (!element) return
-
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const narrow = window.matchMedia('(max-width: 900px)').matches
-  if (reduced || narrow) return
-
-  const THREE = await import('three')
-
-  const scene = new THREE.Scene()
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
-  camera.position.set(0, 0, 6.4)
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  element.appendChild(renderer.domElement)
-  renderer.domElement.setAttribute('aria-hidden', 'true')
-  renderer.domElement.style.width = '100%'
-  renderer.domElement.style.height = '100%'
-  renderer.domElement.style.display = 'block'
-
-  const styles = getComputedStyle(document.documentElement)
-  const ink = new THREE.Color(styles.getPropertyValue('--color-ink').trim() || '#1a1512')
-  const accent = new THREE.Color(styles.getPropertyValue('--color-brand').trim() || '#b8402a')
-
-  const group = new THREE.Group()
-  scene.add(group)
-
-  // Latitude/longitude wireframe: the "ledger" reading of a globe.
-  const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1.9, 24, 16),
-    new THREE.MeshBasicMaterial({
-      color: ink,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.16,
-    }),
-  )
-  group.add(sphere)
-
-  // Fixed points: a constellation, not a random cloud, so it reads as a map.
-  const positions: number[] = []
-  for (let index = 0; index < 140; index += 1) {
-    const phi = Math.acos(1 - (2 * (index + 0.5)) / 140)
-    const theta = Math.PI * (1 + Math.sqrt(5)) * index
-    const radius = 1.93
-    positions.push(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta),
-    )
-  }
-  const cloudGeometry = new THREE.BufferGeometry()
-  cloudGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-  const cloud = new THREE.Points(
-    cloudGeometry,
-    new THREE.PointsMaterial({ color: accent, size: 0.045, transparent: true, opacity: 0.85 }),
-  )
-  group.add(cloud)
-
-  // An orbit ring, tilted: the one asymmetric element in an otherwise calm scene.
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(2.55, 0.006, 8, 120),
-    new THREE.MeshBasicMaterial({ color: ink, transparent: true, opacity: 0.28 }),
-  )
-  ring.rotation.x = Math.PI / 2.35
-  ring.rotation.y = 0.35
-  group.add(ring)
-
-  group.rotation.z = -0.18
-
-  const resize = () => {
-    const { clientWidth, clientHeight } = element
-    if (!clientWidth || !clientHeight) return
-    renderer.setSize(clientWidth, clientHeight, false)
-    camera.aspect = clientWidth / clientHeight
-    camera.updateProjectionMatrix()
-  }
-  resize()
-
-  const observer = new ResizeObserver(resize)
-  observer.observe(element)
-
-  let frame = 0
-  let visible = true
-  const tick = () => {
-    if (visible) {
-      group.rotation.y += 0.0016
-      cloud.rotation.y += 0.0006
-      renderer.render(scene, camera)
-    }
-    frame = requestAnimationFrame(tick)
-  }
-  frame = requestAnimationFrame(tick)
-
-  const intersection = new IntersectionObserver(
-    (entries) => {
-      visible = entries[0]?.isIntersecting ?? true
-    },
-    { threshold: 0.05 },
-  )
-  intersection.observe(element)
-
-  cleanup = () => {
-    cancelAnimationFrame(frame)
-    observer.disconnect()
-    intersection.disconnect()
-    sphere.geometry.dispose()
-    ;(sphere.material as InstanceType<typeof THREE.MeshBasicMaterial>).dispose()
-    cloudGeometry.dispose()
-    ;(cloud.material as InstanceType<typeof THREE.PointsMaterial>).dispose()
-    ring.geometry.dispose()
-    ;(ring.material as InstanceType<typeof THREE.MeshBasicMaterial>).dispose()
-    renderer.dispose()
-    renderer.domElement.remove()
-  }
-})
-
-onBeforeUnmount(() => cleanup?.())
 </script>
 
 <template>
-  <div ref="host" class="hero-globe" aria-hidden="true"></div>
+  <svg
+    class="globe"
+    viewBox="0 0 200 200"
+    role="presentation"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <g class="graticule">
+          <ellipse rx="0" ry="74" />
+          <ellipse rx="20" ry="74" />
+          <ellipse rx="39" ry="74" />
+          <ellipse rx="55" ry="74" />
+          <ellipse rx="68" ry="74" />
+          <ellipse rx="76" ry="74" />
+          <ellipse cx="100" cy="42" rx="47" ry="8.9" />
+          <ellipse cx="100" cy="60" rx="63" ry="12.0" />
+          <ellipse cx="100" cy="80" rx="72" ry="13.7" />
+          <ellipse cx="100" cy="100" rx="76" ry="14.4" />
+          <ellipse cx="100" cy="120" rx="72" ry="13.7" />
+          <ellipse cx="100" cy="140" rx="63" ry="12.0" />
+          <ellipse cx="100" cy="158" rx="47" ry="8.9" />
+    </g>
+
+    <g class="orbit">
+      <ellipse cx="100" cy="100" rx="96" ry="34" />
+    </g>
+
+    <g class="points">
+        <circle cx="76.80" cy="56.83" r="0.93" opacity="0.36" />
+        <circle cx="97.57" cy="47.86" r="0.94" opacity="0.37" />
+        <circle cx="142.91" cy="129.71" r="0.94" opacity="0.37" />
+        <circle cx="66.57" cy="142.05" r="0.95" opacity="0.38" />
+        <circle cx="153.89" cy="106.17" r="0.95" opacity="0.38" />
+        <circle cx="128.61" cy="53.47" r="0.96" opacity="0.38" />
+        <circle cx="144.85" cy="68.05" r="0.96" opacity="0.38" />
+        <circle cx="55.44" cy="65.80" r="0.96" opacity="0.39" />
+        <circle cx="50.82" cy="127.47" r="0.96" opacity="0.39" />
+        <circle cx="43.55" cy="89.35" r="0.97" opacity="0.39" />
+        <circle cx="83.00" cy="156.62" r="0.98" opacity="0.40" />
+        <circle cx="126.94" cy="153.26" r="0.98" opacity="0.41" />
+        <circle cx="158.64" cy="82.62" r="0.99" opacity="0.42" />
+        <circle cx="112.49" cy="38.89" r="1.00" opacity="0.42" />
+        <circle cx="108.03" cy="162.23" r="1.00" opacity="0.43" />
+        <circle cx="38.14" cy="112.89" r="1.01" opacity="0.43" />
+        <circle cx="73.38" cy="42.26" r="1.01" opacity="0.43" />
+        <circle cx="146.51" cy="144.29" r="1.01" opacity="0.44" />
+        <circle cx="161.11" cy="120.74" r="1.02" opacity="0.44" />
+        <circle cx="56.99" cy="151.02" r="1.03" opacity="0.46" />
+        <circle cx="54.32" cy="51.23" r="1.04" opacity="0.46" />
+        <circle cx="38.11" cy="74.77" r="1.04" opacity="0.46" />
+        <circle cx="137.43" cy="44.50" r="1.04" opacity="0.46" />
+        <circle cx="91.69" cy="33.29" r="1.04" opacity="0.46" />
+        <circle cx="168.07" cy="97.20" r="1.05" opacity="0.47" />
+        <circle cx="154.58" cy="59.08" r="1.05" opacity="0.47" />
+        <circle cx="41.27" cy="136.44" r="1.06" opacity="0.48" />
+        <circle cx="77.54" cy="165.59" r="1.06" opacity="0.48" />
+        <circle cx="30.26" cy="98.32" r="1.07" opacity="0.49" />
+        <circle cx="120.55" cy="167.83" r="1.08" opacity="0.50" />
+        <circle cx="161.76" cy="135.32" r="1.09" opacity="0.50" />
+        <circle cx="97.02" cy="171.20" r="1.09" opacity="0.51" />
+        <circle cx="140.34" cy="158.86" r="1.09" opacity="0.51" />
+        <circle cx="114.47" cy="29.92" r="1.09" opacity="0.51" />
+        <circle cx="166.69" cy="73.65" r="1.09" opacity="0.51" />
+        <circle cx="39.68" cy="60.20" r="1.11" opacity="0.52" />
+        <circle cx="64.64" cy="36.65" r="1.11" opacity="0.53" />
+        <circle cx="30.81" cy="121.86" r="1.11" opacity="0.53" />
+        <circle cx="171.81" cy="111.77" r="1.12" opacity="0.53" />
+        <circle cx="134.12" cy="35.53" r="1.12" opacity="0.54" />
+        <circle cx="58.47" cy="159.98" r="1.12" opacity="0.54" />
+        <circle cx="88.43" cy="27.68" r="1.13" opacity="0.55" />
+        <circle cx="28.36" cy="83.74" r="1.14" opacity="0.55" />
+        <circle cx="154.16" cy="50.11" r="1.14" opacity="0.56" />
+        <circle cx="154.36" cy="149.89" r="1.15" opacity="0.57" />
+        <circle cx="41.73" cy="145.41" r="1.16" opacity="0.57" />
+        <circle cx="172.96" cy="88.23" r="1.16" opacity="0.57" />
+        <circle cx="108.84" cy="173.44" r="1.17" opacity="0.58" />
+        <circle cx="49.85" cy="45.62" r="1.17" opacity="0.58" />
+        <circle cx="109.09" cy="26.56" r="1.18" opacity="0.59" />
+        <circle cx="26.36" cy="107.29" r="1.18" opacity="0.59" />
+        <circle cx="73.19" cy="168.95" r="1.18" opacity="0.60" />
+        <circle cx="169.12" cy="126.35" r="1.18" opacity="0.60" />
+        <circle cx="136.09" cy="164.47" r="1.19" opacity="0.61" />
+        <circle cx="73.55" cy="31.05" r="1.20" opacity="0.61" />
+        <circle cx="164.81" cy="64.68" r="1.20" opacity="0.61" />
+        <circle cx="33.02" cy="69.17" r="1.20" opacity="0.62" />
+        <circle cx="33.42" cy="130.83" r="1.22" opacity="0.63" />
+        <circle cx="143.80" cy="41.14" r="1.22" opacity="0.63" />
+        <circle cx="172.94" cy="102.80" r="1.23" opacity="0.64" />
+        <circle cx="91.23" cy="172.32" r="1.23" opacity="0.64" />
+        <circle cx="51.73" cy="154.38" r="1.24" opacity="0.65" />
+        <circle cx="118.48" cy="170.08" r="1.24" opacity="0.65" />
+        <circle cx="159.77" cy="140.92" r="1.24" opacity="0.65" />
+        <circle cx="124.95" cy="32.17" r="1.24" opacity="0.66" />
+        <circle cx="28.24" cy="92.71" r="1.25" opacity="0.66" />
+        <circle cx="44.33" cy="54.59" r="1.25" opacity="0.66" />
+        <circle cx="101.76" cy="28.80" r="1.26" opacity="0.67" />
+        <circle cx="167.88" cy="79.26" r="1.27" opacity="0.68" />
+        <circle cx="62.51" cy="40.02" r="1.27" opacity="0.68" />
+        <circle cx="143.76" cy="155.50" r="1.27" opacity="0.68" />
+        <circle cx="69.04" cy="163.35" r="1.27" opacity="0.68" />
+        <circle cx="153.82" cy="55.71" r="1.28" opacity="0.69" />
+        <circle cx="32.43" cy="116.26" r="1.29" opacity="0.70" />
+        <circle cx="166.75" cy="117.38" r="1.29" opacity="0.70" />
+        <circle cx="45.06" cy="139.80" r="1.30" opacity="0.71" />
+        <circle cx="36.11" cy="78.14" r="1.31" opacity="0.72" />
+        <circle cx="84.21" cy="34.41" r="1.31" opacity="0.72" />
+        <circle cx="99.15" cy="166.71" r="1.32" opacity="0.72" />
+        <circle cx="121.45" cy="161.11" r="1.33" opacity="0.74" />
+        <circle cx="136.42" cy="46.74" r="1.33" opacity="0.74" />
+        <circle cx="116.97" cy="37.77" r="1.33" opacity="0.74" />
+        <circle cx="164.16" cy="93.83" r="1.33" opacity="0.74" />
+        <circle cx="155.16" cy="131.95" r="1.34" opacity="0.75" />
+        <circle cx="49.08" cy="63.56" r="1.35" opacity="0.76" />
+        <circle cx="37.97" cy="101.68" r="1.35" opacity="0.76" />
+        <circle cx="153.99" cy="70.29" r="1.35" opacity="0.76" />
+        <circle cx="65.66" cy="48.98" r="1.36" opacity="0.76" />
+        <circle cx="63.01" cy="148.77" r="1.36" opacity="0.76" />
+        <circle cx="139.48" cy="146.53" r="1.36" opacity="0.77" />
+        <circle cx="82.97" cy="157.74" r="1.36" opacity="0.77" />
+        <circle cx="47.25" cy="125.23" r="1.37" opacity="0.78" />
+        <circle cx="93.88" cy="43.38" r="1.38" opacity="0.79" />
+        <circle cx="154.69" cy="108.41" r="1.39" opacity="0.80" />
+        <circle cx="109.90" cy="152.14" r="1.40" opacity="0.81" />
+        <circle cx="48.85" cy="87.11" r="1.40" opacity="0.81" />
+        <circle cx="134.12" cy="61.32" r="1.41" opacity="0.81" />
+        <circle cx="146.95" cy="84.86" r="1.42" opacity="0.82" />
+        <circle cx="112.43" cy="52.35" r="1.42" opacity="0.82" />
+        <circle cx="141.01" cy="122.98" r="1.43" opacity="0.83" />
+        <circle cx="67.93" cy="134.20" r="1.43" opacity="0.83" />
+        <circle cx="79.39" cy="57.95" r="1.43" opacity="0.83" />
+        <circle cx="63.40" cy="72.53" r="1.43" opacity="0.83" />
+        <circle cx="56.01" cy="110.65" r="1.43" opacity="0.84" />
+        <circle cx="125.19" cy="137.56" r="1.43" opacity="0.84" />
+        <circle cx="90.40" cy="143.17" r="1.44" opacity="0.84" />
+        <circle cx="134.75" cy="99.44" r="1.46" opacity="0.86" />
+        <circle cx="124.32" cy="75.89" r="1.46" opacity="0.86" />
+        <circle cx="100.32" cy="66.92" r="1.47" opacity="0.87" />
+        <circle cx="69.33" cy="96.08" r="1.47" opacity="0.87" />
+        <circle cx="103.82" cy="128.59" r="1.47" opacity="0.88" />
+        <circle cx="79.31" cy="119.62" r="1.47" opacity="0.88" />
+        <circle cx="119.55" cy="114.02" r="1.48" opacity="0.88" />
+        <circle cx="84.96" cy="81.50" r="1.48" opacity="0.88" />
+        <circle cx="110.14" cy="90.47" r="1.49" opacity="0.89" />
+        <circle cx="94.26" cy="105.05" r="1.50" opacity="0.90" />
+    </g>
+  </svg>
 </template>
 
 <style scoped>
-.hero-globe {
-  position: absolute;
-  inset: 0;
+.globe {
+  display: block;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-  opacity: 0.95;
-  mask-image: radial-gradient(circle at 50% 50%, #000 60%, transparent 80%);
+  overflow: visible;
 }
 
-@media (max-width: 900px) {
-  .hero-globe {
-    display: none;
-  }
+.graticule ellipse {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 0.55;
+  opacity: 0.17;
+}
+
+/* The single asymmetric element: an orbit tilted against a calm grid. */
+.orbit ellipse {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 0.6;
+  opacity: 0.3;
+  transform: rotate(-17deg);
+  transform-origin: 100px 100px;
+}
+
+.points circle {
+  fill: var(--color-brand);
+}
+
+[data-theme='dark'] .graticule ellipse {
+  opacity: 0.22;
+}
+
+[data-theme='dark'] .orbit ellipse {
+  opacity: 0.34;
 }
 </style>

@@ -140,7 +140,8 @@ const categoryLabel: Record<string, string> = {
     border-color var(--motion-fast);
 }
 
-.card:hover {
+.card:hover,
+.card:focus-within {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card);
   border-color: var(--color-line-strong);
@@ -161,7 +162,7 @@ const categoryLabel: Record<string, string> = {
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
   color: var(--color-brand);
   padding-top: 0.15rem;
 }
@@ -194,9 +195,9 @@ const categoryLabel: Record<string, string> = {
 .provider {
   margin: 0.3rem 0 0;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 
@@ -217,7 +218,7 @@ const categoryLabel: Record<string, string> = {
 
 .score-max {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 400;
   color: var(--color-ink-secondary);
 }
@@ -226,10 +227,10 @@ const categoryLabel: Record<string, string> = {
   display: block;
   margin-top: 0.25rem;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-brand);
 }
 
@@ -245,9 +246,9 @@ const categoryLabel: Record<string, string> = {
   background: var(--color-paper);
   border-radius: var(--radius-control);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
   color: var(--color-ink-secondary);
 }
 
@@ -280,7 +281,7 @@ const categoryLabel: Record<string, string> = {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink);
   text-decoration: none;
 }

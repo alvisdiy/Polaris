@@ -299,7 +299,7 @@ function retry() {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   margin-bottom: var(--space-5);
 }
@@ -361,7 +361,7 @@ function retry() {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   margin: 0 0 var(--space-3);
 }
@@ -377,9 +377,9 @@ function retry() {
   border: 1px solid var(--color-line);
   background: var(--color-paper);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-meta);
   color: var(--color-ink-secondary);
 }
 
@@ -390,10 +390,17 @@ function retry() {
   min-width: 13rem;
 }
 
-.button-demoted {
+/* The expired record's primary action is demoted, so it must not inherit the
+   vermilion hover from .button-primary (0,2,0 beats a single class). */
+.button-primary.button-demoted,
+.button-primary.button-demoted:hover {
   background: var(--color-surface);
   border-color: var(--color-line-strong);
   color: var(--color-ink-secondary);
+}
+
+.button-primary.button-demoted:hover {
+  transform: none;
 }
 
 .head-tools {
@@ -429,9 +436,9 @@ function retry() {
 .fact::before,
 .row > :first-child {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
 }
 

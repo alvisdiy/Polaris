@@ -114,9 +114,9 @@ const sections = [
 
 .toc a {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   text-decoration: none;
   padding: 0.25rem 0;

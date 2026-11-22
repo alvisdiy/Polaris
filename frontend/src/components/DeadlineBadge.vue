@@ -48,9 +48,9 @@ const color = computed(() => colorVar[display.value.state])
   align-items: center;
   gap: 0.4rem;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label);
   font-weight: 500;
 }
 

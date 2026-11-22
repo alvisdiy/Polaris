@@ -30,7 +30,7 @@ defineProps<{
 
 .max {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   color: var(--color-ink-secondary);
 }
 
@@ -38,7 +38,7 @@ defineProps<{
   font-family: var(--font-mono);
   font-size: 0.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-label);
   color: var(--color-brand);
 }
 </style>

@@ -1,0 +1,254 @@
+{
+  "funnel": {
+    "surfaces_attempted": 13,
+    "surfaces_fetched": 7,
+    "surfaces_needing_js": 2,
+    "surface_page_intent": {
+      "SCHOLARSHIP_INDEX": 2,
+      "SCHOLARSHIP_OVERVIEW": 3,
+      "SCHOLARSHIP_DETAIL": 1,
+      "UNKNOWN": 1
+    },
+    "links_found_on_surfaces": 1977,
+    "links_dropped_offsite": 7,
+    "links_dropped_non_official_host": 3,
+    "links_dropped_not_funding_relevant": 1130,
+    "links_dropped_already_known": 0,
+    "links_dropped_duplicate_in_run": 13,
+    "detail_candidates": 83,
+    "candidates_fetched": 81,
+    "candidates_needing_js": 22,
+    "candidate_fetch_failed": 2,
+    "candidate_page_intent": {
+      "PROVIDER_INFORMATION": 2,
+      "SCHOLARSHIP_INDEX": 25,
+      "SCHOLARSHIP_DETAIL": 23,
+      "UNKNOWN": 1,
+      "IRRELEVANT": 1,
+      "SCHOLARSHIP_OVERVIEW": 15,
+      "APPLICATION_PORTAL": 4,
+      "FAQ": 1,
+      "UNIVERSITY_INFORMATION": 8,
+      "GENERAL_PROGRAMME_PAGE": 1
+    },
+    "classified_detail_pages": 23,
+    "extraction_succeeded": 22,
+    "extraction_nameless": 0,
+    "schema_failures": 0,
+    "quality_failures": 1,
+    "duplicate_folds": 20,
+    "new_pending_review": 2
+  },
+  "failure_categories": {
+    "surface fetch: ConnectorHTTPException": 6,
+    "candidate fetch: ConnectorHTTPException": 2,
+    "validation": 1
+  },
+  "per_country": {
+    "GBR": {
+      "shape": "university-heavy",
+      "surface": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/",
+      "candidates": 16,
+      "detail": 8,
+      "new_pending_review": 1
+    },
+    "SGP": {
+      "shape": "institution-catalogue",
+      "surface": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes",
+      "candidates": 32,
+      "detail": 8,
+      "new_pending_review": 1
+    },
+    "JPN": {
+      "shape": "government-programme",
+      "surface": "https://www.studyinjapan.go.jp/en/planning/scholarship/types/",
+      "candidates": 3,
+      "detail": 0,
+      "new_pending_review": 0
+    },
+    "DEU": {
+      "shape": "centralised-portal",
+      "surface": "https://www.daad.de/en/studying-in-germany/scholarships/",
+      "candidates": 0,
+      "detail": 0,
+      "new_pending_review": 0
+    },
+    "IDN": {
+      "shape": "provider-agency",
+      "surface": "https://www.aminef.or.id/grants-for-indonesians/",
+      "candidates": 16,
+      "detail": 5,
+      "new_pending_review": 0
+    },
+    "AUS": {
+      "shape": "university-heavy",
+      "surface": "https://www.monash.edu/study/fees-scholarships/scholarships",
+      "candidates": 16,
+      "detail": 2,
+      "new_pending_review": 0
+    },
+    "CAN": {
+      "shape": "university-heavy",
+      "surface": "https://www.ubc.ca/admissions/finances/scholarships",
+      "candidates": 0,
+      "detail": 0,
+      "new_pending_review": 0
+    }
+  },
+  "rows": [
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/loughborough-university-bursary/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Loughborough University Bursary",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/opportunity-scholarships/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Fees and funding",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/future-leaders-scholarship/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Future Leaders Scholarship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/international-excellence-scholarships/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "International Excellence Scholarships",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/sanctuary-scholarships/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Loughborough University Sanctuary Scholarships",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/sport-scholarships/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Sport Scholarships",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "http://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/women-in-science-bursary/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Women in Science Bursary",
+      "outcome": "pending_review"
+    },
+    {
+      "url": "https://www.lboro.ac.uk/study/undergraduate/fees-funding/scholarships/hardship-fund/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Fees and funding",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes/sp-scholarships-engineering-scholarship",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "SP Scholarship & SP Engineering Scholarship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes/sp-undergraduate-scholarship",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "SP Undergraduate Scholarship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.sp.edu.sg/admissions/scholarships-talent-programmes/pfp-study-award",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "PFP Study Award",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.sp.edu.sg/student-services/financial-assistance/financial-aid-for-overseas-programmes",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Financial Aid for Overseas Programmes",
+      "outcome": "pending_review"
+    },
+    {
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/scholarship/fulbright-masters-degree-scholarship/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Fulbright Master's Degree Scholarship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/scholarship/fulbright-doctoral-degree-phd-scholarship/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Fulbright Doctoral Degree (PhD) Scholarship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/fellowships/fulbright-visiting-scholar/fulbright-national-archives-heritage-science-fellowship/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.95,
+      "name": "Fulbright-National Archives Heritage Science Fellowship",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/fellowships/hubert-h-humphrey-fellowship-program-mid-career-professionals/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Hubert H. Humphrey Fellowship Program for Mid-Career Professionals",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.aminef.or.id/grants-for-indonesians/fulbright-programs/fellowships/fulbright-dai/",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Fulbright Distinguished Awards in Teaching Program for International Teachers (Fulbright DAI)",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.ntu.edu.sg/admissions/undergraduate/scholarships-and-awards/scholarship-application-process",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "3. Interview",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.ntu.edu.sg/admissions/undergraduate/fees-and-funding/tuition-fees",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.85,
+      "name": "Guidelines on tuition fees",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.ntu.edu.sg/admissions/undergraduate/fees-and-funding/financial-aid/ntu-opportunity-grant-(nog)",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "NTU Opportunity Grant (NOG)",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.ntu.edu.sg/admissions/undergraduate/fees-and-funding/financial-aid/overseas-student-programme-loan-travel-award",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.95,
+      "name": "Overseas Student Programme Loan/ Travel Award",
+      "outcome": "duplicate"
+    },
+    {
+      "url": "https://www.monash.edu/study/why-choose-monash/in-your-language/spanish/becas-y-soporte-financiero/endeavour-awards",
+      "intent": "SCHOLARSHIP_DETAIL",
+      "confidence": 0.75,
+      "name": "Endeavour Awards",
+      "outcome": "duplicate"
+    }
+  ]
+}
