@@ -4,6 +4,11 @@ downstream consumes (classifier, resolvers, link expansion).
 Fetch strategy: httpx first (fast, cheap); Playwright fallback when the HTTP
 fetch yields JS-gated content (small HTML with little text). Respects
 robots.txt, per-domain delay, and timeouts.
+
+Every URL here is untrusted — it came from a search result or a link on a
+fetched page — so the target is SSRF-checked with the same url_safety
+policy the ingestion fetchers use before anything is requested, and the
+redirect chain is re-validated afterwards.
 """
 
 from __future__ import annotations
@@ -19,6 +24,11 @@ from loguru import logger
 
 from services.exploration.robots_rules import RobotsRules
 from services.exploration.url_utils import domain_of
+from services.ingestion.url_safety import (
+    UrlSafetyError,
+    validate_external_url,
+    validate_redirect_chain,
+)
 
 USER_AGENT = "PolarisBot/0.2 (+https://polaris.example; discovery research)"
 
@@ -115,6 +125,17 @@ class CandidateAnalyzer:
         result = AnalyzedCandidate(url=url)
         domain = domain_of(url)
 
+        # SSRF guard: the URL is untrusted (search result or extracted
+        # link). Without this check the analyzer would happily fetch
+        # loopback, link-local metadata endpoints, or internal hosts and
+        # hand their content to the classifier. Mirrors SafeFetch's
+        # policy: structural validation plus a public-DNS check.
+        try:
+            validate_external_url(url, resolve_dns=True)
+        except UrlSafetyError as exc:
+            result.error = f"unsafe_url: {exc}"[:300]
+            return result
+
         try:
             async with httpx.AsyncClient(
                 timeout=self.timeout,
@@ -129,6 +150,19 @@ class CandidateAnalyzer:
                 response = await client.get(url)
                 result.status_code = response.status_code
                 result.final_url = str(response.url)
+
+                # A safe first hop is not a safe chain: re-validate every
+                # redirect target, and refuse the content if the chain
+                # left the public internet (same rule as SafeFetch).
+                try:
+                    validate_redirect_chain(
+                        result.final_url,
+                        [str(hop.url) for hop in response.history],
+                    )
+                except UrlSafetyError as exc:
+                    result.error = f"unsafe_redirect: {exc}"[:300]
+                    return result
+
                 if response.status_code >= 400:
                     result.error = f"http_{response.status_code}"
                     return result

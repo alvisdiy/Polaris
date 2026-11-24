@@ -221,9 +221,21 @@ class ScholarshipRequirementSchema(BaseModel):
     minimum_ielts: float | None = None
     toefl_required: bool
     minimum_toefl: int | None = None
+    # Stored on every requirement row since the schema was created, but
+    # never exposed here, so the detail page could not show them: a
+    # student learned about an age limit or a required CV only by leaving
+    # for the official page. The booleans default False in the database,
+    # and False there means "not recorded", not "verified not required" —
+    # clients must word them that way.
+    gre_required: bool = False
+    age_limit: int | None = None
     work_experience: str | None = None
     research_experience: str | None = None
     publication: str | None = None
+    recommendation_letter: bool = False
+    motivation_letter: bool = False
+    cv_required: bool = False
+    passport_required: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -283,6 +295,10 @@ class ScholarshipDetailResponse(BaseModel):
     provider_name: str | None = None
     provider_type: str | None = None
     country: str | None = None
+    # The hosting university, when the record is tied to one. Stored since
+    # the schema was created but never exposed, like the requirement
+    # fields below.
+    university: str | None = None
     # See ScholarshipSummaryResponse: nullable in the database, so nullable here.
     degree: str | None = None
     degree_levels: list[str] = Field(default_factory=list)

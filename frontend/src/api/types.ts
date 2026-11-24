@@ -34,9 +34,16 @@ export interface ScholarshipRequirement {
   minimum_ielts: number | null
   toefl_required: boolean
   minimum_toefl: number | null
+  /** False means "not recorded in the source", never "verified not required". */
+  gre_required: boolean
+  age_limit: number | null
   work_experience: string | null
   research_experience: string | null
   publication: string | null
+  recommendation_letter: boolean
+  motivation_letter: boolean
+  cv_required: boolean
+  passport_required: boolean
 }
 
 export interface ScholarshipBenefit {
@@ -63,6 +70,7 @@ export interface ScholarshipDetail {
   provider_name: string | null
   provider_type: string | null
   country: string | null
+  university: string | null
   degree: string | null
   /** The award's levels when the page stated several. */
   degree_levels?: string[]

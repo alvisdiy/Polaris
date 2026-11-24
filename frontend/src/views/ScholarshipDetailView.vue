@@ -40,6 +40,12 @@ const requirementRows = computed(() => {
   const req = scholarship.value?.requirement
   if (!req) return []
   const notMentioned = 'Not mentioned in the source'
+  // The requirement booleans default to false in the database, and false
+  // means the source never stated the requirement — the extractor does
+  // not verify an absence. Claiming "Not required" told students the
+  // opposite of what is known, so an unrecorded boolean reads the same
+  // as every other unrecorded field.
+  const boolRequirement = (value: boolean) => (value ? 'Required' : notMentioned)
   return [
     {
       label: 'Minimum GPA',
@@ -51,7 +57,7 @@ const requirementRows = computed(() => {
         ? req.minimum_ielts !== null
           ? `Required, minimum ${req.minimum_ielts}`
           : 'Required'
-        : 'Not required',
+        : notMentioned,
     },
     {
       label: 'TOEFL iBT',
@@ -59,11 +65,20 @@ const requirementRows = computed(() => {
         ? req.minimum_toefl !== null
           ? `Required, minimum ${req.minimum_toefl}`
           : 'Required'
-        : 'Not required',
+        : notMentioned,
+    },
+    { label: 'GRE', value: boolRequirement(req.gre_required) },
+    {
+      label: 'Age limit',
+      value: req.age_limit !== null ? `Up to ${req.age_limit}` : notMentioned,
     },
     { label: 'Work experience', value: req.work_experience ?? notMentioned },
     { label: 'Research experience', value: req.research_experience ?? notMentioned },
     { label: 'Publications', value: req.publication ?? notMentioned },
+    { label: 'Recommendation letter', value: boolRequirement(req.recommendation_letter) },
+    { label: 'Motivation letter', value: boolRequirement(req.motivation_letter) },
+    { label: 'CV / resume', value: boolRequirement(req.cv_required) },
+    { label: 'Passport', value: boolRequirement(req.passport_required) },
   ]
 })
 
@@ -134,6 +149,7 @@ function retry() {
               {{ scholarship.provider_name }}
               <template v-if="scholarship.provider_type"> · {{ scholarship.provider_type }}</template>
               · {{ scholarship.country }}
+              <template v-if="scholarship.university"> · {{ scholarship.university }}</template>
             </p>
             <ul class="head-meta" aria-label="Key details">
               <li>{{ scholarship.degree }}</li>

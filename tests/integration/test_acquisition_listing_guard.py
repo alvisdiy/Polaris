@@ -354,6 +354,19 @@ class TestLegitimatePagesStillFlowThrough:
         )
         row = _created_rows(world["session"], session_id_snapshot)[0]
 
+        # The fixture page never states a country, so the extractor
+        # inferred it from the source and the quality gate now holds the
+        # record until a reviewer confirms the country — which is what a
+        # reviewer does here, by correcting country_id to the same value.
+        # (The degree override below is the pre-existing pattern.)
+        ReviewService(world["session"]).correct(
+            row.scholarship_id,
+            actor="pytest",
+            changes={"country_id": str(row.country_id)},
+            reason="V0.1.1 Step 9 — country confirmed against the source",
+            source="manual_review",
+        )
+
         ReviewService(world["session"]).approve(
             row.scholarship_id,
             actor="pytest",

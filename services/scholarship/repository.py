@@ -117,6 +117,7 @@ class ScholarshipRepository:
             joinedload(Scholarship.versions),
             joinedload(Scholarship.country),
             joinedload(Scholarship.provider),
+            joinedload(Scholarship.university),
             joinedload(Scholarship.source),
         )
 

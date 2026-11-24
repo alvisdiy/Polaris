@@ -110,6 +110,7 @@ class TestNoSentinelInPublicResponses:
             scholarship_name = "Example Award"
             provider = None
             country = None
+            university = None
             degree = "Master"
             degree_levels = []
             funding_type = "Fully Funded"

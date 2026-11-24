@@ -16,7 +16,10 @@ from api.schemas import (
     ScholarshipSummaryResponse,
     ScholarshipTimelineSchema,
 )
+from database.models.country import Country
+from database.models.scholarship import Scholarship
 from database.session import SessionLocal
+from services.review.publication import public_filter
 from services.scholarship.repository import ScholarshipRepository
 
 logger = logging.getLogger("polaris.api.scholarships")
@@ -52,6 +55,35 @@ def list_scholarships(
         )
         results = [_to_summary(s) for s in scholarships]
         return ScholarshipListResponse(results=results, total=total)
+    finally:
+        session.close()
+
+
+@router.get(
+    "/countries",
+    response_model=list[str],
+    summary="Countries with at least one published scholarship",
+)
+def list_countries():
+    """Country names the catalogue can actually return results for.
+
+    The frontend filter dropdowns used to hardcode this list in two
+    places, and the two copies disagreed (12 entries in Discover, 10 in
+    the profile form — Brunei and Malaysia silently missing from one).
+    The catalogue is the only honest source: a country with no published
+    record is a filter that can only ever return an empty page.
+    """
+    session = SessionLocal()
+    try:
+        rows = (
+            session.query(Country.name)
+            .join(Scholarship, Scholarship.country_id == Country.country_id)
+            .filter(public_filter())
+            .distinct()
+            .order_by(Country.name)
+            .all()
+        )
+        return [name for (name,) in rows]
     finally:
         session.close()
 
@@ -124,6 +156,7 @@ def _to_detail(sch) -> ScholarshipDetailResponse:
         provider_name=sch.provider.provider_name if sch.provider else None,
         provider_type=sch.provider.provider_type if sch.provider else None,
         country=sch.country.name if sch.country else None,
+        university=sch.university.name if sch.university else None,
         degree=sch.degree,
         degree_levels=[row.degree for row in (sch.degree_levels or [])],
         funding_type=sch.funding_type,

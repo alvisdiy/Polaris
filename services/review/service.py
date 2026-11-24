@@ -1412,6 +1412,17 @@ class ReviewService:
             )
         )
 
+        # A reviewer correcting the country IS the confirmation the quality
+        # gate waits for when the extractor only inferred the country from
+        # the source. Clear the inference flag, or the gate would keep
+        # blocking a record a human has now vouched for.
+        if "country_id" in applied_fields and isinstance(
+            scholarship.quality_report, dict
+        ):
+            updated_report = dict(scholarship.quality_report)
+            updated_report["country_inferred_from_source"] = False
+            scholarship.quality_report = updated_report
+
         target = ReviewStatus.PENDING_REVIEW if requeue else previous_state
         if requeue and target != previous_state:
             # Re-queueing is a transition, so it is checked like one.
@@ -1478,6 +1489,23 @@ class ReviewService:
             is not None
         )
 
+    def _country_exists(self, country_id) -> bool:
+        """Whether a correction names a country row that actually exists."""
+        from database.models.country import Country
+
+        value = country_id if isinstance(country_id, uuid.UUID) else None
+        if value is None:
+            try:
+                value = uuid.UUID(str(country_id))
+            except (ValueError, AttributeError, TypeError):
+                return False
+        return (
+            self.session.query(Country.country_id)
+            .filter(Country.country_id == value)
+            .first()
+            is not None
+        )
+
     @staticmethod
     def _child(scholarship: Scholarship, attr: str, model):
         """Return the 1:1 child row, creating it on first write."""
@@ -1492,6 +1520,7 @@ class ReviewService:
         return {
             "scholarship_name",
             "provider_id",
+            "country_id",
             "degree",
             "degree_levels",
             "funding_type",
@@ -1551,6 +1580,18 @@ class ReviewService:
                     f"cannot point a scholarship at provider {value!r}: "
                     "no such provider"
                 )
+        elif target_name == "country_id":
+            # Same curation shape as provider_id. Country had no correction
+            # path at all, which mattered once the quality gate began
+            # treating an extractor-inferred country as unconfirmed: a
+            # blocked record a reviewer cannot fix is a dead end, so the
+            # confirmation path and the gate landed together.
+            previous = scholarship.country_id
+            if value is not None and not self._country_exists(value):
+                raise InvalidTransition(
+                    f"cannot point a scholarship at country {value!r}: "
+                    "no such country"
+                )
         elif target_name == "degree_levels":
             previous = sorted(row.degree for row in (scholarship.degree_levels or []))
         elif target_name in ("degree", "funding_type", "official_page_url", "application_url"):
@@ -1572,6 +1613,25 @@ class ReviewService:
         else:
             return None
 
+        # One apparent no-op is a real reviewer act: confirming a country
+        # the extractor only inferred. The value does not change, but the
+        # record's epistemic state does — a human has now vouched for it —
+        # so it is recorded as a change (and correct() clears the inference
+        # flag) instead of being dismissed as "no change". Compared after
+        # UUID coercion, because reviewers pass ids as strings.
+        if (
+            target_name == "country_id"
+            and _coerce_uuid(value) == previous
+            and isinstance(scholarship.quality_report, dict)
+            and scholarship.quality_report.get("country_inferred_from_source")
+        ):
+            return {
+                "field": target_name,
+                "previous": _json_safe(previous),
+                "new": _json_safe(value),
+                "confirmed_inferred_country": True,
+            }
+
         if previous == value:
             return None
 
@@ -1579,6 +1639,8 @@ class ReviewService:
             scholarship.scholarship_name = value
         elif target_name == "provider_id":
             scholarship.provider_id = _coerce_uuid(value)
+        elif target_name == "country_id":
+            scholarship.country_id = _coerce_uuid(value)
         elif target_name in ("degree", "funding_type", "official_page_url", "application_url"):
             setattr(scholarship, target_name, value)
         elif target_name == "field_of_study":
@@ -1626,6 +1688,7 @@ class ReviewService:
             name_verdict=stored.get("name_verdict"),
             provider_name=provider_name,
             country_name=country_name,
+            country_inferred=bool(stored.get("country_inferred_from_source")),
             official_page_url=scholarship.official_page_url,
             degree=scholarship.degree,
             degree_levels=[row.degree for row in (scholarship.degree_levels or [])],

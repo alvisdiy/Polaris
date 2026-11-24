@@ -279,6 +279,12 @@ class ScholarshipMapper:
         from services.review.quality import build_report
 
         stored = dict(meta.get("name_verdict") and {"name_verdict": meta["name_verdict"]} or {})
+        # Persisted so the review-time gate can re-evaluate it: a country
+        # inferred from the source must not pass as a stated fact, and the
+        # flag has to survive from extraction to the reviewer's desk.
+        stored["country_inferred_from_source"] = bool(
+            meta.get("country_inferred_from_source")
+        )
         stored["extracted_at"] = meta.get("extracted_at")
         stored["document_id"] = meta.get("document_id")
         stored["origin"] = meta.get("origin")
@@ -294,6 +300,7 @@ class ScholarshipMapper:
             name_verdict=meta.get("name_verdict"),
             provider_name=getattr(provider, "provider_name", None),
             country_name=getattr(country, "name", None),
+            country_inferred=bool(meta.get("country_inferred_from_source")),
             official_page_url=scholarship.official_page_url,
             degree=scholarship.degree,
             funding_type=scholarship.funding_type,

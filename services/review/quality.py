@@ -367,6 +367,7 @@ def build_report(
     name_verdict: dict | None,
     provider_name: str | None,
     country_name: str | None,
+    country_inferred: bool = False,
     official_page_url: str | None,
     degree: str | None,
     degree_levels: list[str] | None = None,
@@ -399,7 +400,25 @@ def build_report(
 
     fields["identity"] = assess_identity(scholarship_name, name_verdict=name_verdict)
     fields["provider"] = scalar("provider", provider_name)
-    fields["country"] = scalar("country", country_name)
+    # A country the extractor *inferred from the source* (the page never
+    # stated it) is a guess, however plausible: the source's country is the
+    # publisher's location, not necessarily the study destination, and the
+    # extractor's fallback chain ends in a constructor default. Reporting
+    # it KNOWN let a 20-point matching criterion rest on an assumption.
+    # It is UNKNOWN until a reviewer confirms it by correcting the field,
+    # which clears the inference flag (ReviewService.correct).
+    country_assessment = scalar("country", country_name)
+    if (
+        country_inferred
+        and country_name
+        and country_assessment.quality == FieldQuality.KNOWN
+    ):
+        country_assessment = FieldAssessment(
+            "country", FieldQuality.UNKNOWN, country_name,
+            "country was inferred from the source, not stated on the page; "
+            "a reviewer must confirm it by correction before publication",
+        )
+    fields["country"] = country_assessment
 
     # Official source traceability is M9 principle 2 and is never optional.
     # A placeholder host is reported as MISSING, not as a lesser quality on a

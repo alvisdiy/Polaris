@@ -117,6 +117,11 @@ export function getScholarship(id: string): Promise<ScholarshipDetail> {
   return request<ScholarshipDetail>(`${API_BASE}/scholarships/${encodeURIComponent(id)}`)
 }
 
+/** Countries that have at least one published scholarship. */
+export function listCountries(): Promise<string[]> {
+  return request<string[]>(`${API_BASE}/scholarships/countries`)
+}
+
 export function matchScholarships(
   profile: RecommendationRequest,
 ): Promise<RecommendationListResponse> {
