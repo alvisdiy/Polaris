@@ -27,9 +27,9 @@ function onClick() {
   >
     <svg width="16" height="16" viewBox="0 0 24 24" :fill="saved ? 'currentColor' : 'none'" aria-hidden="true">
       <path
-        d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1Z"
+        d="M12 2.5c.7 4.2 1.7 6 2.6 6.9.9.9 2.7 1.9 6.9 2.6v1c-4.2.7-6 1.7-6.9 2.6-.9.9-1.9 2.7-2.6 6.9h-1c-.7-4.2-1.7-6-2.6-6.9-.9-.9-2.7-1.9-6.9-2.6v-1c4.2-.7 6-1.7 6.9-2.6.9-.9 1.9-2.7 2.6-6.9Z"
         stroke="currentColor"
-        stroke-width="1.5"
+        stroke-width="1.4"
         stroke-linejoin="round"
       />
     </svg>
@@ -46,18 +46,26 @@ function onClick() {
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-control);
   background: transparent;
-  color: var(--color-ink);
+  color: var(--color-ink-secondary);
   transition: border-color var(--motion-fast), color var(--motion-fast),
-    background var(--motion-fast);
+    background var(--motion-fast), transform var(--motion-fast);
 }
 
 .save-button:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-star);
+  color: var(--color-star);
+  transform: translateY(-1px);
 }
 
+.save-button:active {
+  transform: scale(0.94);
+}
+
+/* A saved item is the user's own star: gold, the only place gold appears
+   outside the wordmark. */
 .save-button.saved {
-  border-color: var(--color-brand);
-  background: var(--color-brand-soft);
-  color: var(--color-brand-ink);
+  border-color: var(--color-star);
+  background: var(--color-star-soft);
+  color: var(--color-star);
 }
 </style>

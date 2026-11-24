@@ -30,8 +30,8 @@ defineEmits<{ (e: 'remove'): void }>()
   gap: 0.35rem;
   padding: 0.25rem 0.4rem 0.25rem 0.5rem;
   border: 1px solid var(--color-line-strong);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
 }

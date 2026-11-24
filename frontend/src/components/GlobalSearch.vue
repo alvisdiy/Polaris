@@ -37,11 +37,12 @@ defineEmits<{ (e: 'submit'): void }>()
   padding: 0 var(--space-3);
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-control);
-  background: transparent;
+  background: var(--color-surface-raised);
   color: var(--color-ink);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.04em;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .search-input::placeholder {
@@ -52,9 +53,9 @@ defineEmits<{ (e: 'submit'): void }>()
 }
 
 .search-input:focus-visible {
-  background: var(--color-surface-raised);
-  outline: 2px solid var(--color-brand);
-  outline-offset: 1px;
+  border-color: var(--color-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 @media (max-width: 720px) {

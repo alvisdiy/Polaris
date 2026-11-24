@@ -1,50 +1,58 @@
 /*
- * Polaris design tokens — "the ledger" system (docs/web-design.md, section 23).
+ * Polaris design tokens v2 — "Night Atlas".
  *
- * The interface reads as a research archive: warm paper, ink, one vermilion
- * accent, hairline rules, and a serif for anything a person wrote. Colour is
- * never the only carrier of meaning — every deadline state also has a word and
- * an icon.
+ * Polaris is the star navigators fixed their position by. The interface reads
+ * as a star chart: deep navy night in dark theme, cool chart-paper in light,
+ * one cobalt accent for anything actionable, and a single gold reserved for
+ * the star glyph and the user's own saved stars. Hairline rules and a fine
+ * dot grid stand in for the graticule of an atlas; a serif carries what a
+ * person reads, a mono carries what a machine recorded.
  *
- * Light is the default; [data-theme='dark'] redefines surfaces only, so both
- * themes share geometry and type.
+ * Colour is never the only carrier of meaning — every deadline state also has
+ * a word and an icon. Light is the default; [data-theme='dark'] redefines
+ * surfaces and levels, so both themes share geometry and type.
  */
 :root {
   color-scheme: light;
 
-  /* Surfaces and text */
-  --color-paper: #f3eddf;
-  --color-surface: #fbf7ec;
-  --color-surface-raised: #fffdf6;
-  --color-ink: #1a1512;
-  --color-ink-secondary: #5b5145;
-  --color-line: #d9ceba;
-  --color-line-strong: #b9ab92;
+  /* Surfaces and text — cool chart paper, navy ink */
+  --color-paper: #eef1f8;
+  --color-surface: #f7f9fd;
+  --color-surface-raised: #ffffff;
+  --color-ink: #101832;
+  --color-ink-secondary: #57637d;
+  --color-line: #dbe1ee;
+  --color-line-strong: #b8c2d8;
 
-  /* Brand: vermilion for action, moss for evidence */
-  --color-brand: #b8402a;
-  --color-brand-ink: #8f2f1e;
-  --color-brand-soft: #f6e2d9;
+  /* Brand: cobalt for action, teal-evidence for match explanation */
+  --color-brand: #2e4be0;
+  --color-brand-ink: #1f34a8;
+  --color-brand-soft: #e3e8fc;
   /* Text placed on a brand fill. White fails on the lighter dark-theme accent. */
   --color-on-brand: #ffffff;
-  --color-evidence: #2c5347;
-  --color-evidence-soft: #e2ebe4;
+
+  /* The star: gold appears only as the North Star glyph and saved items */
+  --color-star: #a87b25;
+  --color-star-soft: #f4ecd8;
+
+  --color-evidence: #0e7261;
+  --color-evidence-soft: #dcefe9;
 
   /* Deadline semantics */
-  --color-sem-active: #1f6b3a;
-  --color-sem-rolling: #2c5347;
+  --color-sem-active: #1d7a46;
+  --color-sem-rolling: #1f6e85;
   --color-sem-unknown: #8a5a00;
-  --color-sem-expired: #6a6258;
-  --color-sem-legacy: #8c8478;
+  --color-sem-expired: #67707f;
+  --color-sem-legacy: #8c94a3;
 
   /* Feedback */
-  --color-feedback-error: #9d2c1c;
-  --color-feedback-success: #1f6b3a;
+  --color-feedback-error: #b3261e;
+  --color-feedback-success: #1d7a46;
 
   /* Typography */
-  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --font-family: 'Instrument Sans', -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   --font-size-xs: 0.72rem;
   --font-size-sm: 0.86rem;
@@ -53,7 +61,7 @@
   --font-size-xl: 1.45rem;
   --font-size-2xl: 1.95rem;
   --font-size-3xl: 2.6rem;
-  --font-size-4xl: clamp(2.6rem, 5.4vw, 4.4rem);
+  --font-size-4xl: clamp(2.8rem, 5.8vw, 4.8rem);
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -66,13 +74,15 @@
   --space-8: 4.5rem;
   --space-9: 7rem;
 
-  /* Geometry: near-square. Cards are paper slips, not app tiles. */
-  --radius-control: 2px;
-  --radius-card: 3px;
+  /* Geometry: the atlas is drawn with instruments — soft, measured corners */
+  --radius-control: 8px;
+  --radius-card: 12px;
   --radius-pill: 999px;
 
-  --shadow-overlay: 0 18px 40px rgba(26, 21, 18, 0.16);
-  --shadow-card: 0 1px 0 rgba(26, 21, 18, 0.04), 0 10px 24px rgba(26, 21, 18, 0.06);
+  --shadow-overlay: 0 24px 48px rgba(13, 20, 40, 0.22);
+  --shadow-card: 0 1px 2px rgba(16, 24, 50, 0.05), 0 12px 28px rgba(16, 24, 50, 0.07);
+  --shadow-lift: 0 2px 4px rgba(16, 24, 50, 0.06), 0 16px 36px rgba(16, 24, 50, 0.12);
+  --shadow-brand-glow: 0 6px 20px rgba(46, 75, 224, 0.28);
 
   /* Layout */
   --container-max: 74rem;
@@ -87,36 +97,42 @@
   --tracking-eyebrow: 0.16em;
 
   /* Motion */
-  --motion-fast: 140ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  --motion-fast: 160ms cubic-bezier(0.2, 0.7, 0.2, 1);
   --motion-sheet: 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --color-paper: #14110d;
-  --color-surface: #1c1813;
-  --color-surface-raised: #241f19;
-  --color-ink: #f2ead9;
-  --color-ink-secondary: #b8ab96;
-  --color-line: #3a332a;
-  --color-line-strong: #574d3f;
+  --color-paper: #0a0f1e;
+  --color-surface: #0f1628;
+  --color-surface-raised: #141d33;
+  --color-ink: #e9edf9;
+  --color-ink-secondary: #99a5be;
+  --color-line: #212d48;
+  --color-line-strong: #35446a;
 
-  --color-brand: #e0704f;
-  --color-brand-ink: #f09273;
-  --color-brand-soft: #3a2019;
-  --color-on-brand: #14110d;
-  --color-evidence: #8fc0ac;
-  --color-evidence-soft: #1e2f28;
+  --color-brand: #7c95ff;
+  --color-brand-ink: #a5b6ff;
+  --color-brand-soft: rgba(124, 149, 255, 0.14);
+  --color-on-brand: #0a0f1e;
 
-  --color-sem-active: #7dc08f;
-  --color-sem-rolling: #8fc0ac;
-  --color-sem-unknown: #d9a441;
-  --color-sem-expired: #9a9184;
-  --color-sem-legacy: #7b7367;
+  --color-star: #e5c17e;
+  --color-star-soft: rgba(229, 193, 126, 0.14);
 
-  --color-feedback-error: #e5726c;
-  --color-feedback-success: #7dc08f;
+  --color-evidence: #5fc7a8;
+  --color-evidence-soft: rgba(95, 199, 168, 0.12);
 
-  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.32);
+  --color-sem-active: #7ccf95;
+  --color-sem-rolling: #74c3cf;
+  --color-sem-unknown: #e2b45e;
+  --color-sem-expired: #8d99b0;
+  --color-sem-legacy: #6e7a93;
+
+  --color-feedback-error: #f2807a;
+  --color-feedback-success: #7ccf95;
+
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.4), 0 14px 30px rgba(2, 6, 18, 0.42);
+  --shadow-lift: 0 2px 0 rgba(0, 0, 0, 0.4), 0 18px 40px rgba(2, 6, 18, 0.5);
+  --shadow-brand-glow: 0 6px 22px rgba(124, 149, 255, 0.3);
 }

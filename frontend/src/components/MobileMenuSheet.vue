@@ -91,7 +91,15 @@ function isActive(path: string): boolean {
       >
         <nav ref="sheetRef" class="sheet" aria-label="Mobile navigation">
           <div class="sheet-head">
-            <span id="menu-title" class="wordmark">Polaris</span>
+            <span id="menu-title" class="wordmark">
+              <svg class="star" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 1.5c.8 4.9 2 6.9 3 7.9s3 2.2 7.9 3v1.2c-4.9.8-6.9 2-7.9 3s-2.2 3-3 7.9h-1.2c-.8-4.9-2-6.9-3-7.9s-3-2.2-7.9-3v-1.2c4.9-.8 6.9-2 7.9-3s2.2-3 3-7.9Z"
+                  fill="currentColor"
+                />
+              </svg>
+              Polaris
+            </span>
             <button type="button" class="close-button" aria-label="Close menu" @click="emit('close')">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
                 <path d="m4 4 10 10M14 4 4 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
@@ -134,7 +142,8 @@ function isActive(path: string): boolean {
   position: fixed;
   inset: 0;
   z-index: var(--z-sheet);
-  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
+  background: color-mix(in srgb, #050a18 62%, transparent);
+  backdrop-filter: blur(4px);
 }
 
 .sheet {
@@ -164,13 +173,19 @@ function isActive(path: string): boolean {
   margin-bottom: var(--space-3);
 }
 
-.sheet-head .wordmark {
+.wordmark {
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
-  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wordmark .star {
+  color: var(--color-star);
 }
 
 .sheet-search {
@@ -195,10 +210,10 @@ function isActive(path: string): boolean {
 .sheet-search-submit {
   min-height: 44px;
   padding: 0 var(--space-4);
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-brand);
   border-radius: var(--radius-control);
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
@@ -235,10 +250,15 @@ function isActive(path: string): boolean {
   letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   text-decoration: none;
+  transition: color var(--motion-fast);
+}
+
+.sheet-link:hover {
+  color: var(--color-ink);
 }
 
 .sheet-link-active {
-  color: var(--color-ink);
+  color: var(--color-brand);
   border-bottom-color: var(--color-brand);
 }
 

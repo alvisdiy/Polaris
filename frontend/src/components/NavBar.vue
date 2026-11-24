@@ -11,7 +11,7 @@ defineEmits<{ (e: 'open-menu'): void }>()
 const route = useRoute()
 const router = useRouter()
 const { ids } = useCompare()
-const { theme } = useTheme()
+const { theme, toggle } = useTheme()
 
 const links = [
   { to: '/discover', label: 'Browse' },
@@ -36,7 +36,15 @@ function isActive(path: string): boolean {
 <template>
   <header class="nav">
     <div class="nav-inner">
-      <RouterLink to="/" class="wordmark" aria-label="Polaris home">Polaris</RouterLink>
+      <RouterLink to="/" class="wordmark" aria-label="Polaris home">
+        <svg class="star" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 1.5c.8 4.9 2 6.9 3 7.9s3 2.2 7.9 3v1.2c-4.9.8-6.9 2-7.9 3s-2.2 3-3 7.9h-1.2c-.8-4.9-2-6.9-3-7.9s-3-2.2-7.9-3v-1.2c4.9-.8 6.9-2 7.9-3s2.2-3 3-7.9Z"
+            fill="currentColor"
+          />
+        </svg>
+        Polaris
+      </RouterLink>
 
       <nav class="links" aria-label="Primary">
         <RouterLink
@@ -54,7 +62,7 @@ function isActive(path: string): boolean {
 
       <div class="actions">
         <GlobalSearch v-model="searchQuery" @submit="submitSearch" />
-        <ThemeToggle :theme="theme" />
+        <ThemeToggle :theme="theme" @toggle="toggle" />
         <button type="button" class="menu-button" aria-label="Open menu" @click="$emit('open-menu')">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
@@ -70,16 +78,16 @@ function isActive(path: string): boolean {
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
-  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
-  backdrop-filter: blur(10px) saturate(120%);
-  border-bottom: 1px solid var(--color-line-strong);
+  background: color-mix(in srgb, var(--color-paper) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--color-line);
 }
 
 .nav-inner {
   max-width: var(--container-max);
   margin: 0 auto;
   padding: 0 var(--space-5);
-  height: 4.5rem;
+  height: 4.25rem;
   display: flex;
   align-items: center;
   gap: var(--space-6);
@@ -87,23 +95,25 @@ function isActive(path: string): boolean {
 
 .wordmark {
   font-family: var(--font-display);
-  font-size: 1.55rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
   text-decoration: none;
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1;
 }
 
-.wordmark::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  background: var(--color-brand);
-  display: inline-block;
-  transform: translateY(-0.55rem);
+.star {
+  color: var(--color-star);
+  flex-shrink: 0;
+  transition: transform var(--motion-fast);
+}
+
+.wordmark:hover .star {
+  transform: rotate(90deg) scale(1.1);
 }
 
 .wordmark:hover {
@@ -125,6 +135,7 @@ function isActive(path: string): boolean {
   color: var(--color-ink-secondary);
   text-decoration: none;
   padding: 0.35rem 0;
+  transition: color var(--motion-fast);
 }
 
 .link::after {
@@ -134,7 +145,9 @@ function isActive(path: string): boolean {
   right: 0;
   bottom: 0;
   height: 2px;
+  border-radius: 1px;
   background: var(--color-brand);
+  box-shadow: 0 0 8px var(--color-brand);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--motion-fast);
@@ -185,10 +198,12 @@ function isActive(path: string): boolean {
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-ink);
+  transition: border-color var(--motion-fast);
 }
 
 .menu-button:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
 }
 
 @media (max-width: 900px) {

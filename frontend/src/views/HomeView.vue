@@ -23,7 +23,8 @@ async function retry() {
       <div class="hero-inner">
         <p class="hero-eyebrow">Scholarship intelligence · live registry</p>
         <h1 class="hero-title">
-          International scholarships, verified from the official source.
+          International scholarships, <em class="hero-em">verified</em> from the official
+          source.
         </h1>
         <div class="hero-copy">
           <p class="hero-sub">
@@ -184,20 +185,26 @@ async function retry() {
 .hero-title {
   grid-area: title;
   font-family: var(--font-display);
-  font-size: clamp(2.4rem, 5.6vw, 4.4rem);
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-  font-weight: 500;
+  font-size: clamp(2.5rem, 5.8vw, 4.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  font-weight: 400;
   margin: 0 0 var(--space-5);
   max-width: 18ch;
+}
+
+.hero-em {
+  font-style: italic;
+  color: var(--color-brand);
 }
 
 .hero-title::after {
   content: '';
   display: block;
   width: 4.5rem;
-  height: 3px;
+  height: 2px;
   background: var(--color-brand);
+  box-shadow: 0 0 10px var(--color-brand);
   margin-top: var(--space-5);
 }
 
@@ -212,10 +219,6 @@ async function retry() {
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
-}
-
-.hero::before {
-  content: '';
 }
 
 .how,

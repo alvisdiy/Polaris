@@ -32,7 +32,7 @@ const host = computed(() => hostOf(props.url))
   gap: 0.35rem;
   margin: 0;
   padding-top: var(--space-3);
-  border-top: 1px solid var(--color-line);
+  border-top: 1px dashed var(--color-line);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;

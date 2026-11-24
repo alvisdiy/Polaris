@@ -41,6 +41,8 @@
       <ellipse cx="100" cy="100" rx="96" ry="34" />
     </g>
 
+    <path class="pole" d="M100 9c.9 5.6 2.3 7.9 3.4 9 1.1 1.1 3.4 2.5 9 3.4v.6c-5.6.9-7.9 2.3-9 3.4-1.1 1.1-2.5 3.4-3.4 9h-.6c-.9-5.6-2.3-7.9-3.4-9-1.1-1.1-3.4-2.5-9-3.4v-.6c5.6-.9 7.9-2.3 9-3.4 1.1-1.1 2.5-3.4 3.4-9Z" />
+
     <g class="points">
         <circle cx="76.80" cy="56.83" r="0.93" opacity="0.36" />
         <circle cx="97.57" cy="47.86" r="0.94" opacity="0.37" />
@@ -173,29 +175,44 @@
 .graticule ellipse {
   fill: none;
   stroke: var(--color-ink);
-  stroke-width: 0.55;
-  opacity: 0.17;
+  stroke-width: 0.5;
+  opacity: 0.14;
 }
 
 /* The single asymmetric element: an orbit tilted against a calm grid. */
 .orbit ellipse {
   fill: none;
-  stroke: var(--color-ink);
-  stroke-width: 0.6;
-  opacity: 0.3;
+  stroke: var(--color-brand);
+  stroke-width: 0.7;
+  opacity: 0.55;
   transform: rotate(-17deg);
   transform-origin: 100px 100px;
 }
 
+.points {
+  animation: drift 140s linear infinite;
+  transform-origin: 100px 100px;
+}
+
 .points circle {
-  fill: var(--color-brand);
+  fill: var(--color-star);
+}
+
+/* Polaris itself: one brighter star at the pole that does not move. */
+.pole {
+  fill: var(--color-star);
+}
+
+@keyframes drift {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 [data-theme='dark'] .graticule ellipse {
-  opacity: 0.22;
-}
-
-[data-theme='dark'] .orbit ellipse {
-  opacity: 0.34;
+  opacity: 0.2;
 }
 </style>

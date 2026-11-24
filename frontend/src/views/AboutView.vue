@@ -110,6 +110,8 @@ const sections = [
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-line);
 }
 
 .toc a {

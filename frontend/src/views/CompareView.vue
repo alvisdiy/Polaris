@@ -364,7 +364,9 @@ function formatOpen(value: string | null): string {
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .compare-table {
@@ -401,8 +403,13 @@ function formatOpen(value: string | null): string {
 
 .col-name {
   font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.col-name:hover {
+  color: var(--color-brand);
 }
 
 .col-remove {

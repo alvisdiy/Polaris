@@ -334,6 +334,7 @@ function retry() {
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-line-strong);
   border-left: 3px solid var(--color-sem-expired);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   font-size: var(--font-size-sm);
   color: var(--color-ink-secondary);
@@ -345,7 +346,7 @@ function retry() {
   gap: var(--space-6);
   align-items: start;
   padding-bottom: var(--space-5);
-  border-bottom: 2px solid var(--color-ink);
+  border-bottom: 1px solid var(--color-line);
 }
 
 .head-main h1 {
@@ -373,9 +374,10 @@ function retry() {
 }
 
 .head-meta li {
-  padding: 0.2rem 0.5rem;
+  padding: 0.2rem 0.55rem;
   border: 1px solid var(--color-line);
-  background: var(--color-paper);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -527,6 +529,8 @@ function retry() {
 .provenance {
   padding: var(--space-5);
   border: 1px solid var(--color-line-strong);
+  border-left: 3px solid var(--color-evidence);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
   margin-top: var(--space-5);
 }

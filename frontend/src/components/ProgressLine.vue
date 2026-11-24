@@ -8,6 +8,7 @@
 .progress-line {
   position: relative;
   height: 2px;
+  border-radius: 1px;
   overflow: hidden;
   background: var(--color-line);
 }

@@ -133,23 +133,39 @@ const categoryLabel: Record<string, string> = {
   gap: var(--space-3);
   padding: var(--space-5);
   border: 1px solid var(--color-line);
-  border-top: 2px solid var(--color-ink);
   border-radius: var(--radius-card);
   background: var(--color-surface);
   transition: transform var(--motion-fast), box-shadow var(--motion-fast),
     border-color var(--motion-fast);
 }
 
-.card:hover,
-.card:focus-within {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
-  border-color: var(--color-line-strong);
-  border-top-color: var(--color-brand);
+/* The card is a plotted position, not a tile: on hover the top edge lights up
+   like a sight line. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto -1px;
+  height: 2px;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: linear-gradient(90deg, var(--color-brand), transparent 72%);
+  opacity: 0;
+  transition: opacity var(--motion-fast);
 }
 
-.card-match {
-  border-top-color: var(--color-evidence);
+.card:hover,
+.card:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--color-line-strong);
+}
+
+.card:hover::before,
+.card:focus-within::before {
+  opacity: 1;
+}
+
+.card-match::before {
+  background: linear-gradient(90deg, var(--color-evidence), transparent 72%);
 }
 
 .card-head {
@@ -164,7 +180,7 @@ const categoryLabel: Record<string, string> = {
   font-size: 0.7rem;
   letter-spacing: var(--tracking-meta);
   color: var(--color-brand);
-  padding-top: 0.15rem;
+  padding-top: 0.3rem;
 }
 
 .heading {
@@ -174,10 +190,10 @@ const categoryLabel: Record<string, string> = {
 .name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.22rem;
-  font-weight: 500;
-  line-height: 1.25;
-  letter-spacing: -0.012em;
+  font-size: 1.42rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .name-link {
@@ -193,7 +209,7 @@ const categoryLabel: Record<string, string> = {
 }
 
 .provider {
-  margin: 0.3rem 0 0;
+  margin: 0.35rem 0 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -209,8 +225,8 @@ const categoryLabel: Record<string, string> = {
 
 .score-value {
   font-family: var(--font-display);
-  font-size: 1.9rem;
-  font-weight: 600;
+  font-size: 2.1rem;
+  font-weight: 400;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
@@ -219,16 +235,15 @@ const categoryLabel: Record<string, string> = {
 .score-max {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  font-weight: 400;
   color: var(--color-ink-secondary);
 }
 
 .score-category {
   display: block;
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.65rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-brand);
@@ -241,12 +256,12 @@ const categoryLabel: Record<string, string> = {
 }
 
 .meta-item {
-  padding: 0.18rem 0.45rem;
+  padding: 0.2rem 0.55rem;
   border: 1px solid var(--color-line);
-  background: var(--color-paper);
-  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: var(--tracking-meta);
   color: var(--color-ink-secondary);
@@ -289,10 +304,16 @@ const categoryLabel: Record<string, string> = {
 .detail-link::after {
   content: ' →';
   color: var(--color-brand);
+  transition: transform var(--motion-fast);
+  display: inline-block;
 }
 
 .detail-link:hover {
   color: var(--color-brand);
+}
+
+.detail-link:hover::after {
+  transform: translateX(3px);
 }
 
 .card-tools {

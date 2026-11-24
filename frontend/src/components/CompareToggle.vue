@@ -59,6 +59,11 @@ function onChange(event: Event) {
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
+  transition: color var(--motion-fast);
+}
+
+.compare-label:hover {
+  color: var(--color-ink);
 }
 
 .compare-checkbox {

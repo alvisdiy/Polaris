@@ -331,7 +331,7 @@ defineExpose({ mapServerErrors })
 
 .fieldset {
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
   padding: var(--space-3);
   background: var(--color-surface-raised);
 }
@@ -399,9 +399,10 @@ defineExpose({ mapServerErrors })
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.45rem;
+  padding: 0.2rem 0.55rem;
   border: 1px solid var(--color-line-strong);
   background: var(--color-paper);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -422,21 +423,35 @@ defineExpose({ mapServerErrors })
 
 .submit-button {
   min-height: 46px;
-  border: 1px solid var(--color-ink);
-  background: var(--color-ink);
-  color: var(--color-paper);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
   border-radius: var(--radius-control);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   margin-top: var(--space-2);
+  transition: background var(--motion-fast), transform var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
 .submit-button:hover {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  color: var(--color-on-brand);
+  background: var(--color-brand-ink);
+  border-color: var(--color-brand-ink);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-brand-glow);
+}
+
+.submit-button:active {
+  transform: scale(0.98);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 560px) {

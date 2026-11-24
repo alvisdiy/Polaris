@@ -27,6 +27,7 @@ defineEmits<{ (e: 'toggle'): void }>()
         stroke-width="1.5"
         stroke-linejoin="round"
       />
+      <circle cx="18.5" cy="5.5" r="1" fill="currentColor" />
     </svg>
     <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5" />
@@ -51,9 +52,11 @@ defineEmits<{ (e: 'toggle'): void }>()
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-ink);
+  transition: border-color var(--motion-fast), color var(--motion-fast);
 }
 
 .theme-toggle:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
 }
 </style>

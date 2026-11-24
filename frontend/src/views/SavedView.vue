@@ -126,10 +126,21 @@ function retry() {
   margin-bottom: var(--space-4);
 }
 
-.skeleton-list,
-.card-grid {
+.skeleton-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

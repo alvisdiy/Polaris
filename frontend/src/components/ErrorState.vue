@@ -18,14 +18,14 @@ defineEmits<{ (e: 'retry'): void }>()
 .error-state {
   padding: var(--space-5);
   border: 1px solid var(--color-line-strong);
-  border-left: 3px solid var(--color-brand);
+  border-left: 3px solid var(--color-feedback-error);
   border-radius: var(--radius-card);
   background: var(--color-surface);
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   margin: 0 0 var(--space-2);
 }
 
@@ -45,9 +45,11 @@ defineEmits<{ (e: 'retry'): void }>()
   font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+  transition: border-color var(--motion-fast), color var(--motion-fast);
 }
 
 .retry-button:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-feedback-error);
+  color: var(--color-feedback-error);
 }
 </style>

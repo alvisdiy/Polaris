@@ -33,7 +33,7 @@ withDefaults(
 .skeleton-line {
   position: relative;
   height: 0.8rem;
-  border-radius: 1px;
+  border-radius: 4px;
   overflow: hidden;
   background: var(--color-line);
 }

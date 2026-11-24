@@ -22,9 +22,10 @@ defineProps<{
 
 .score {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  font-weight: 400;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   color: var(--color-ink);
 }
 
@@ -37,6 +38,7 @@ defineProps<{
 .category {
   font-family: var(--font-mono);
   font-size: 0.6rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-brand);

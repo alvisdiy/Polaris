@@ -46,17 +46,22 @@ const color = computed(() => colorVar[display.value.state])
 .deadline-badge {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 0.4rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, currentColor 10%, transparent);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .date {
   color: var(--color-ink);
   text-transform: none;
   letter-spacing: 0.02em;
+  font-weight: 400;
 }
 </style>

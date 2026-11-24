@@ -388,6 +388,11 @@ function announceCount(): string {
 
 .filter-disclosure {
   margin: 0;
+  border: 1px solid var(--color-line);
+  border-top: 2px solid var(--color-brand);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  padding: var(--space-3);
 }
 
 .filter-summary {
@@ -396,10 +401,7 @@ function announceCount(): string {
   justify-content: space-between;
   gap: var(--space-3);
   min-height: 44px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-line-strong);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-raised);
+  padding: 0 var(--space-2);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   text-transform: uppercase;
@@ -498,10 +500,17 @@ function announceCount(): string {
   text-underline-offset: 3px;
 }
 
-.skeleton-list,
-.card-grid {
+.skeleton-list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Browse results run two-up on desktop: the registry is a catalog, and a
+   two-column spread reads faster than a single long column. */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -561,6 +570,10 @@ function announceCount(): string {
 
   .filter-rail {
     position: static;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -1,8 +1,9 @@
 /*
- * Base layer: element defaults and the paper grain.
+ * Base layer: element defaults and the star chart.
  *
  * Component styling lives in components. What is here is the material the whole
- * interface is printed on — type, rules, links, focus — so a new component
+ * interface is printed on — type, rules, links, focus, and the fine dot grid
+ * that gives every surface the feel of a plotted chart — so a new component
  * inherits the system rather than re-deciding it.
  */
 *,
@@ -15,16 +16,16 @@ html {
   font-family: var(--font-family);
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   background-color: var(--color-paper);
-  /* Two very low-opacity radial washes give the paper a light source instead of
-     a flat fill; the grain sits on top and is invisible at 3% except as texture. */
+  /* One cold light source: a moonrise behind the top edge of the chart. */
   background-image:
-    radial-gradient(1200px 600px at 12% -10%, rgba(184, 64, 42, 0.06), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(44, 83, 71, 0.05), transparent 55%);
+    radial-gradient(1100px 520px at 50% -12%, var(--color-brand-soft), transparent 62%),
+    radial-gradient(820px 420px at 108% 4%, var(--color-star-soft), transparent 58%);
   background-attachment: fixed;
   color: var(--color-ink);
   line-height: 1.62;
@@ -32,14 +33,25 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* The graticule: two offset fields of plotted points, quiet enough to read as
+   texture, fixed so the chart does not scroll out from under the interface. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(rgba(16, 24, 50, 0.11) 1px, transparent 1.4px),
+    radial-gradient(rgba(16, 24, 50, 0.06) 1px, transparent 1.4px);
+  background-size: 26px 26px, 26px 26px;
+  background-position: 0 0, 13px 13px;
+}
+
+[data-theme='dark'] body::before {
+  background-image:
+    radial-gradient(rgba(233, 237, 249, 0.13) 1px, transparent 1.4px),
+    radial-gradient(rgba(233, 237, 249, 0.06) 1px, transparent 1.4px);
 }
 
 #app {
@@ -52,23 +64,17 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
-  /* Fraunces ships decorative f-ligatures and swashes. At display size the
-     "ffi" in "official" reads as a glitch rather than a flourish, so display
-     type keeps the ordinary ligatures and drops the discretionary ones. */
-  font-variant-ligatures: common-ligatures;
-  font-feature-settings: 'dlig' 0, 'swsh' 0, 'salt' 0;
-  line-height: 1.12;
+  font-weight: 400;
+  line-height: 1.08;
   margin: 0 0 var(--space-4);
-  font-weight: 500;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
   text-wrap: balance;
 }
 
 h1 {
   font-size: var(--font-size-4xl);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 h2 {
@@ -130,7 +136,7 @@ hr {
 :focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 3px;
-  border-radius: 1px;
+  border-radius: 2px;
 }
 
 ::selection {
@@ -168,20 +174,25 @@ hr {
   letter-spacing: 0.01em;
   text-decoration: none;
   transition: transform var(--motion-fast), background var(--motion-fast),
-    border-color var(--motion-fast), color var(--motion-fast);
+    border-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .button-primary {
-  background: var(--color-ink);
-  border: 1px solid var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-brand);
+  border: 1px solid var(--color-brand);
+  color: var(--color-on-brand);
+  box-shadow: var(--shadow-brand-glow);
 }
 
 .button-primary:hover {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
+  background: var(--color-brand-ink);
+  border-color: var(--color-brand-ink);
   color: var(--color-on-brand);
   transform: translateY(-1px);
+}
+
+.button-primary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .button-secondary {
@@ -191,9 +202,13 @@ hr {
 }
 
 .button-secondary:hover {
-  border-color: var(--color-ink);
-  color: var(--color-ink);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
   transform: translateY(-1px);
+}
+
+.button-secondary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* Skip link: first focusable element on every page */
@@ -202,8 +217,8 @@ hr {
   left: var(--space-4);
   top: -100%;
   z-index: var(--z-dropdown);
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-control);
   font-family: var(--font-mono);
@@ -236,6 +251,10 @@ hr {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {

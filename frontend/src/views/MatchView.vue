@@ -169,8 +169,10 @@ function retry() {
   top: 5.5rem;
   padding: var(--space-5);
   border: 1px solid var(--color-line);
-  border-top: 2px solid var(--color-ink);
+  border-top: 2px solid var(--color-brand);
+  border-radius: var(--radius-card);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .results-column {

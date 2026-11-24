@@ -6,7 +6,15 @@ const year = new Date().getFullYear()
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-brand">
-        <span class="wordmark">Polaris</span>
+        <span class="wordmark">
+          <svg class="star" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 1.5c.8 4.9 2 6.9 3 7.9s3 2.2 7.9 3v1.2c-4.9.8-6.9 2-7.9 3s-2.2 3-3 7.9h-1.2c-.8-4.9-2-6.9-3-7.9s-3-2.2-7.9-3v-1.2c4.9-.8 6.9-2 7.9-3s2.2-3 3-7.9Z"
+              fill="currentColor"
+            />
+          </svg>
+          Polaris
+        </span>
         <p class="method-note">
           Scholarship data is collected automatically from official provider websites. Always
           confirm details on the official page before applying.
@@ -26,10 +34,10 @@ const year = new Date().getFullYear()
 
 <style scoped>
 .footer {
-  border-top: 1px solid var(--color-line-strong);
+  border-top: 1px solid var(--color-line);
   margin-top: var(--space-8);
   padding: var(--space-6) 0 var(--space-5);
-  background: var(--color-paper);
+  background: color-mix(in srgb, var(--color-surface) 62%, transparent);
 }
 
 .footer-inner {
@@ -44,15 +52,22 @@ const year = new Date().getFullYear()
 
 .footer-brand .wordmark {
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 1.4rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.footer-brand .star {
+  color: var(--color-star);
 }
 
 .method-note {
-  margin: 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-ink-secondary);
   max-width: 42ch;
@@ -62,6 +77,7 @@ const year = new Date().getFullYear()
   display: flex;
   gap: var(--space-4);
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .footer-links a {
@@ -71,6 +87,7 @@ const year = new Date().getFullYear()
   letter-spacing: var(--tracking-label);
   color: var(--color-ink-secondary);
   text-decoration: none;
+  transition: color var(--motion-fast);
 }
 
 .footer-links a:hover {
@@ -78,6 +95,7 @@ const year = new Date().getFullYear()
 }
 
 .copyright {
+  max-width: none;
   grid-column: 1 / -1;
   margin: var(--space-5) 0 0;
   padding-top: var(--space-3);

@@ -71,8 +71,10 @@ function urlOf(item: string): string | null {
 <style scoped>
 .explanation-panel {
   margin-top: var(--space-4);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-evidence);
+  border-radius: var(--radius-card);
   background: var(--color-surface-raised);
 }
 
