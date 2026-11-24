@@ -52,7 +52,7 @@ from services.exploration.repositories.frontier_repository import (
 from services.exploration.repositories.run_repository import RunRepository
 from services.exploration.search.base import SearchProvider
 from services.exploration.search.counting import CountingSearchProvider
-from services.exploration.url_utils import domain_of
+from services.exploration.url_utils import domain_of, registered_domain
 from services.exploration.verification_engine import (
     STATE_NEEDS_REVIEW,
     STATE_VERIFIED,
@@ -61,6 +61,25 @@ from services.exploration.verification_engine import (
 
 if TYPE_CHECKING:
     from database.models.provider import Provider
+
+
+def org_identity_matches(provider_domain: str | None, url: str) -> bool:
+    """True when a candidate URL belongs to the authority's provider domain.
+
+    The authority resolver stores the *registered* domain (eTLD+1, e.g.
+    ``uni.ac.jp``), while candidates arrive with full hosts (e.g.
+    ``scholarships.uni.ac.jp``). Comparing the registered domain against
+    the full host made the org-identity signal unreachable for every
+    subdomain source — and with it the 0.75 auto-verify threshold, which
+    cannot be reached without the +0.25 org-match signal. Compare
+    registered domains on both sides.
+    """
+    if not provider_domain:
+        return False
+    host = domain_of(url)
+    if not host:
+        return False
+    return registered_domain(host) == provider_domain
 
 
 class ExplorationMetrics:
@@ -560,9 +579,10 @@ class CountryExplorationEngine:
                 analyzed.final_url or analyzed.url,
                 https_ok=(analyzed.final_url or analyzed.url).lower().startswith("https://"),
                 reachable=True,
-                org_identity_match=bool(provider) and resolution_outcome.get("authority", {}).get(
-                    "provider_domain"
-                ) == domain_of(analyzed.final_url or analyzed.url),
+                org_identity_match=bool(provider) and org_identity_matches(
+                    resolution_outcome.get("authority", {}).get("provider_domain"),
+                    analyzed.final_url or analyzed.url,
+                ),
                 provider_name=provider.provider_name if provider else "",
                 scholarship_content=classification.label in (
                     "SCHOLARSHIP", "FELLOWSHIP", "GRANT", "STUDENT_FUNDING"
