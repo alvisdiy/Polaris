@@ -81,6 +81,30 @@ class TestPageClassification:
         assert assessment.page_type == PageType.SCHOLARSHIP_PAGE
         assert assessment.is_scholarship_page
 
+    def test_named_programme_without_collection_parent_is_a_scholarship(self):
+        """Campus France's Eiffel page: a proper name + programme head in the
+        final segment, under a language folder rather than a collection.
+        It used to score 0.40 (SOURCE_PAGE) and was never fetched."""
+        assessment = classify_page(
+            "https://www.campusfrance.org/en/eiffel-scholarship-program-of-excellence"
+        )
+        assert assessment.page_type == PageType.SCHOLARSHIP_PAGE
+        assert assessment.is_scholarship_page
+
+    def test_hub_segment_of_pure_vocabulary_is_not_promoted(self):
+        """A final segment built only from hub vocabulary names a section,
+        not one programme, even at three tokens."""
+        assessment = classify_page(
+            "https://example.ac.uk/international-students-scholarship"
+        )
+        assert not assessment.is_scholarship_page
+
+    def test_named_programme_with_hub_words_still_promoted_by_its_name(self):
+        assessment = classify_page(
+            "https://www.studyinkorea.go.kr/en/global-korea-scholarship"
+        )
+        assert assessment.is_scholarship_page
+
     def test_apply_page_is_not_automatically_a_programme(self):
         """Process wording can still rule a page out even when it names a
         scholarship."""
