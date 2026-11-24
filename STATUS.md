@@ -299,3 +299,39 @@ tests (meta composition, escaping, HTTP wiring — the HTTP tests skip
 where frontend/dist is absent, as in CI's pytest job, which does not
 build the SPA); live-server smoke test confirmed a published record
 serves its own title/JSON-LD and an unknown id the generic shell.
+
+## Intelligence Phase A: LLM extraction (feat/llm-extraction-phase-a, 2026-11-24)
+
+The first non-deterministic layer, deliberately kept under
+deterministic control. New package `services/intelligence/`:
+
+- `gemini.py` — Gemini via Google AI Studio, designed around the free
+  tier: 4s client-side throttle (~15 RPM), bounded 429 backoff, JSON
+  mode at temperature 0, one call per record. Env-only config
+  (`GEMINI_API_KEY`, `POLARIS_LLM_MODEL` default gemini-2.5-flash);
+  no key means the layer is off and the pipeline is complete without it.
+- `extraction.py` — asks only for fields the deterministic extractor
+  structurally misses (IELTS/TOEFL/GPA numbers, interview/result/
+  study-start/open dates, experience levels, benefit provision). A
+  value is admitted only with a verbatim evidence quote a
+  deterministic verifier finds in the stored document, normalised
+  against the house rules (plausible dates, IELTS 0–9 half steps,
+  TOEFL 0–120, controlled experience vocabulary). Benefits move only
+  towards True, on a quote stating provision.
+- `scripts/enrich_records.py --llm` runs the pass after the
+  deterministic one, `--llm-max-calls` (default 50) as the run budget.
+  Proposals are written through `ReviewService.correct` with the quote
+  in the reason and actor `llm-enrichment`: same version/audit/
+  provenance trail as a human edit, and the record's review state
+  never changes — the gate and the reviewer still publish.
+
+Not in scope yet: GRE, age limit, motivation/CV/passport/recommendation
+fields (not in correct()'s editable set), frontier triage/dedupe
+embeddings (Phase B), semantic search (Phase C). A live run needs a
+real AI Studio key; all tests use a fake transport.
+
+Verification: backend 1978 passed / 11 sandbox-DNS failures; 18 new
+tests (client throttle/retry/quota behaviour, evidence gate,
+normalisation, and an integration test landing proposals through
+correct() with provenance intact); Ruff clean; `--llm` without a key
+exits 2 with setup guidance.
