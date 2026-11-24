@@ -281,6 +281,12 @@ class FrontierRepository:
             .filter(
                 DiscoveryFrontier.country_id == country_id,
                 DiscoveryFrontier.state == FrontierState.PENDING,
+                # Honour the retry backoff: record_failure stamps
+                # next_retry_at, and a candidate inside its backoff window
+                # must not be re-claimed immediately (it would burn the
+                # attempt budget and hammer a failing source).
+                (DiscoveryFrontier.next_retry_at.is_(None))
+                | (DiscoveryFrontier.next_retry_at <= now),
             )
             .order_by(DiscoveryFrontier.priority, DiscoveryFrontier.created_at)
             .with_for_update(skip_locked=True)

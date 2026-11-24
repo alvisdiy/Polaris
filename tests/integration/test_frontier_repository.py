@@ -247,6 +247,28 @@ class TestRetries:
         assert candidate.retry_count == 1
         assert candidate.next_retry_at > datetime.now(timezone.utc)
 
+    def test_candidate_in_backoff_is_not_reclaimed(self, repo, jp_country, session):
+        """Regression: claim_next ignored next_retry_at, so a transiently
+        failed candidate was re-claimed immediately and burned its attempt
+        budget (and hammered the failing source) within one run."""
+        repo.upsert_candidate(jp_country.country_id, "https://backoff.example.com/a", origin="seed", priority=0)
+        repo.upsert_candidate(jp_country.country_id, "https://ready.example.com/b", origin="seed", priority=1)
+        candidate = repo.claim_next(jp_country.country_id)
+        assert candidate.url.endswith("/a")
+        assert repo.mark_failed_transient(candidate, "timeout", max_retries=3)
+
+        # The backoff candidate is skipped; the ready one is claimed instead.
+        nxt = repo.claim_next(jp_country.country_id)
+        assert nxt is not None and nxt.url.endswith("/b")
+        # Nothing else is claimable while /a is inside its backoff window.
+        assert repo.claim_next(jp_country.country_id) is None
+
+        # Once the backoff expires the candidate becomes claimable again.
+        candidate.next_retry_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        session.flush()
+        again = repo.claim_next(jp_country.country_id)
+        assert again is not None and again.url.endswith("/a")
+
     def test_retries_exhausted_marks_failed(self, repo, jp_country, session):
         repo.upsert_candidate(jp_country.country_id, "https://exhaust.example.com/a", origin="seed", priority=0)
         candidate = repo.claim_next(jp_country.country_id)
