@@ -127,6 +127,9 @@ class TestDetail:
         body = response.json()
 
         assert body["identity"]["provider_name"] == "Ministry of Education, Japan"
+        # The country id rides along so a reviewer UI can confirm or
+        # correct the country through correct() without a name lookup.
+        assert body["identity"]["country_id"] == str(pending_scholarship.country_id)
         assert body["identity"]["source_verification_state"] == "VERIFIED"
         assert body["eligibility"]["degree"] == "Master"
         assert "tuition_fee" in body["funding"]
