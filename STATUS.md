@@ -171,3 +171,42 @@ Fixes #2, #4, #6 from the same deep review, plus the test-setup fix
 Verified after this batch: backend full suite 1917 passed / 9 failed
 (blocker 2 only, unchanged from baseline) / 137 skipped; frontend
 vitest 20/20, build and typecheck pass; Ruff clean.
+
+## Review fixes, third batch (fix/review-batch-a, 2026-11-24)
+
+The remaining actionable items from the same deep reviews, as PR #3.
+
+- **CandidateAnalyzer is SSRF-guarded.** It fetched untrusted
+  search-result/link URLs unchecked; it now applies the ingestion
+  `url_safety` policy (public-DNS validation before fetch,
+  redirect-chain revalidation after).
+- **An inferred country no longer publishes as fact.** The extractor's
+  `country_inferred_from_source` flag is persisted by the mapper; the
+  quality gate assesses an inferred country as UNKNOWN (blocking, not
+  overridable). `country_id` is now correctable in review — including
+  confirming the inferred value in place, recorded as a reviewer act.
+- **The freshness sweep runs.** `pipeline_run.py` (the scheduled entry
+  point) now calls `reclassify_deadline_states` once per run and
+  records the count; previously only tests ever called it, so expired
+  records presented as active indefinitely. `--no-freshness` opts out.
+- **Stored fields reached the API.** Detail responses now include GRE,
+  age limit, recommendation/motivation letters, CV and passport
+  requirements, and the university. New `GET /scholarships/countries`
+  lists countries with at least one published record.
+- **Frontend structure.** Compare renders one layout per viewport
+  (stack below 48rem, table above) instead of both; IELTS/TOEFL read
+  "Not mentioned in the source" when unrecorded instead of the false
+  claim "Not required"; country dropdowns load from the new endpoint
+  (the two hardcoded lists, 12 vs 10, are gone); match-form experience
+  radios are labelled as experience levels while keeping their stored
+  vocabulary values.
+
+Verification: backend 1939 passed / 11 failed locally — the 11 are
+the sandbox-DNS set, byte-identical on clean `develop`; CI on PR #3
+concluded **success**. Frontend 20/20, typecheck, build pass.
+
+Still open, by design (see PR #3): exploration engine is not wired
+into the nightly pipeline (scheduling/cost decision); PDF candidates
+are still rejected on the frontier path; funding amounts and a
+description column need migrations; extractor language-score fields
+remain unfilled (Phase 1 precision).
