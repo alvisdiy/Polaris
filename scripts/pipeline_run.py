@@ -8,7 +8,9 @@ need a person or a model:
     2. optionally discover more providers from the country's own surfaces
     3. crawl the active sources within a page budget
     4. fill empty fields from the documents just stored (deterministic)
-    5. print a report and write a JSON run record
+    5. reclassify deadline states across the whole catalogue (freshness
+       sweep), so records whose deadlines passed stop presenting as active
+    6. print a report and write a JSON run record
 
 Every step is bounded, resumable and idempotent. Running it twice in a row
 crawls nothing new, fills nothing new, and changes no records — which is what
@@ -58,6 +60,7 @@ def _plan(countries: list[str], args) -> None:
         for url in config.seed_urls:
             print(f"      - {url}")
     print("\nSteps per country: seeds → discover (optional) → crawl → enrich → auto-review")
+    print("Then once, globally: freshness sweep (deadline-state reclassification)")
     print(f"Budget: {args.max_total_pages} page(s), {args.runtime} minute(s) per country")
     print("Database: not opened (plan-only)")
 
@@ -172,6 +175,29 @@ async def _run_country(iso2: str, args) -> dict:
     return record
 
 
+def _freshness_sweep(session=None) -> int:
+    """Reclassify deadline states across the whole catalogue.
+
+    ``deadline_state`` is a stored, date-comparable classification and the
+    public API filters on it. The reclassification existed and was tested,
+    but no scheduled path ever called it — only tests did — so a published
+    record whose deadline passed stayed 'active' forever. This is the one
+    step of the run that is global rather than per-country, and it is
+    deliberately independent of crawl outcomes: expiry does not wait for a
+    healthy crawl.
+    """
+    from database.session import SessionLocal
+    from services.scholarship.repository import ScholarshipRepository
+
+    own_session = session is None
+    session = session or SessionLocal()
+    try:
+        return ScholarshipRepository(session).reclassify_deadline_states()
+    finally:
+        if own_session:
+            session.close()
+
+
 async def _main(args) -> int:
     countries = args.countries or (_configured_countries() if args.all else [])
     countries = [c.upper() for c in countries]
@@ -188,6 +214,17 @@ async def _main(args) -> int:
     for iso2 in countries:
         print(f"\n{'=' * 70}\nPIPELINE — {iso2}\n{'=' * 70}")
         records.append(await _run_country(iso2, args))
+
+    freshness: dict = {"changed": 0}
+    if not args.no_freshness:
+        try:
+            freshness["changed"] = _freshness_sweep()
+            print(f"\nfreshness sweep: {freshness['changed']} record(s) reclassified")
+        except Exception as exc:  # a failed sweep must not hide the crawl report
+            freshness["error"] = f"{type(exc).__name__}: {exc}"
+            print(f"\nfreshness sweep FAILED: {freshness['error']}")
+    else:
+        freshness["skipped"] = True
 
     print("\n" + "=" * 70)
     print("PIPELINE SUMMARY")
@@ -221,6 +258,7 @@ async def _main(args) -> int:
         "countries": records,
         "new_records": total_new,
         "countries_with_errors": failures,
+        "freshness_sweep": freshness,
     }
     if args.json:
         print(json.dumps(summary, indent=2, default=str))
@@ -244,6 +282,11 @@ def main(argv: list[str] | None = None) -> int:
         "--no-auto-review",
         action="store_true",
         help="Skip the deterministic review pass (records stay pending)",
+    )
+    parser.add_argument(
+        "--no-freshness",
+        action="store_true",
+        help="Skip the closing freshness sweep (deadline states stay as stored)",
     )
     parser.add_argument("--max-sources", type=int, default=25)
     parser.add_argument("--max-pages-per-source", type=int, default=10)
