@@ -256,7 +256,7 @@ function announceCount(): string {
                   v-model="q"
                   type="search"
                   class="filter-input"
-                  placeholder="Scholarship name"
+                  placeholder="Name, provider, or field of study"
                 />
               </div>
 
