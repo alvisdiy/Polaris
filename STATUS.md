@@ -281,3 +281,21 @@ Verification: backend 1952 passed / 11 sandbox-DNS failures (identical
 set on clean `develop`); 9 new tests cover provider/field/typo search
 and the limiter policy + 429 behaviour; Ruff clean. The limiter does
 not trip the test suite at production budgets.
+
+## Detail-page meta prerender (feat/detail-meta-prerender, 2026-11-24)
+
+Detail pages served the home page's static title/description for
+every programme. `GET /scholarships/{id}` now runs before the SPA
+catch-all and, for a published record, injects its real title, a
+description composed only from fields the record carries, canonical
+URL, og tags and schema.org JSON-LD into the shell (composition in
+`api/detail_meta.py`, all extracted values escaped per context).
+Unpublished or malformed ids get the plain shell — no name leaks,
+the SPA renders its own not-found state. Response carries the
+catalogue's `Cache-Control: public, max-age=300`.
+
+Verification: backend 1960 passed / 11 sandbox-DNS failures; 8 new
+tests (meta composition, escaping, HTTP wiring — the HTTP tests skip
+where frontend/dist is absent, as in CI's pytest job, which does not
+build the SPA); live-server smoke test confirmed a published record
+serves its own title/JSON-LD and an unknown id the generic shell.
