@@ -18,6 +18,8 @@ export interface ScholarshipSummary {
   funding_type: string
   field_of_study: string[]
   deadline: string | null
+  /** When the record was last checked against its official page. Null when never recorded. */
+  last_verified_at: string | null
   official_url: string
 }
 
@@ -118,6 +120,7 @@ export type ListParams = {
   q?: string
   country?: string
   degree?: string
+  sort?: 'deadline' | 'name'
   limit?: number
   offset?: number
 }

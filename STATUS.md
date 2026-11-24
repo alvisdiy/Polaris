@@ -85,6 +85,39 @@ Compose remains unverified until someone runs it from a clean machine.
   vs one-off milestone scripts. Milestone scripts were **not** moved —
   tests reference some of them by path.
 
+## Review fixes (fix/review-1-and-3, 2026-11-24)
+
+Fixes #1 and #3 from the 2026-11-24 deep review (discovery / data /
+frontend), on branch `fix/review-1-and-3`:
+
+- **Brunei & Malaysia discovery restored on Linux.** Config files
+  renamed `BN.json` → `bn.json`, `MY.json` → `my.json` (the loader
+  looks for lowercase); all 12 configs now load. New regression test
+  `tests/unit/test_country_configs.py` loads every config and guards
+  the filename case and the `.ac.uk` copy-paste.
+- **Malaysia config cleaned:** `.ac.uk` removed from
+  `soft_domain_signals` (it belongs to GB, not MY).
+- **Germany config:** `.daad.de` added ahead of `.de`, so the
+  `official_domain` query family produces a valid `site:daad.de`
+  query instead of only `site:de`.
+- **Freshness is now visible:** `last_verified_at` added to the list
+  summary (was detail-only) and shown on every scholarship card
+  ("Verified <date>", omitted when never recorded) and as a fact on
+  the detail page ("Not recorded" when null).
+- **Deadline sorting:** list endpoint gained `?sort=deadline|name`
+  (default `deadline` — soonest first, no-deadline records last);
+  Discover gained a "Sort by: Closing soonest / Name A–Z" control,
+  kept in the URL.
+
+Verification in this run: ruff clean; the 4 new config tests pass by
+direct invocation; frontend vitest 20/20, build and vue-tsc pass;
+the deadline-order SQL compiles against the Postgres dialect.
+**Not yet run here:** the backend API test suite needs a live
+disposable PostgreSQL (none is installed in this VM), so run the
+full suite on a machine with Postgres before merging. The remaining
+review items (#2 verification calibration, #4 URL pre-filter, #5
+pipeline wiring/freshness sweep, #6 benefits fabrication) are untouched.
+
 ## How to re-verify
 
 ```bash

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ScholarshipSummary, Recommendation } from '../api/types'
+import { formatDate } from '../lib/format'
 import DeadlineBadge from './DeadlineBadge.vue'
 import SourceCitation from './SourceCitation.vue'
 import SaveButton from './SaveButton.vue'
@@ -14,6 +15,8 @@ interface CardItem {
   provider_name: string | null
   country: string | null
   deadline: string | null
+  /** Null when verification was never recorded; omitted from the card then. */
+  last_verified_at?: string | null
   official_url: string
   field_of_study?: string[]
   degree?: string | null
@@ -36,6 +39,14 @@ const props = withDefaults(
 const isMatch = computed(() => props.variant === 'match' && props.scholarship.match_score !== undefined)
 const name = computed(() => props.scholarship.scholarship_name)
 const deadline = computed(() => props.scholarship.deadline ?? null)
+/*
+ * last_verified_at arrives as a full ISO datetime; only the calendar date
+ * is shown, using the same UTC date formatting as deadlines. A null value
+ * means "never recorded" and is omitted rather than rendered as a date.
+ */
+const verifiedDate = computed(() =>
+  formatDate(props.scholarship.last_verified_at?.slice(0, 10) ?? null),
+)
 
 /*
  * Provider and country are nullable because the backend reports them as null
@@ -105,6 +116,8 @@ const categoryLabel: Record<string, string> = {
     </ul>
 
     <DeadlineBadge :deadline="deadline" />
+
+    <p v-if="verifiedDate" class="verified">Verified {{ verifiedDate }}</p>
 
     <p v-if="isMatch" class="explanation">{{ scholarship.explanation }}</p>
 
@@ -279,6 +292,14 @@ const categoryLabel: Record<string, string> = {
 .explanation {
   margin: 0;
   font-size: var(--font-size-sm);
+  color: var(--color-ink-secondary);
+}
+
+.verified {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: var(--tracking-meta);
   color: var(--color-ink-secondary);
 }
 

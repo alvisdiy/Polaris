@@ -37,6 +37,7 @@ function readQueryState(query: Record<string, unknown>) {
     q: typeof query.q === 'string' ? query.q : '',
     country: typeof query.country === 'string' ? query.country : '',
     degree: typeof query.degree === 'string' ? query.degree : '',
+    sort: query.sort === 'name' ? 'name' as const : 'deadline' as const,
     page: Number(query.page) > 0 ? Number(query.page) : 1,
   }
 }
@@ -46,6 +47,7 @@ const initial = readQueryState(route.query as Record<string, unknown>)
 const q = ref(initial.q)
 const country = ref(initial.country)
 const degree = ref(initial.degree)
+const sort = ref<'deadline' | 'name'>(initial.sort)
 const page = ref(initial.page)
 
 const filterDetails = ref<HTMLDetailsElement | null>(null)
@@ -68,6 +70,7 @@ function buildParams() {
     q: q.value.trim() || undefined,
     country: country.value || undefined,
     degree: degree.value || undefined,
+    sort: sort.value,
     limit: PAGE_SIZE,
     offset: (page.value - 1) * PAGE_SIZE,
   }
@@ -78,6 +81,7 @@ function syncUrl() {
   if (q.value.trim()) query.q = q.value.trim()
   if (country.value) query.country = country.value
   if (degree.value) query.degree = degree.value
+  if (sort.value !== 'deadline') query.sort = sort.value
   if (page.value > 1) query.page = String(page.value)
   router.replace({ path: '/discover', query })
 }
@@ -116,6 +120,12 @@ function onCountryChange(event: Event) {
 
 function onDegreeChange(event: Event) {
   degree.value = (event.target as HTMLSelectElement).value
+  page.value = 1
+  scheduleFetch(false)
+}
+
+function onSortChange(event: Event) {
+  sort.value = (event.target as HTMLSelectElement).value as 'deadline' | 'name'
   page.value = 1
   scheduleFetch(false)
 }
@@ -174,6 +184,7 @@ watch(
       next.q === q.value &&
       next.country === country.value &&
       next.degree === degree.value &&
+      next.sort === sort.value &&
       next.page === page.value
     ) {
       return
@@ -182,6 +193,7 @@ watch(
     q.value = next.q
     country.value = next.country
     degree.value = next.degree
+    sort.value = next.sort
     page.value = next.page
     clearTimeout(debounceTimer)
     fetchList(buildParams())
@@ -246,6 +258,14 @@ function announceCount(): string {
                 <select id="filter-degree" :value="degree" class="filter-select" @change="onDegreeChange">
                   <option value="">All degrees</option>
                   <option v-for="d in DEGREES" :key="d" :value="d">{{ d }}</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label" for="filter-sort">Sort by</label>
+                <select id="filter-sort" :value="sort" class="filter-select" @change="onSortChange">
+                  <option value="deadline">Closing soonest</option>
+                  <option value="name">Name A–Z</option>
                 </select>
               </div>
 

@@ -33,15 +33,21 @@ def list_scholarships(
     q: Optional[str] = Query(None, description="Search scholarship name"),
     country: Optional[str] = Query(None, description="Filter by country name or ISO3 code"),
     degree: Optional[str] = Query(None, description="Filter by degree level"),
+    sort: str = Query(
+        "deadline",
+        description="Sort order: 'deadline' closes soonest first (unknown deadlines last), 'name' is A-Z",
+    ),
     limit: int = Query(20, ge=1, le=100, description="Results per page"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
 ):
     """List approved scholarships with optional filters and pagination."""
+    if sort not in ("deadline", "name"):
+        raise HTTPException(status_code=400, detail="sort must be 'deadline' or 'name'")
     session = SessionLocal()
     try:
         repo = ScholarshipRepository(session)
         scholarships, total = repo.search_approved(
-            query=q, country=country, degree=degree,
+            query=q, country=country, degree=degree, sort=sort,
             limit=limit, offset=offset,
         )
         results = [_to_summary(s) for s in scholarships]
@@ -96,6 +102,7 @@ def _to_summary(sch) -> ScholarshipSummaryResponse:
         funding_type=sch.funding_type,
         field_of_study=sch.field_of_study or [],
         deadline=dl,
+        last_verified_at=sch.last_verified_at,
         official_url=sch.official_page_url or "",
     )
 

@@ -37,6 +37,7 @@
     ]
   },
   "soft_domain_signals": [
+    ".daad.de",
     ".de"
   ],
   "seed_urls": [
