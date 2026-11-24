@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from api.routers import recommendations, review, scholarships
@@ -98,6 +98,20 @@ def create_app() -> FastAPI:
 
         response = await call_next(request)
 
+        # The public catalogue is read-heavy and changes on a nightly
+        # cadence (pipeline + review), never per-request. Until now no
+        # response carried caching headers at all, so every card list and
+        # detail view re-downloaded in full. Five minutes of shared-cache
+        # freshness is far inside the catalogue's real change rate; the
+        # review/admin surface and the matching POST stay uncached.
+        if (
+            request.method == "GET"
+            and request.url.path.startswith("/api/v1/scholarships")
+            and response.status_code == 200
+            and "cache-control" not in response.headers
+        ):
+            response.headers["Cache-Control"] = "public, max-age=300"
+
         elapsed_ms = (time.perf_counter() - start) * 1000
         logger.info(
             "← %s %s — %d (%.1fms)",
@@ -141,6 +155,73 @@ def create_app() -> FastAPI:
                 content={"status": "degraded", "database": "unreachable"},
             )
         return {"status": "ok", "database": "ok"}
+
+    # --- Crawler surfaces -------------------------------------------------
+    # Registered before the SPA catch-all below, which would otherwise
+    # answer both paths with index.html. The catalogue is the product's
+    # public face; until these existed, a crawler found no sitemap, no
+    # robots policy, and (the SPA being client-rendered) no indexable
+    # record URLs at all.
+
+    @app.get("/robots.txt", include_in_schema=False)
+    def robots_txt(request: Request):
+        base = str(request.base_url).rstrip("/")
+        body = (
+            "User-agent: *\n"
+            "Allow: /\n"
+            "Disallow: /api/\n"
+            "\n"
+            f"Sitemap: {base}/sitemap.xml\n"
+        )
+        return PlainTextResponse(body)
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap_xml(request: Request):
+        """Every public page, generated from the live catalogue.
+
+        One entry per published scholarship — the same publication
+        predicate as the detail endpoint, so an unpublished record is
+        never advertised and an expired-but-published one still is (its
+        detail page resolves, as an archive). ``lastmod`` is the
+        record's last verification date when one is recorded.
+        """
+        from xml.etree.ElementTree import Element, SubElement, tostring
+
+        from database.models.scholarship import Scholarship
+        from database.session import SessionLocal
+        from services.review.publication import published_filter
+
+        base = str(request.base_url).rstrip("/")
+        urlset = Element("urlset")
+        urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
+
+        def add_url(loc: str, lastmod=None) -> None:
+            url_el = SubElement(urlset, "url")
+            SubElement(url_el, "loc").text = loc
+            if lastmod is not None:
+                SubElement(url_el, "lastmod").text = lastmod.date().isoformat()
+
+        for path in ("/", "/discover", "/match", "/about", "/privacy", "/terms"):
+            add_url(f"{base}{path}")
+
+        session = SessionLocal()
+        try:
+            rows = (
+                session.query(Scholarship.scholarship_id, Scholarship.last_verified_at)
+                .filter(published_filter())
+                .order_by(Scholarship.scholarship_name)
+                .all()
+            )
+        finally:
+            session.close()
+        for scholarship_id, last_verified_at in rows:
+            add_url(f"{base}/scholarships/{scholarship_id}", lastmod=last_verified_at)
+
+        return Response(
+            content=b'<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(urlset),
+            media_type="application/xml",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
 
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend" / "dist"
     if frontend_dir.exists():

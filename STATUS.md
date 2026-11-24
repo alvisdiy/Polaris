@@ -210,3 +210,27 @@ into the nightly pipeline (scheduling/cost decision); PDF candidates
 are still rejected on the frontier path; funding amounts and a
 description column need migrations; extractor language-score fields
 remain unfilled (Phase 1 precision).
+
+## Discoverability essentials (feat/discoverability-essentials, 2026-11-24)
+
+From the follow-up improvement audit, the small high-impact set:
+
+- **Sitemap + robots.** The app serves `/robots.txt` (API disallowed,
+  sitemap advertised) and a dynamic `/sitemap.xml`: static routes plus
+  one URL per published scholarship (same predicate as the detail
+  endpoint), `lastmod` from `last_verified_at`. Previously a crawler
+  found neither, and the client-rendered SPA exposed no record URLs.
+- **Cache headers.** Public catalogue GETs carry
+  `Cache-Control: public, max-age=300`; the catalogue changes nightly,
+  so five minutes of shared cache is well inside its change rate.
+  Review/admin and the matching POST are untouched.
+- **Funding filter.** `?funding=` on the list endpoint (equality on the
+  controlled vocabulary) and a Funding select in Discover with full
+  URL/chip/clear-all plumbing. The sidebar note that announced the
+  funding filter as unavailable is corrected.
+- **Deadline countdowns.** Badges now read "Closes today / tomorrow /
+  in N days" up to 180 days out (arithmetic on the stated date), plain
+  "Active" beyond that.
+
+Verification: backend 1943 passed / 11 sandbox-DNS failures (identical
+set on clean `develop`); frontend 22/22, build, typecheck; Ruff clean.

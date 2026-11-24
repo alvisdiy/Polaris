@@ -62,4 +62,20 @@ describe('deadlineDisplay', () => {
     expect(result.state).toBe('active')
     vi.useRealTimers()
   })
+
+  it('labels a near deadline as a countdown', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2027-02-20T12:00:00Z'))
+    expect(deadlineDisplay('2027-03-01').label).toBe('Closes in 9 days')
+    expect(deadlineDisplay('2027-02-21').label).toBe('Closes tomorrow')
+    expect(deadlineDisplay('2027-02-20').label).toBe('Closes today')
+    vi.useRealTimers()
+  })
+
+  it('keeps the plain label for a far-future deadline', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2027-02-20T12:00:00Z'))
+    expect(deadlineDisplay('2099-01-01').label).toBe('Active')
+    vi.useRealTimers()
+  })
 })

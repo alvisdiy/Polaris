@@ -36,6 +36,9 @@ def list_scholarships(
     q: Optional[str] = Query(None, description="Search scholarship name"),
     country: Optional[str] = Query(None, description="Filter by country name or ISO3 code"),
     degree: Optional[str] = Query(None, description="Filter by degree level"),
+    funding: Optional[str] = Query(
+        None, description="Filter by funding type (controlled vocabulary, e.g. 'Fully Funded')"
+    ),
     sort: str = Query(
         "deadline",
         description="Sort order: 'deadline' closes soonest first (unknown deadlines last), 'name' is A-Z",
@@ -50,7 +53,7 @@ def list_scholarships(
     try:
         repo = ScholarshipRepository(session)
         scholarships, total = repo.search_approved(
-            query=q, country=country, degree=degree, sort=sort,
+            query=q, country=country, degree=degree, funding=funding, sort=sort,
             limit=limit, offset=offset,
         )
         results = [_to_summary(s) for s in scholarships]

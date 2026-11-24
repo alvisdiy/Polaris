@@ -223,6 +223,7 @@ class ScholarshipRepository:
         query: str | None = None,
         country: str | None = None,
         degree: str | None = None,
+        funding: str | None = None,
         sort: str = "deadline",
         limit: int = 20,
         offset: int = 0
@@ -255,6 +256,12 @@ class ScholarshipRepository:
                     Country.iso3.ilike(_escape_like(country), escape="\\"),
                 )
             )
+
+        if funding:
+            # funding_type is a controlled vocabulary, so this is an
+            # equality match (case-insensitive), not a substring search:
+            # "Fully Funded" must not also return "Partial Funded".
+            q = q.filter(Scholarship.funding_type.ilike(funding))
 
         if degree:
             # A record's level can live in the column or in its level rows. A
