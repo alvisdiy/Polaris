@@ -260,3 +260,24 @@ Verified end to end against a live server (401 without a token;
 approval through the API published a seeded record into the public
 catalogue). Backend suite unchanged at 1943 passed / 11 sandbox-DNS
 failures; frontend 27/27, build, typecheck; Ruff clean.
+
+## Search quality + rate limiting (feat/search-and-rate-limit, 2026-11-24)
+
+- **Search.** `search_approved` matched only the scholarship name as a
+  substring. It now matches name, provider name and field of study,
+  plus a pg_trgm word-similarity fallback (> 0.6, queries ≥ 4 chars)
+  for typos — thresholds measured against real programme names (a
+  one-letter typo in "fulbright" scores ~0.78; unrelated terms score
+  0). Migration `d4e5f6a7b8c9` installs pg_trgm and GIN trigram
+  indexes on both name columns. Discover's search box now says what
+  it searches.
+- **Rate limiting.** New sliding-window middleware (`api/rate_limit.py`)
+  budgets per client: 60/min matching POST, 120/min other public
+  writes, 1200/min reads; 429 + Retry-After past the budget. The admin
+  surface is exempt (token-gated). In-process counters (per-worker in
+  multi-worker deployments); `POLARIS_RATE_LIMIT=off` disables it.
+
+Verification: backend 1952 passed / 11 sandbox-DNS failures (identical
+set on clean `develop`); 9 new tests cover provider/field/typo search
+and the limiter policy + 429 behaviour; Ruff clean. The limiter does
+not trip the test suite at production budgets.
