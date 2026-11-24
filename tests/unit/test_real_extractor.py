@@ -130,6 +130,62 @@ class TestDeadlineWithRealPageWording:
         )
 
 
+class TestBenefitNegation:
+    """A keyword inside a negation is a statement the benefit is NOT
+    provided; recording it as covered misleads applicants."""
+
+    def test_plain_mentions_still_count(self, client):
+        benefits = client._extract_benefits(
+            "The award covers tuition fees and provides accommodation, "
+            "a monthly stipend and health insurance."
+        )
+        assert benefits["tuition_fee"] is True
+        assert benefits["accommodation"] is True
+        assert benefits["health_insurance"] is True
+
+    def test_negated_benefits_do_not_count(self, client):
+        benefits = client._extract_benefits(
+            "Tuition fees are not covered by this award. No accommodation "
+            "is provided, and travel costs must be borne by the student."
+        )
+        assert benefits["tuition_fee"] is False
+        assert benefits["accommodation"] is False
+        assert benefits["travel_ticket"] is False
+
+    def test_mixed_page_counts_only_real_benefits(self, client):
+        benefits = client._extract_benefits(
+            "A monthly allowance is paid. Health insurance is not included."
+        )
+        assert benefits["monthly_allowance"] is True
+        assert benefits["health_insurance"] is False
+
+
+class TestResearchExperienceEvidence:
+    def test_bare_research_word_is_not_a_requirement(self, client):
+        data = client.extract_scholarship(
+            "# Lab Scholarship 2027\n\ndeadline: 2027-01-01\n\n"
+            "Join our research laboratory and study robotics.",
+            "https://example.com/scholarship",
+        )
+        assert data["eligibility"]["research_experience"] is None
+
+    def test_explicit_preference_is_extracted(self, client):
+        assert (
+            client._extract_research_experience(
+                "Previous research experience is preferred."
+            )
+            == "Preferred"
+        )
+
+    def test_explicit_requirement_is_extracted(self, client):
+        assert (
+            client._extract_research_experience(
+                "Applicants must have research experience in the field."
+            )
+            == "Required"
+        )
+
+
 class TestFullExtraction:
     def test_extraction_reports_its_provenance(self, client):
         clean_text = (

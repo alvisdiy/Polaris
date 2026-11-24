@@ -63,3 +63,13 @@ frontend/node_modules/
 # Agent runtime state (background logs, monitors)
 .zwork/
 
+# Local run output at repo root — never commit these (see STATUS.md).
+# Their own inventory (docs/progress/CHANGE-INVENTORY-2026-11-19.md) already
+# classified them as local research output; they were committed by accident
+# in a bulk working-tree commit and removed on cleanup/phase-0.
+/*.db
+/mofa_view_*.html
+/_strings_*.txt
+/*_metrics.json
+/*_metrics2.json
+

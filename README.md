@@ -19,8 +19,9 @@ Aturan yang tidak boleh dilanggar:
 
 ## Status
 
+Status terkini yang terverifikasi ada di [STATUS.md](STATUS.md) — itu satu-satunya dokumen status yang hidup. Angka katalog di dokumen lama adalah snapshot pada tanggalnya masing-masing.
+
 - Funnel discovery → review sudah berjalan end-to-end. Live run JP menghasilkan record nyata di `pending_review`.
-- Katalog development: 145 approved, 19 pending review, 213 rejected.
 - Test suite berjalan di database bersih. Test yang membutuhkan knowledge base development ditandai `data` dan di-skip secara default.
 - Frontend: Vue 3 + Vite, build dan typecheck lulus.
 

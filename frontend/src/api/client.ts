@@ -106,6 +106,7 @@ export function listScholarships(params: ListParams = {}): Promise<ScholarshipLi
   if (params.q) search.set('q', params.q)
   if (params.country) search.set('country', params.country)
   if (params.degree) search.set('degree', params.degree)
+  if (params.sort) search.set('sort', params.sort)
   if (params.limit !== undefined) search.set('limit', String(params.limit))
   if (params.offset !== undefined) search.set('offset', String(params.offset))
   const qs = search.toString()

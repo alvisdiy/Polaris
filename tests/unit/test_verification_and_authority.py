@@ -8,6 +8,7 @@ from services.exploration.authority_source_resolver import (
     AUTHORITY_UNRESOLVED,
     AuthoritySourceResolver,
 )
+from services.exploration.engine import org_identity_matches
 from services.exploration.search.base import SearchResult
 from services.exploration.verification_engine import (
     STATE_DISCOVERED,
@@ -140,6 +141,36 @@ class TestVerificationEngine:
             auto_verify_threshold=0.75,
             review_threshold=0.45,
         )
+
+
+class TestOrgIdentityMatches:
+    """The authority resolver stores the registered domain; candidates
+    arrive with full hosts. The comparison must be registered-to-registered
+    or no subdomain source can ever earn the org-identity signal."""
+
+    def test_subdomain_of_provider_domain_matches(self):
+        assert org_identity_matches(
+            "uni.ac.jp", "https://scholarships.uni.ac.jp/apply"
+        )
+
+    def test_apex_and_www_hosts_match(self):
+        assert org_identity_matches("jasso.go.jp", "https://www.jasso.go.jp/x")
+        assert org_identity_matches("jasso.go.jp", "https://jasso.go.jp/x")
+
+    def test_other_institution_does_not_match(self):
+        assert not org_identity_matches(
+            "uni.ac.jp", "https://other.ac.jp/scholarships"
+        )
+
+    def test_lookalike_domain_does_not_match(self):
+        assert not org_identity_matches(
+            "uni.ac.jp", "https://uni.ac.jp.evil.example/phish"
+        )
+
+    def test_missing_inputs_never_match(self):
+        assert not org_identity_matches(None, "https://uni.ac.jp/x")
+        assert not org_identity_matches("", "https://uni.ac.jp/x")
+        assert not org_identity_matches("uni.ac.jp", "not a url")
 
 
 class _FakeSearchProvider:

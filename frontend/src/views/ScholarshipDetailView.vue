@@ -208,6 +208,13 @@ function retry() {
               <dt>Application cycle</dt>
               <dd>{{ scholarship.timeline.application_cycle }}</dd>
             </div>
+            <div class="fact">
+              <dt>Last verified</dt>
+              <dd v-if="scholarship.last_verified_at">
+                {{ formatDate(scholarship.last_verified_at.slice(0, 10)) }}
+              </dd>
+              <dd v-else class="fact-unknown">Not recorded</dd>
+            </div>
           </dl>
         </section>
 

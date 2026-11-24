@@ -741,16 +741,65 @@ class DeterministicLLMClient(LLMClient):
             return (True, int(m.group(1)))
         return (False, None)
 
+    # Negation cues that turn a benefit keyword into a statement that the
+    # benefit is NOT provided: "tuition is not covered", "no accommodation
+    # is provided", "travel must be borne by the student". A bare keyword
+    # search recorded all of those as covered benefits.
+    _BENEFIT_NEGATION_BEFORE = re.compile(
+        r"(?:\bnot\b|\bno\b|\bnever\b|\bwithout\b|does\s+not|do\s+not|is\s+not"
+        r"|are\s+not|will\s+not|shall\s+not|cannot|excluded|borne\s+by"
+        r"|own\s+expense|self[-\s]?fund\w*)[^.;]{0,40}$"
+    )
+    _BENEFIT_NEGATION_AFTER = re.compile(
+        r"^[^.;]{0,40}?(?:\bnot\b\s+(?:be\s+)?(?:covered|included|provided|paid)"
+        r"|is\s+excluded|are\s+excluded|must\s+be\s+borne|at\s+(?:their|the\s+student|your)\s+own\s+expense)"
+    )
+
+    def _benefit_mentioned(self, text_lower: str, pattern: str) -> bool:
+        """True when a benefit keyword appears in a non-negated context."""
+        for m in re.finditer(pattern, text_lower):
+            before = text_lower[max(0, m.start() - 60):m.start()]
+            after = text_lower[m.end():m.end() + 50]
+            if self._BENEFIT_NEGATION_BEFORE.search(before):
+                continue
+            if self._BENEFIT_NEGATION_AFTER.search(after):
+                continue
+            return True
+        return False
+
     def _extract_benefits(self, text: str) -> Dict[str, bool]:
         text_lower = text.lower()
         return {
-            "tuition_fee": bool(re.search(r"tuition", text_lower)),
-            "monthly_allowance": bool(re.search(r"monthly\s+(allowance|stipend)", text_lower)),
-            "accommodation": bool(re.search(r"accommodation|housing", text_lower)),
-            "health_insurance": bool(re.search(r"health\s+insurance|medical", text_lower)),
-            "travel_ticket": bool(re.search(r"(?:round-?trip|airfare|flight|travel)", text_lower)),
-            "research_grant": bool(re.search(r"research\s+grant", text_lower)),
+            "tuition_fee": self._benefit_mentioned(text_lower, r"tuition"),
+            "monthly_allowance": self._benefit_mentioned(text_lower, r"monthly\s+(allowance|stipend)"),
+            "accommodation": self._benefit_mentioned(text_lower, r"accommodation|housing"),
+            "health_insurance": self._benefit_mentioned(text_lower, r"health\s+insurance|medical"),
+            "travel_ticket": self._benefit_mentioned(text_lower, r"(?:round-?trip|airfare|flight|travel)"),
+            "research_grant": self._benefit_mentioned(text_lower, r"research\s+grant"),
         }
+
+    def _extract_research_experience(self, text: str) -> str | None:
+        """Research-experience level, only from an explicit statement.
+
+        Previously any page containing the word "research" (i.e. nearly
+        every university page) was recorded as research experience
+        "Preferred" — a fabricated requirement that then fed matching.
+        """
+        text_lower = text.lower()
+        if re.search(
+            r"research\s+experience[^.;]{0,30}?(required|mandatory|essential|must)",
+            text_lower,
+        ) or re.search(r"(required|mandatory|must)[^.;]{0,30}?research\s+experience", text_lower):
+            return "Required"
+        if re.search(
+            r"research\s+experience[^.;]{0,30}?(preferred|desirable|advantage|asset|plus)",
+            text_lower,
+        ) or re.search(
+            r"(preferred|desirable|advantageous|an\s+advantage)[^.;]{0,40}?research\s+experience",
+            text_lower,
+        ):
+            return "Preferred"
+        return None
 
     # ----------------------------------------------------------------------
     # Heuristic extraction for fields required by validation but not covered
@@ -1134,7 +1183,7 @@ class DeterministicLLMClient(LLMClient):
                 "gre_required": None,
                 "age_limit": age,
                 "work_experience": None,
-                "research_experience": "Preferred" if "research" in clean_text.lower() else None,
+                "research_experience": self._extract_research_experience(clean_text),
                 "publication": None,
                 "recommendation_letter": bool(re.search(r"recommendation", clean_text, re.IGNORECASE)),
                 "motivation_letter": None,

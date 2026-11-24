@@ -293,12 +293,57 @@ def classify_page(url: str, *, title: str = "", anchor_text: str = "") -> PageAs
         and any(token in _PROGRAMME_HEAD_TOKENS for token in last)
     )
 
+    # The same shape without a collection parent: a long final segment that
+    # carries a programme head *and a proper name* is one programme wherever
+    # the CMS happens to hang it — ``/en/eiffel-scholarship-program-of-
+    # excellence`` is Campus France's Eiffel page, and it scored 0.40
+    # (SOURCE_PAGE, never fetched) because its parent is a language folder,
+    # not a collection. The proper-name token is the guard: a hub segment is
+    # built from vocabulary alone (``support-scholarship``,
+    # ``international-scholarships``), while a programme segment contains a
+    # token that is in none of the vocabularies — the programme's name.
+    # Pages promoted by this rule are still fetched and intent-classified
+    # from their content before anything is extracted from them.
+    _vocabulary_tokens = (
+        frozenset(_SCHOLARSHIP_PATH_HINTS)
+        | _PROGRAMME_HEAD_TOKENS
+        | _PROCESS_SEGMENT_TOKENS
+        | frozenset(_PORTAL_PATH_HINTS)
+        | frozenset(_PROVIDER_PATH_HINTS)
+        | _TOKEN_IS_ID
+        | frozenset({"of", "the", "for", "and", "in", "a", "an", "to"})
+        # Hub vocabulary: segments built only from these plus a head noun
+        # name a section, not a programme (``international-students-
+        # scholarship`` is a hub; ``global-korea-scholarship`` still carries
+        # the name token ``korea`` and is promoted).
+        | frozenset({
+            "student", "students", "international", "global", "support",
+            "services", "service", "study", "studies", "abroad",
+            "admission", "admissions", "undergraduate", "graduate",
+            "postgraduate", "prospective", "current", "visiting",
+        })
+    )
+    standalone_named_programme = bool(
+        len(last) >= 3
+        and not guidance_noun
+        and not any(token in _PORTAL_PATH_HINTS for token in last)
+        and not any(token in _PROCESS_SEGMENT_TOKENS for token in last)
+        and any(token in _PROGRAMME_HEAD_TOKENS for token in last)
+        and any(
+            token not in _vocabulary_tokens and not token.isdigit()
+            for token in last
+        )
+    )
+
     if has_scholarship_noun:
         # A scholarship noun as the final segment is much stronger than one
         # anywhere in the path: `/grants/scholarship` vs `/scholarship/faq`.
         if named_programme:
             confidence += 0.60
             reasons.append("final segment names one programme")
+        elif standalone_named_programme:
+            confidence += 0.60
+            reasons.append("final segment names one programme (proper name, no collection parent)")
         elif any(hint in last for hint in _SCHOLARSHIP_PATH_HINTS):
             confidence += 0.40
             reasons.append("scholarship noun in the final path segment")

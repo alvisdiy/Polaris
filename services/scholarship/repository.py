@@ -222,6 +222,7 @@ class ScholarshipRepository:
         query: str | None = None,
         country: str | None = None,
         degree: str | None = None,
+        sort: str = "deadline",
         limit: int = 20,
         offset: int = 0
     ) -> tuple[list[Scholarship], int]:
@@ -229,8 +230,16 @@ class ScholarshipRepository:
 
         Expired scholarships are excluded (objectively non-actionable);
         deadline_state NULL (unclassified) remains visible.
+
+        Sort: "deadline" puts the soonest-closing programme first (records
+        with no deadline last — a student asking "what closes soon?" should
+        not have dateless records pushed ahead of real deadlines); "name"
+        is the previous A-Z order.
         """
         from sqlalchemy import or_
+
+        from database.models.scholarship_timeline import ScholarshipTimeline
+
         q = self.session.query(Scholarship).filter(public_filter())
 
         if query:
@@ -267,13 +276,26 @@ class ScholarshipRepository:
         # name across providers, and PostgreSQL leaves tied rows in arbitrary
         # order. Without it, offset pagination can repeat one row on page two
         # and never show another at all.
+        #
+        # Deadline sort needs the timeline row, which may not exist, so it
+        # is an outer join: an inner join would silently drop every record
+        # without a timeline from the list.
+        if sort == "deadline":
+            order = (
+                ScholarshipTimeline.application_deadline.asc().nulls_last(),
+                Scholarship.scholarship_name,
+                Scholarship.scholarship_id,
+            )
+            q = q.outerjoin(Scholarship.timeline)
+        elif sort == "name":
+            order = (Scholarship.scholarship_name, Scholarship.scholarship_id)
+        else:
+            raise ValueError(f"Unknown sort: {sort!r}")
         results = q.options(
             joinedload(Scholarship.timeline),
             joinedload(Scholarship.country),
             joinedload(Scholarship.provider),
-        ).order_by(
-            Scholarship.scholarship_name, Scholarship.scholarship_id
-        ).limit(limit).offset(offset).all()
+        ).order_by(*order).limit(limit).offset(offset).all()
 
         return results, total
 

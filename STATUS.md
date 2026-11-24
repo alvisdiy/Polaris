@@ -1,0 +1,173 @@
+# Polaris — Living Status
+
+**This is the single current-status document.** Everything under
+`docs/progress/`, `docs/audit/`, and `docs/project-status.md` is a dated
+snapshot: true (or not) on the day it was written, not a statement about
+today. When a number here disagrees with a snapshot, this file wins —
+and if this file is stale, fix this file, do not write another snapshot.
+
+Last verified: **2026-11-24** on branch `develop` (HEAD `780cf87`),
+clean clone, Python 3.12, PostgreSQL 16, Node 24.
+
+## What Polaris is
+
+Global scholarship intelligence platform: official sources → discovery →
+deterministic extraction → dedup → human review (only `approved` records
+are public) → deterministic matching. FastAPI + PostgreSQL backend,
+Vue 3 frontend. See `README.md` for how to run it and `PRODUCT.md` for
+product intent.
+
+## Verified working (2026-11-24)
+
+| Check | Result |
+|---|---|
+| Alembic `upgrade head` on empty DB | Pass — 20 revisions, 18 tables |
+| API `GET /health` | `{"status":"ok","database":"ok"}` |
+| SPA served by API from `frontend/dist` | Pass |
+| Publication boundary | Pass — 19 seeded `pending_review` records, public API returns `total: 0` |
+| Admin review auth gate | Pass — no token rejected, valid token accepted |
+| Ruff | Pass |
+| Frontend vitest | 20/20 pass |
+| Frontend build | Pass — index bundle 120.51 kB (gzip 46.51 kB) |
+| Frontend typecheck (`vue-tsc --noEmit`) | Pass |
+| Backend unit tests (`-m unit`) | 272 passed |
+| Backend full suite (migrated DB) | 1917 passed, 9 failed, 137 skipped (2026-11-24, after the review fixes below; the 9 failures are blocker 2 only) |
+| Coverage | 83.54% (CI gate is 85% — see blockers) |
+
+The Docker Compose path was **not** verified in this run (no Docker in
+the verification environment); PostgreSQL was installed natively instead.
+Compose remains unverified until someone runs it from a clean machine.
+
+## Known blockers and gaps
+
+1. **Test setup is order-dependent (real bug) — FIXED 2026-11-24.**
+   `tests/conftest.py` created tables with `Base.metadata.create_all`,
+   which does not create the CHECK constraints added by Alembic
+   migrations, so the 5 controlled-vocabulary DB-enforcement tests
+   failed on a `create_all` DB and passed on a migrated one. The
+   fixture now runs `alembic upgrade head` and refuses a legacy
+   create_all database with instructions to recreate it. The
+   vocabulary tests pass on a fixture-built database.
+2. **9 security tests are environment-sensitive.** The
+   `url_safety`/robots tests perform real DNS resolution and assume
+   public answers. In a sandboxed network where every external host
+   resolves to a fake-IP range (e.g. 198.18.0.0/15), the code correctly
+   fail-closes and the tests fail before their assertions. They need a
+   normal-DNS environment (CI) to pass; do not "fix" them by weakening
+   `url_safety`.
+3. **Coverage gate (85%) is not met in this environment: 83.54%.**
+   Part of the gap is downstream of blocker 2; part is known low
+   coverage in discovery/orchestrator code (`services/ingestion/discovery.py`
+   27%, `country_orchestrator.py` 38%).
+4. **Data tests are unverified.** 123 tests marked `data` need the
+   development knowledge-base database, which is not in this repo.
+   Against an empty catalogue they fail/skip as designed. They can only
+   be verified with a dump of the development DB.
+5. **Catalogue numbers in older docs conflict** (41 vs 142 vs 145
+   approved, on different dates). No live catalogue count is claimed
+   here because the development DB was not available in this run.
+   Measure it from the DB, then record it here with its date.
+6. **No stable release yet.** `main` still only has the first commit;
+   all work is on `develop`. Merge `develop` → `main` and tag a
+   baseline once blockers 1–2 are understood in CI.
+7. **Product/data priorities are unchanged** from
+   `docs/progress/AS-IS-RECOMMENDATION-2026-11-09.md`: precision →
+   review throughput → catalogue completeness → only then scale
+   discovery. Approval rate was 20.7% and only 51% of approved records
+   had a deadline at that snapshot.
+
+## Repo hygiene (cleanup/phase-0)
+
+- Root experiment output removed from git (`polaris.db`,
+  `mofa_view_*.html`, `_strings_*.txt`, `p*_metrics*.json`) and covered
+  by `.gitignore`. These files are run output, not source.
+- `PHASE2_STATUS.md` (2026-09-20, long superseded) moved to
+  `docs/archive/PHASE2_STATUS-2026-09-20.md`.
+- `scripts/` is inventoried in `scripts/README.md`: operational runners
+  vs one-off milestone scripts. Milestone scripts were **not** moved —
+  tests reference some of them by path.
+
+## Review fixes (fix/review-1-and-3, 2026-11-24)
+
+Fixes #1 and #3 from the 2026-11-24 deep review (discovery / data /
+frontend), on branch `fix/review-1-and-3`:
+
+- **Brunei & Malaysia discovery restored on Linux.** Config files
+  renamed `BN.json` → `bn.json`, `MY.json` → `my.json` (the loader
+  looks for lowercase); all 12 configs now load. New regression test
+  `tests/unit/test_country_configs.py` loads every config and guards
+  the filename case and the `.ac.uk` copy-paste.
+- **Malaysia config cleaned:** `.ac.uk` removed from
+  `soft_domain_signals` (it belongs to GB, not MY).
+- **Germany config:** `.daad.de` added ahead of `.de`, so the
+  `official_domain` query family produces a valid `site:daad.de`
+  query instead of only `site:de`.
+- **Freshness is now visible:** `last_verified_at` added to the list
+  summary (was detail-only) and shown on every scholarship card
+  ("Verified <date>", omitted when never recorded) and as a fact on
+  the detail page ("Not recorded" when null).
+- **Deadline sorting:** list endpoint gained `?sort=deadline|name`
+  (default `deadline` — soonest first, no-deadline records last);
+  Discover gained a "Sort by: Closing soonest / Name A–Z" control,
+  kept in the URL.
+
+Verification in this run: ruff clean; the 4 new config tests pass by
+direct invocation; frontend vitest 20/20, build and vue-tsc pass;
+the deadline-order SQL compiles against the Postgres dialect.
+**Not yet run here:** the backend API test suite needs a live
+disposable PostgreSQL (none is installed in this VM), so run the
+full suite on a machine with Postgres before merging. The remaining
+review items (#2 verification calibration, #4 URL pre-filter, #5
+pipeline wiring/freshness sweep, #6 benefits fabrication) are untouched.
+
+## How to re-verify
+
+```bash
+# Database (disposable, name must end _test or _scratch for pytest)
+export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/polaris_scratch
+alembic upgrade head
+python scripts/seed_source_registry.py
+uvicorn api.app:app --port 8000   # then: curl localhost:8000/health
+
+# Backend tests against the migrated DB
+POLARIS_TEST_DATABASE_URL=$DATABASE_URL python -m pytest tests/ -q
+
+# Frontend
+cd frontend && npm ci && npx vitest run && npm run build && npx vue-tsc --noEmit
+```
+
+## Review fixes, second batch (fix/review-1-and-3, 2026-11-24)
+
+Fixes #2, #4, #6 from the same deep review, plus the test-setup fix
+(blocker 1). Each is its own commit with regression tests.
+
+- **Verification gate reachable again for subdomain sources.** The
+  authority resolver stores the registered domain, but the engine
+  compared it against the candidate's full host, so
+  `org_identity_match` (the +0.25 signal the 0.75 auto-verify threshold
+  cannot be reached without) never fired for subdomain sources.
+  Comparison is now registered-to-registered on both sides
+  (`org_identity_matches` in `services/exploration/engine.py`).
+- **Frontier retry backoff honoured.** `record_failure` stamped
+  `next_retry_at`, but `claim_next` never read it: a transiently failed
+  candidate was re-claimed immediately, burning its attempt budget and
+  hammering the failing source. `claim_next` now skips candidates
+  inside their backoff window.
+- **Extraction no longer fabricates benefits or research experience.**
+  Benefit flags were bare keyword mentions, so "tuition is not
+  covered" recorded tuition as covered; detection is now
+  negation-aware. `research_experience` was "Preferred" on any page
+  containing the word "research"; it is now extracted only from an
+  explicit required/preferred statement, else left `None`.
+- **Year-less named programmes outside collection parents are ranked.**
+  `classify_page` only promoted a year-less programme page under a
+  collection-named parent, so pages like Campus France's
+  `/en/eiffel-scholarship-program-of-excellence` scored 0.40 and were
+  never fetched. A final segment with a programme head noun plus a
+  proper-name token now earns the named-programme tier; pure-vocabulary
+  hub segments stay unpromoted, and promoted pages are still
+  intent-classified from content before extraction.
+
+Verified after this batch: backend full suite 1917 passed / 9 failed
+(blocker 2 only, unchanged from baseline) / 137 skipped; frontend
+vitest 20/20, build and typecheck pass; Ruff clean.

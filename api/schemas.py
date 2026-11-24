@@ -267,6 +267,10 @@ class ScholarshipSummaryResponse(BaseModel):
     funding_type: str | None = None
     field_of_study: list[str] = Field(default_factory=list)
     deadline: date | None = None
+    # When the record was last checked against its official page. Sent so
+    # the list UI can show freshness; null means it was never recorded,
+    # not that it was verified long ago.
+    last_verified_at: datetime | None = None
     official_url: str
 
 class ScholarshipListResponse(BaseModel):

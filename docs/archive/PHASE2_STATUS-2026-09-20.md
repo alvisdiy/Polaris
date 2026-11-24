@@ -1,5 +1,8 @@
 # Phase 2 Implementation Status
 
+> Archived 2026-11-24 (cleanup/phase-0). This is a historical snapshot
+> from 2026-09-20, not current status. See `STATUS.md` at the repo root.
+
 **Date:** 2026-09-20  
 **Status:** Code complete, awaiting execution validation
 

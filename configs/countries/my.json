@@ -42,8 +42,7 @@
   },
   "soft_domain_signals": [
     ".edu.my",
-    ".gov.my",
-    ".ac.uk"
+    ".gov.my"
   ],
   "seed_urls": [
     "https://biasiswa.mohe.gov.my/biasiswa/",
