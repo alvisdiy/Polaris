@@ -128,6 +128,7 @@ export type ListParams = {
   q?: string
   country?: string
   degree?: string
+  funding?: string
   sort?: 'deadline' | 'name'
   limit?: number
   offset?: number

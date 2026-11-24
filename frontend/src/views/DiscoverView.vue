@@ -30,6 +30,7 @@ function readQueryState(query: Record<string, unknown>) {
     q: typeof query.q === 'string' ? query.q : '',
     country: typeof query.country === 'string' ? query.country : '',
     degree: typeof query.degree === 'string' ? query.degree : '',
+    funding: typeof query.funding === 'string' ? query.funding : '',
     sort: query.sort === 'name' ? 'name' as const : 'deadline' as const,
     page: Number(query.page) > 0 ? Number(query.page) : 1,
   }
@@ -40,15 +41,18 @@ const initial = readQueryState(route.query as Record<string, unknown>)
 const q = ref(initial.q)
 const country = ref(initial.country)
 const degree = ref(initial.degree)
+const funding = ref(initial.funding)
 const sort = ref<'deadline' | 'name'>(initial.sort)
 const page = ref(initial.page)
 
+const FUNDING_TYPES = ['Fully Funded', 'Partial Funded', 'Tuition Only']
+
 const filterDetails = ref<HTMLDetailsElement | null>(null)
 const hasActiveFilters = computed(
-  () => Boolean(q.value) || Boolean(country.value) || Boolean(degree.value),
+  () => Boolean(q.value) || Boolean(country.value) || Boolean(degree.value) || Boolean(funding.value),
 )
 const activeFilterCount = computed(
-  () => [q.value.trim(), country.value, degree.value].filter(Boolean).length,
+  () => [q.value.trim(), country.value, degree.value, funding.value].filter(Boolean).length,
 )
 
 const total = computed(() => data.value?.total ?? 0)
@@ -63,6 +67,7 @@ function buildParams() {
     q: q.value.trim() || undefined,
     country: country.value || undefined,
     degree: degree.value || undefined,
+    funding: funding.value || undefined,
     sort: sort.value,
     limit: PAGE_SIZE,
     offset: (page.value - 1) * PAGE_SIZE,
@@ -74,6 +79,7 @@ function syncUrl() {
   if (q.value.trim()) query.q = q.value.trim()
   if (country.value) query.country = country.value
   if (degree.value) query.degree = degree.value
+  if (funding.value) query.funding = funding.value
   if (sort.value !== 'deadline') query.sort = sort.value
   if (page.value > 1) query.page = String(page.value)
   router.replace({ path: '/discover', query })
@@ -117,6 +123,12 @@ function onDegreeChange(event: Event) {
   scheduleFetch(false)
 }
 
+function onFundingChange(event: Event) {
+  funding.value = (event.target as HTMLSelectElement).value
+  page.value = 1
+  scheduleFetch(false)
+}
+
 function onSortChange(event: Event) {
   sort.value = (event.target as HTMLSelectElement).value as 'deadline' | 'name'
   page.value = 1
@@ -153,11 +165,19 @@ function removeDegree() {
   })
 }
 
+function removeFunding() {
+  suppressAndApply(() => {
+    funding.value = ''
+    page.value = 1
+  })
+}
+
 function clearFilters() {
   suppressAndApply(() => {
     q.value = ''
     country.value = ''
     degree.value = ''
+    funding.value = ''
     page.value = 1
   })
 }
@@ -177,6 +197,7 @@ watch(
       next.q === q.value &&
       next.country === country.value &&
       next.degree === degree.value &&
+      next.funding === funding.value &&
       next.sort === sort.value &&
       next.page === page.value
     ) {
@@ -186,6 +207,7 @@ watch(
     q.value = next.q
     country.value = next.country
     degree.value = next.degree
+    funding.value = next.funding
     sort.value = next.sort
     page.value = next.page
     clearTimeout(debounceTimer)
@@ -255,6 +277,14 @@ function announceCount(): string {
               </div>
 
               <div class="filter-group">
+                <label class="filter-label" for="filter-funding">Funding</label>
+                <select id="filter-funding" :value="funding" class="filter-select" @change="onFundingChange">
+                  <option value="">Any funding</option>
+                  <option v-for="f in FUNDING_TYPES" :key="f" :value="f">{{ f }}</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
                 <label class="filter-label" for="filter-sort">Sort by</label>
                 <select id="filter-sort" :value="sort" class="filter-select" @change="onSortChange">
                   <option value="deadline">Closing soonest</option>
@@ -263,7 +293,7 @@ function announceCount(): string {
               </div>
 
               <p class="filter-note">
-                Funding, field of study, and deadline-status filters will arrive with a backend
+                Field of study and deadline-status filters will arrive with a backend
                 update. They are not yet available.
               </p>
             </div>
@@ -292,6 +322,12 @@ function announceCount(): string {
               label="Degree"
               :value="degree"
               @remove="removeDegree"
+            />
+            <FilterChip
+              v-if="funding"
+              label="Funding"
+              :value="funding"
+              @remove="removeFunding"
             />
             <button type="button" class="clear-all" @click="clearFilters">Clear all</button>
           </div>
