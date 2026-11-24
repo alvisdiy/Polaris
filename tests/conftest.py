@@ -8,7 +8,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.app import app
-from database.models import Base
 from database.session import SessionLocal, get_engine
 
 
@@ -38,9 +37,38 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    """Create and seed tables in the explicitly configured disposable test database."""
+    """Build the test database with Alembic migrations and seed it.
+
+    The schema must come from the migrations, not ``Base.metadata``:
+    ``create_all`` does not create the CHECK constraints the migrations
+    define, so controlled-vocabulary tests passed or failed depending on
+    how the database happened to be built rather than on the code. The
+    test database is disposable by contract (local host, name ending in
+    ``_test``/``_scratch`` — enforced by ``database.config``), so a
+    database that has tables but no ``alembic_version`` is a legacy
+    create_all database: refuse and say how to fix it instead of
+    silently testing against the wrong schema.
+    """
+    from pathlib import Path
+
+    from sqlalchemy import inspect
+
     engine = get_engine()
-    Base.metadata.create_all(bind=engine)
+    tables = set(inspect(engine).get_table_names())
+    if tables and "alembic_version" not in tables:
+        raise RuntimeError(
+            "Test database has tables but no alembic_version table: it was "
+            "built by the old create_all setup and its schema may diverge "
+            "from the migrations (missing CHECK constraints). Recreate the "
+            "disposable test database and re-run; the fixture builds it "
+            "with `alembic upgrade head`."
+        )
+
+    from alembic import command
+    from alembic.config import Config
+
+    alembic_ini = Path(__file__).resolve().parent.parent / "alembic.ini"
+    command.upgrade(Config(str(alembic_ini)), "head")
 
     from scripts.seed_source_registry import seed_data
     seed_data()
