@@ -238,14 +238,44 @@ class ScholarshipRepository:
         not have dateless records pushed ahead of real deadlines); "name"
         is the previous A-Z order.
         """
-        from sqlalchemy import or_
+        from sqlalchemy import func, or_
 
+        from database.models.provider import Provider
         from database.models.scholarship_timeline import ScholarshipTimeline
 
         q = self.session.query(Scholarship).filter(public_filter())
 
         if query:
-            q = q.filter(Scholarship.scholarship_name.ilike(_contains(query), escape="\\"))
+            # Search used to read the scholarship name only, as a substring.
+            # Students search by provider ("DAAD"), by field ("computer
+            # science") and with typos ("fulbrigt") at least as often, and
+            # all three silently returned nothing. The match now spans the
+            # name, the provider's name and the field-of-study list as
+            # substrings, plus a trigram word-similarity fallback on name
+            # and provider for near-miss spellings (pg_trgm; thresholds
+            # measured against real programme names — a one-letter typo in
+            # "fulbright" scores ~0.78, an unrelated term scores 0).
+            pattern = _contains(query)
+            provider_ids = select(Provider.provider_id).where(
+                Provider.provider_name.ilike(pattern, escape="\\")
+            )
+            text_match = or_(
+                Scholarship.scholarship_name.ilike(pattern, escape="\\"),
+                Scholarship.provider_id.in_(provider_ids),
+                func.array_to_string(Scholarship.field_of_study, " ").ilike(
+                    pattern, escape="\\"
+                ),
+            )
+            if len(query.strip()) >= 4:
+                similar_providers = select(Provider.provider_id).where(
+                    func.word_similarity(query, Provider.provider_name) > 0.6
+                )
+                text_match = or_(
+                    text_match,
+                    func.word_similarity(query, Scholarship.scholarship_name) > 0.6,
+                    Scholarship.provider_id.in_(similar_providers),
+                )
+            q = q.filter(text_match)
 
         if country:
             # Check country name or iso3
