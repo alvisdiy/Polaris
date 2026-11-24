@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from api.rate_limit import SlidingWindowLimiter, bucket_for, client_key, rate_limit_enabled
@@ -259,6 +259,58 @@ def create_app() -> FastAPI:
 
         index = frontend_dir / "index.html"
         static_root = frontend_dir.resolve()
+
+        @app.get("/scholarships/{scholarship_id}", include_in_schema=False)
+        async def serve_scholarship_detail(scholarship_id: str, request: Request):
+            """The SPA shell with this record's own meta injected.
+
+            Detail pages are client-rendered, so without this route a
+            crawler or a chat link-preview sees the home page's static
+            title and description for every programme. When the id is a
+            published record, its real title, description, canonical
+            URL and JSON-LD are injected into the shell (see
+            api/detail_meta.py); the client app then hydrates as usual.
+            Anything else — malformed id, unpublished record — gets the
+            plain shell and the SPA renders its own not-found state, so
+            an unpublished record's name never leaks into meta.
+            """
+            import uuid as _uuid
+
+            from api.detail_meta import build_detail_meta, render_detail_html
+            from database.session import SessionLocal
+            from services.scholarship.repository import ScholarshipRepository
+
+            shell = index.read_text(encoding="utf-8")
+            try:
+                sid = str(_uuid.UUID(scholarship_id))
+            except ValueError:
+                return HTMLResponse(shell)
+
+            session = SessionLocal()
+            try:
+                record = ScholarshipRepository(session).get_published_by_id(sid)
+            finally:
+                session.close()
+            if record is None:
+                return HTMLResponse(shell)
+
+            canonical = f"{str(request.base_url).rstrip('/')}/scholarships/{sid}"
+            meta = build_detail_meta(
+                name=record.scholarship_name,
+                provider_name=record.provider.provider_name if record.provider else None,
+                country_name=record.country.name if record.country else None,
+                degree=record.degree,
+                funding_type=record.funding_type,
+                deadline=(
+                    record.timeline.application_deadline if record.timeline else None
+                ),
+                field_of_study=list(record.field_of_study or []),
+                canonical_url=canonical,
+            )
+            return HTMLResponse(
+                render_detail_html(shell, meta),
+                headers={"Cache-Control": "public, max-age=300"},
+            )
 
         @app.get("/{full_path:path}", include_in_schema=False)
         async def serve_spa(full_path: str):
