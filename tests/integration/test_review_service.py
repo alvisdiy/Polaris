@@ -671,3 +671,77 @@ class TestVersioning:
         assert session.query(ScholarshipVersion).filter(
             ScholarshipVersion.version_id == action.version_id
         ).count() == 1
+
+
+class TestInferredCountryGate:
+    """An extractor-inferred country blocks approval until a reviewer
+    confirms the country by correcting it — the gate and the correction
+    path are one feature, tested together."""
+
+    def _inferred(self, session, jp_country):
+        return make_scholarship(
+            session, jp_country,
+            quality_report={"country_inferred_from_source": True},
+        )
+
+    def test_inferred_country_cannot_be_approved(self, service, session, jp_country):
+        scholarship = self._inferred(session, jp_country)
+        with pytest.raises(NotPublishable) as exc:
+            service.approve(str(scholarship.scholarship_id), actor="alice")
+        assert "country" in str(exc.value)
+
+    def test_inferred_country_cannot_be_overridden(self, service, session, jp_country):
+        """Country is not in the overridable set: a guess about a 20-point
+        matching criterion is confirmed by correction, not waved through."""
+        scholarship = self._inferred(session, jp_country)
+        with pytest.raises(NotPublishable):
+            service.approve(
+                str(scholarship.scholarship_id), actor="alice",
+                override_quality=True, reason="looks right to me",
+            )
+
+    def test_correcting_the_country_confirms_and_unblocks(self, service, session, jp_country):
+        scholarship = self._inferred(session, jp_country)
+        sid = str(scholarship.scholarship_id)
+        kr_country = session.query(Country).filter(Country.iso2 == "KR").first()
+        assert kr_country is not None
+
+        service.correct(
+            sid, actor="alice",
+            changes={"country_id": str(kr_country.country_id)},
+            reason="page is the Korean government programme; source was a JP portal",
+        )
+        session.commit()
+        assert scholarship.quality_report["country_inferred_from_source"] is False
+
+        outcome = service.approve(sid, actor="alice", reason="country confirmed")
+        session.commit()
+        assert outcome.new_state == ReviewStatus.APPROVED
+
+    def test_confirming_the_inferred_country_in_place_unblocks(self, service, session, jp_country):
+        """The common case: the inference was right. Confirming the same
+        country_id is a recorded reviewer act, not a 'no change' error."""
+        scholarship = self._inferred(session, jp_country)
+        sid = str(scholarship.scholarship_id)
+
+        outcome = service.correct(
+            sid, actor="alice",
+            changes={"country_id": str(jp_country.country_id)},
+            reason="checked the official page; Japan is correct",
+        )
+        session.commit()
+        assert outcome.field_changes[0]["confirmed_inferred_country"] is True
+        assert scholarship.quality_report["country_inferred_from_source"] is False
+
+        approved = service.approve(sid, actor="alice", reason="country confirmed")
+        session.commit()
+        assert approved.new_state == ReviewStatus.APPROVED
+
+    def test_correcting_to_a_missing_country_is_refused(self, service, session, jp_country):
+        scholarship = self._inferred(session, jp_country)
+        with pytest.raises(InvalidTransition):
+            service.correct(
+                str(scholarship.scholarship_id), actor="alice",
+                changes={"country_id": str(uuid.uuid4())},
+                reason="guessing wildly",
+            )

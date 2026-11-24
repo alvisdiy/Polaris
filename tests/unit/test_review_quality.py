@@ -170,6 +170,33 @@ class TestBuildReport:
             assert report.publishable, (host, report.blocking)
             assert report.fields["official_source"].quality == FieldQuality.KNOWN
 
+    def test_inferred_country_blocks_until_confirmed(self):
+        """A country the extractor inferred from the source (the page never
+        stated it) is a guess: it must not pass the gate as a known fact,
+        because country is a 20-point matching criterion."""
+        report = self._report(country_inferred=True)
+        assert not report.publishable
+        assert "country" in report.blocking
+        country = report.fields["country"]
+        assert country.quality == FieldQuality.UNKNOWN
+        assert country.value == "Japan"
+        assert "inferred from the source" in country.detail
+
+    def test_stated_country_is_unaffected(self):
+        report = self._report(country_inferred=False)
+        assert report.publishable, report.blocking
+        assert report.fields["country"].quality == FieldQuality.KNOWN
+
+    def test_conflicting_country_still_reports_conflict(self):
+        """Inference downgrades a KNOWN verdict only; a stored conflict is
+        the stronger signal and must not be papered over."""
+        report = self._report(
+            country_inferred=True,
+            conflicts=[{"field": "country", "values": ["Japan", "Korea"]}],
+        )
+        assert report.fields["country"].quality == FieldQuality.CONFLICTING
+        assert "country" in report.blocking
+
     def test_missing_degree_is_reported_but_does_not_block(self):
         """Soft field: the gap is visible, the record is still publishable."""
         report = self._report(degree=None)
