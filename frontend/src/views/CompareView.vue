@@ -96,7 +96,9 @@ const rows: Row[] = [
     value: (item) => {
       const req = item.requirement
       if (!req) return 'Not mentioned'
-      if (!req.ielts_required) return 'Not required'
+      // False is the database default for "not recorded", not a verified
+      // absence — same wording rule as the detail page.
+      if (!req.ielts_required) return 'Not mentioned'
       return req.minimum_ielts !== null ? `Minimum ${req.minimum_ielts}` : 'Required'
     },
   },
@@ -105,7 +107,7 @@ const rows: Row[] = [
     value: (item) => {
       const req = item.requirement
       if (!req) return 'Not mentioned'
-      if (!req.toefl_required) return 'Not required'
+      if (!req.toefl_required) return 'Not mentioned'
       return req.minimum_toefl !== null ? `Minimum ${req.minimum_toefl}` : 'Required'
     },
   },
@@ -447,11 +449,24 @@ function formatOpen(value: string | null): string {
   letter-spacing: var(--tracking-label);
 }
 
+/* The stack is the small-screen alternative to the table. Both were
+   rendered unconditionally, so desktop showed the whole comparison
+   twice; exactly one of them is visible at any width. */
 .stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  margin-top: var(--space-6);
+  display: none;
+}
+
+@media (max-width: 48rem) {
+  .table-wrap {
+    display: none;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    margin-top: var(--space-6);
+  }
 }
 
 .stack-head {

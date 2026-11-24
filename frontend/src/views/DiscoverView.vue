@@ -8,6 +8,7 @@ import ErrorState from '../components/ErrorState.vue'
 import SkeletonBlock from '../components/SkeletonBlock.vue'
 import ProgressLine from '../components/ProgressLine.vue'
 import FilterChip from '../components/FilterChip.vue'
+import { loadCountries } from '../lib/countries'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,20 +16,12 @@ const { data, state, error, fetchList } = useScholarshipList()
 
 const PAGE_SIZE = 20
 
-const COUNTRIES = [
-  'Australia',
-  'Brunei',
-  'China',
-  'Germany',
-  'France',
-  'United Kingdom',
-  'Indonesia',
-  'Japan',
-  'Malaysia',
-  'Singapore',
-  'South Korea',
-  'United States',
-]
+// From the API, not hardcoded: this list used to be maintained by hand
+// here and in ProfileForm, and the two copies disagreed.
+const countries = ref<string[]>([])
+loadCountries().then((list) => {
+  countries.value = list
+})
 
 const DEGREES = ['Bachelor', 'Master', 'PhD', 'Exchange', 'Short Course']
 
@@ -249,7 +242,7 @@ function announceCount(): string {
                 <label class="filter-label" for="filter-country">Country</label>
                 <select id="filter-country" :value="country" class="filter-select" @change="onCountryChange">
                   <option value="">All countries</option>
-                  <option v-for="c in COUNTRIES" :key="c" :value="c">{{ c }}</option>
+                  <option v-for="c in countries" :key="c" :value="c">{{ c }}</option>
                 </select>
               </div>
 

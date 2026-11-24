@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import type { RecommendationRequest } from '../api/types'
 import { useProfile } from '../stores/profile'
+import { loadCountries } from '../lib/countries'
 
 const props = defineProps<{
   submitting: boolean
@@ -14,21 +15,25 @@ const emit = defineEmits<{
 
 const { profile } = useProfile()
 
-const COUNTRIES = [
-  'Australia',
-  'China',
-  'Germany',
-  'France',
-  'United Kingdom',
-  'Indonesia',
-  'Japan',
-  'South Korea',
-  'Singapore',
-  'United States',
-]
+// From the API (shared with Discover), not hardcoded: this copy used to
+// be missing Brunei and Malaysia, which Discover offered.
+const countries = ref<string[]>([])
+loadCountries().then((list) => {
+  countries.value = list
+})
 
 const DEGREES = ['Bachelor', 'Master', 'PhD', 'Exchange', 'Short Course']
-const EXPERIENCE_LEVELS = ['Not Required', 'Optional', 'Preferred', 'Required']
+// The stored values are the matching engine's requirement vocabulary and
+// must not change. The labels are what a student reads while describing
+// their OWN experience, where "Required" makes no sense as an answer to
+// "how much research experience do you have?" — so the student-facing
+// wording differs from the stored value.
+const EXPERIENCE_LEVELS = [
+  { value: 'Not Required', label: 'None' },
+  { value: 'Optional', label: 'Some' },
+  { value: 'Preferred', label: 'Solid experience' },
+  { value: 'Required', label: 'Extensive' },
+]
 const FUNDING = ['Fully Funded', 'Partial Funded', 'Tuition Only']
 
 const form = reactive<RecommendationRequest>({
@@ -126,7 +131,7 @@ defineExpose({ mapServerErrors })
         aria-describedby="pf-country-hint"
       >
         <option value="" disabled>Select a country</option>
-        <option v-for="c in COUNTRIES" :key="c" :value="c">{{ c }}</option>
+        <option v-for="c in countries" :key="c" :value="c">{{ c }}</option>
       </select>
       <p id="pf-country-hint" class="field-hint">Where do you want to study?</p>
       <p v-if="errors.target_country" class="field-error">{{ errors.target_country }}</p>
@@ -236,14 +241,14 @@ defineExpose({ mapServerErrors })
     >
       <legend class="field-label">{{ config.label }} <span class="req">*</span></legend>
       <div class="radio-row">
-        <label v-for="level in EXPERIENCE_LEVELS" :key="level" class="radio-option">
+        <label v-for="level in EXPERIENCE_LEVELS" :key="level.value" class="radio-option">
           <input
             v-model="form[config.key]"
             type="radio"
             :name="config.key"
-            :value="level"
+            :value="level.value"
           />
-          {{ level }}
+          {{ level.label }}
         </label>
       </div>
       <p v-if="errors[config.key]" class="field-error">{{ errors[config.key] }}</p>
