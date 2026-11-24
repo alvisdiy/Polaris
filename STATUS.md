@@ -31,7 +31,7 @@ product intent.
 | Frontend build | Pass — index bundle 120.51 kB (gzip 46.51 kB) |
 | Frontend typecheck (`vue-tsc --noEmit`) | Pass |
 | Backend unit tests (`-m unit`) | 272 passed |
-| Backend full suite (migrated DB) | 1901 passed, 9 failed, 134 skipped |
+| Backend full suite (migrated DB) | 1917 passed, 9 failed, 137 skipped (2026-11-24, after the review fixes below; the 9 failures are blocker 2 only) |
 | Coverage | 83.54% (CI gate is 85% — see blockers) |
 
 The Docker Compose path was **not** verified in this run (no Docker in
@@ -40,12 +40,14 @@ Compose remains unverified until someone runs it from a clean machine.
 
 ## Known blockers and gaps
 
-1. **Test setup is order-dependent (real bug).** `tests/conftest.py`
-   creates tables with `Base.metadata.create_all`, which does not create
-   the CHECK constraints added by Alembic migrations. The 5
-   controlled-vocabulary DB-enforcement tests fail on a `create_all` DB
-   and pass on a migrated DB. Test DBs should be built by running
-   `alembic upgrade head`, in CI and locally.
+1. **Test setup is order-dependent (real bug) — FIXED 2026-11-24.**
+   `tests/conftest.py` created tables with `Base.metadata.create_all`,
+   which does not create the CHECK constraints added by Alembic
+   migrations, so the 5 controlled-vocabulary DB-enforcement tests
+   failed on a `create_all` DB and passed on a migrated one. The
+   fixture now runs `alembic upgrade head` and refuses a legacy
+   create_all database with instructions to recreate it. The
+   vocabulary tests pass on a fixture-built database.
 2. **9 security tests are environment-sensitive.** The
    `url_safety`/robots tests perform real DNS resolution and assume
    public answers. In a sandboxed network where every external host
@@ -133,3 +135,39 @@ POLARIS_TEST_DATABASE_URL=$DATABASE_URL python -m pytest tests/ -q
 # Frontend
 cd frontend && npm ci && npx vitest run && npm run build && npx vue-tsc --noEmit
 ```
+
+## Review fixes, second batch (fix/review-1-and-3, 2026-11-24)
+
+Fixes #2, #4, #6 from the same deep review, plus the test-setup fix
+(blocker 1). Each is its own commit with regression tests.
+
+- **Verification gate reachable again for subdomain sources.** The
+  authority resolver stores the registered domain, but the engine
+  compared it against the candidate's full host, so
+  `org_identity_match` (the +0.25 signal the 0.75 auto-verify threshold
+  cannot be reached without) never fired for subdomain sources.
+  Comparison is now registered-to-registered on both sides
+  (`org_identity_matches` in `services/exploration/engine.py`).
+- **Frontier retry backoff honoured.** `record_failure` stamped
+  `next_retry_at`, but `claim_next` never read it: a transiently failed
+  candidate was re-claimed immediately, burning its attempt budget and
+  hammering the failing source. `claim_next` now skips candidates
+  inside their backoff window.
+- **Extraction no longer fabricates benefits or research experience.**
+  Benefit flags were bare keyword mentions, so "tuition is not
+  covered" recorded tuition as covered; detection is now
+  negation-aware. `research_experience` was "Preferred" on any page
+  containing the word "research"; it is now extracted only from an
+  explicit required/preferred statement, else left `None`.
+- **Year-less named programmes outside collection parents are ranked.**
+  `classify_page` only promoted a year-less programme page under a
+  collection-named parent, so pages like Campus France's
+  `/en/eiffel-scholarship-program-of-excellence` scored 0.40 and were
+  never fetched. A final segment with a programme head noun plus a
+  proper-name token now earns the named-programme tier; pure-vocabulary
+  hub segments stay unpromoted, and promoted pages are still
+  intent-classified from content before extraction.
+
+Verified after this batch: backend full suite 1917 passed / 9 failed
+(blocker 2 only, unchanged from baseline) / 137 skipped; frontend
+vitest 20/20, build and typecheck pass; Ruff clean.
