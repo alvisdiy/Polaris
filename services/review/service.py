@@ -1776,6 +1776,11 @@ class ReviewService:
                 "provider_name": read(provider, "provider_name"),
                 "provider_type": _enum_value(read(provider, "provider_type")),
                 "country": read(country, "name"),
+                # The id, not just the name: a reviewer confirming an
+                # inferred country (or correcting it) acts through
+                # correct() on country_id, and a UI cannot form that
+                # request from a display name.
+                "country_id": str(scholarship.country_id),
                 "university": read(scholarship.university, "name"),
                 "official_url": scholarship.official_page_url,
                 "application_url": scholarship.application_url,

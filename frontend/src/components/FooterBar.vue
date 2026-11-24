@@ -26,6 +26,7 @@ const year = new Date().getFullYear()
         <RouterLink to="/about">About and method</RouterLink>
         <RouterLink to="/privacy">Privacy</RouterLink>
         <RouterLink to="/terms">Terms</RouterLink>
+        <RouterLink to="/review">Review queue (operators)</RouterLink>
       </nav>
     </div>
     <p class="copyright">Polaris {{ year }}</p>

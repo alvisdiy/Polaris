@@ -334,6 +334,7 @@ class ReviewIdentitySchema(BaseModel):
     provider_name: str | None = None
     provider_type: str | None = None
     country: str | None = None
+    country_id: str | None = None
     university: str | None = None
     official_url: str | None = None
     application_url: str | None = None
@@ -579,7 +580,7 @@ class ReviewPatchRequest(BaseModel):
     changes: dict = Field(
         ...,
         description=(
-            "Fields to correct. Editable: scholarship_name, provider_id, degree, "
+            "Fields to correct. Editable: scholarship_name, provider_id, country_id, degree, "
             "funding_type, field_of_study, official_page_url, application_url, "
             "deadline, application_open, application_cycle, interview_date, "
             "result_date, study_start, minimum_gpa, ielts_required, minimum_ielts, "

@@ -234,3 +234,29 @@ From the follow-up improvement audit, the small high-impact set:
 
 Verification: backend 1943 passed / 11 sandbox-DNS failures (identical
 set on clean `develop`); frontend 22/22, build, typecheck; Ruff clean.
+
+## Review UI (feat/review-ui, 2026-11-24)
+
+The Phase 2 throughput bottleneck: curation was API/CLI only. There is
+now a reviewer surface at `/review` (footer link, operator token
+sign-in; token + reviewer name kept in the operator's browser only):
+
+- queue metrics (pending / published / rejected / needs-correction /
+  approval rate) and the pending list with blocking/conflicting flags;
+- the full reviewer packet: publishable verdict, per-field quality
+  with the gate's explanations, extracted facts, official source link,
+  audit history;
+- decisions: approve (with an explicit override option the server may
+  still refuse), reject and send-back (reason required);
+- corrections for deadline, degree, funding, official URL and minimum
+  GPA — diffs only, reason required, record re-queues by default;
+- one-click country confirmation for records blocked on an inferred
+  country. To make that possible the packet identity now carries
+  `country_id` (the only backend change; the patch-request docs list
+  it as editable, matching the service).
+
+The view is a thin client: every rule stays in ReviewService.
+Verified end to end against a live server (401 without a token;
+approval through the API published a seeded record into the public
+catalogue). Backend suite unchanged at 1943 passed / 11 sandbox-DNS
+failures; frontend 27/27, build, typecheck; Ruff clean.

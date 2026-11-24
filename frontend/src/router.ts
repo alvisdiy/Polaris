@@ -89,6 +89,15 @@ const routes = [
     },
   },
   {
+    path: '/review',
+    name: 'review',
+    component: () => import('./views/ReviewView.vue'),
+    meta: {
+      title: 'Review queue | Polaris',
+      description: 'Operator surface: the human publication gate for the catalogue.',
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('./views/NotFoundView.vue'),
