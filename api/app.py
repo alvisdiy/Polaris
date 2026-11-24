@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from api.rate_limit import SlidingWindowLimiter, bucket_for, client_key, rate_limit_enabled
 from api.routers import recommendations, review, scholarships
 
 # Configure structured logging
@@ -89,6 +90,32 @@ def create_app() -> FastAPI:
         )
 
     # --- Request logging middleware ---
+
+    # --- Rate limiting (public surface) ---
+    # Held on app.state so tests can reset or inspect it. The policy and
+    # its reasoning live in api/rate_limit.py; the admin surface is out
+    # of scope there by design.
+    app.state.rate_limiter = SlidingWindowLimiter()
+
+    @app.middleware("http")
+    async def rate_limit_requests(request: Request, call_next):
+        if rate_limit_enabled():
+            rule = bucket_for(request.method, request.url.path)
+            if rule is not None:
+                bucket, limit = rule
+                key = f"{client_key(request)}:{bucket}"
+                if not app.state.rate_limiter.allow(key, limit):
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": (
+                                "Too many requests. Polaris is free to use; "
+                                "please slow down and try again in a minute."
+                            )
+                        },
+                        headers={"Retry-After": "60"},
+                    )
+        return await call_next(request)
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
