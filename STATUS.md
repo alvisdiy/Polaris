@@ -335,3 +335,36 @@ tests (client throttle/retry/quota behaviour, evidence gate,
 normalisation, and an integration test landing proposals through
 correct() with provenance intact); Ruff clean; `--llm` without a key
 exits 2 with setup guidance.
+
+## Nightly acquisition + PDF candidates (feat/pipeline-discovery-and-pdf, 2026-11-25)
+
+Two deep-review items closed:
+
+- **(a) Scholarship acquisition is wired into the nightly pipeline.**
+  `pipeline_run.py --discover` previously hard-coded
+  `run_scholarship_discovery=False` — it grew providers but never the
+  catalogue. It now runs registry acquisition by default (bounded by
+  the run's per-source page budget, `scholarships_persisted` in the
+  run record), with `--no-scholarship-discovery` as the opt-out. No
+  search budget is spent; paid Serper exploration stays manual, a
+  decision still open with Saburo. Also fixed: enrich_records' `--llm`
+  attributes were missing from this script's argument object, which
+  had silently broken nightly enrichment since PR #8 — an integration
+  test now runs the real enrich step to keep that contract visible.
+- **(b) PDF candidates flow through the discovery analyzer.** A PDF
+  (URL suffix or content type) is fetched as bytes and read via the
+  ingestion connector's existing PDF text path; encrypted/malformed/
+  scanned PDFs become a diagnosable `pdf_unreadable` error, and PDF
+  links on a page are kept as candidates instead of skipped as
+  binaries. Title = the document's first text line; the text feeds
+  the same classify/extract flow as HTML.
+
+Verification: backend 1984 passed / 11 sandbox-DNS failures; 6 new
+tests (2 pipeline wiring incl. the enrich contract, 4 analyzer PDF);
+Ruff clean; `--plan-only` smoke OK.
+
+Still open from the review queue: funding amounts + description
+(migration; needs Saburo's amount-semantics decision first),
+extractor language/eligibility fields as measured Phase 1 precision
+work, coverage ratchet to 85, deploy decision + backups,
+develop→main baseline.
