@@ -6,6 +6,9 @@ need a person or a model:
 
     1. ensure the country's configured seed portals are registered as sources
     2. optionally discover more providers from the country's own surfaces
+       and acquire scholarships from the registry sources (--discover;
+       registry acquisition costs no search budget — the paid Serper
+       exploration in run_country_exploration.py stays manual on purpose)
     3. crawl the active sources within a page budget
     4. fill empty fields from the documents just stored (deterministic)
     5. reclassify deadline states across the whole catalogue (freshness
@@ -90,13 +93,23 @@ async def _run_country(iso2: str, args) -> dict:
         session = SessionLocal()
         try:
             orchestrator = CountryCoverageOrchestrator(iso2, session)
+            # Scholarship acquisition from registry sources is part of
+            # the nightly discover step: it reads sources the registry
+            # already trusts, so it spends no search budget. It was
+            # hard-coded off here, which meant --discover grew the
+            # provider list but never the catalogue. Operators can
+            # still opt out with --no-scholarship-discovery.
             await orchestrator.run_full_coverage(
                 run_provider_discovery=True,
-                run_scholarship_discovery=False,
+                run_scholarship_discovery=not args.no_scholarship_discovery,
+                max_urls_per_source=args.max_pages_per_source,
                 max_sources=args.max_sources,
             )
             record["steps"]["providers_discovered"] = orchestrator.metrics.providers_discovered
             record["steps"]["sources_discovered"] = orchestrator.metrics.sources_discovered
+            record["steps"]["scholarships_persisted"] = (
+                orchestrator.metrics.scholarships_persisted
+            )
         except Exception as exc:
             record["errors"].append(f"discover: {type(exc).__name__}: {exc}")
         finally:
@@ -141,6 +154,14 @@ async def _run_country(iso2: str, args) -> dict:
             fetch_missing = False
             actor = "enrichment"
             json = False
+            # The nightly run stays deterministic-only by design (see
+            # the module docstring); the Gemini pass is an operator's
+            # manual enrich_records --llm run. These attributes exist
+            # because run() reads them unconditionally — omitting them
+            # silently broke nightly enrichment when --llm landed.
+            llm = False
+            llm_max_calls = 50
+            llm_actor = "llm-enrichment"
 
         if not args.no_enrich:
             enrich_records.run(_Args())
@@ -275,7 +296,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("countries", nargs="*", help="ISO2 codes, e.g. MY BN DE")
     parser.add_argument("--all", action="store_true", help="Every country with a config")
-    parser.add_argument("--discover", action="store_true", help="Run provider discovery first")
+    parser.add_argument(
+        "--discover",
+        action="store_true",
+        help="Run provider discovery and registry scholarship acquisition first",
+    )
+    parser.add_argument(
+        "--no-scholarship-discovery",
+        action="store_true",
+        help="With --discover: discover providers only, do not acquire scholarships",
+    )
     parser.add_argument("--plan-only", action="store_true", help="Print the plan, open no database")
     parser.add_argument("--no-enrich", action="store_true", help="Skip deterministic completion")
     parser.add_argument(
