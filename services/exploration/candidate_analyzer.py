@@ -5,6 +5,12 @@ Fetch strategy: httpx first (fast, cheap); Playwright fallback when the HTTP
 fetch yields JS-gated content (small HTML with little text). Respects
 robots.txt, per-domain delay, and timeouts.
 
+PDFs are documents, not pages: many official programmes publish only a PDF
+pamphlet, so a PDF candidate (by URL suffix or content type) is fetched as
+bytes and read through the ingestion connector's PDF text path instead of
+being rejected as an unsupported content type. PDF links found on a page
+are likewise kept as candidates rather than skipped as binaries.
+
 Every URL here is untrusted — it came from a search result or a link on a
 fetched page — so the target is SSRF-checked with the same url_safety
 policy the ingestion fetchers use before anything is requested, and the
@@ -33,9 +39,12 @@ from services.ingestion.url_safety import (
 USER_AGENT = "PolarisBot/0.2 (+https://polaris.example; discovery research)"
 
 _SKIP_PREFIXES = ("#", "javascript:", "mailto:", "tel:", "data:")
+# Link targets with these extensions are assets, not documents, and never
+# become candidates. ".pdf" is deliberately absent: a PDF pamphlet is often
+# the programme document itself, and the analyzer reads it as text.
 _BINARY_EXTENSIONS = (
     ".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".ico", ".css", ".js",
-    ".woff", ".woff2", ".ttf", ".eot", ".mp4", ".mp3", ".zip", ".pdf",
+    ".woff", ".woff2", ".ttf", ".eot", ".mp4", ".mp3", ".zip",
 )
 
 # robots.txt cache: origin → rules (None = absent or unreadable)
@@ -168,6 +177,13 @@ class CandidateAnalyzer:
                     return result
 
                 content_type = response.headers.get("content-type", "")
+                if self._is_pdf_response(result.final_url or url, content_type):
+                    # A PDF is read as bytes through the connector's text
+                    # path; there is no HTML to feature-extract and no
+                    # JS gate for the Playwright fallback to lift.
+                    self._extract_pdf_features(result, response.content)
+                    return result
+
                 if "html" not in content_type and "text" not in content_type and content_type:
                     result.error = f"unsupported_content_type_{content_type.split(';')[0]}"
                     return result
@@ -185,6 +201,42 @@ class CandidateAnalyzer:
             await self._analyze_with_playwright(result)
 
         return result
+
+    @staticmethod
+    def _is_pdf_response(url: str, content_type: str) -> bool:
+        """A PDF by address (suffix, query ignored) or by declared type."""
+        from services.ingestion.connectors.generic_playwright import _is_pdf_url
+
+        return _is_pdf_url(url) or "application/pdf" in content_type.lower()
+
+    def _extract_pdf_features(self, result: AnalyzedCandidate, body: bytes) -> None:
+        """Fill the candidate from a PDF's text, via the ingestion path.
+
+        The connector's extractor rejects rather than repairs — encrypted,
+        malformed and text-less (scanned) PDFs all raise — and each refusal
+        becomes this candidate's error, so a dead PDF is diagnosable in the
+        run record instead of surfacing as an empty analysis.
+        """
+        from services.ingestion.connectors.generic_playwright import (
+            DEFAULT_MAX_PDF_BYTES,
+            _extract_pdf_text,
+        )
+
+        if len(body) > DEFAULT_MAX_PDF_BYTES:
+            result.error = f"pdf_too_large: {len(body)} bytes"
+            return
+        try:
+            text = _extract_pdf_text(body, result.final_url or result.url, source_id=None)
+        except Exception as exc:  # noqa: BLE001 — the extractor's refusal is the result
+            result.error = f"pdf_unreadable: {exc}"[:300]
+            return
+
+        result.fetched = True
+        result.main_text = re.sub(r"\s+", " ", text).strip()[:20000]
+        # A PDF has no <title>; its first text line is the closest honest
+        # equivalent for the classifier (usually the programme name).
+        first_line = next((line.strip() for line in text.splitlines() if line.strip()), "")
+        result.title = first_line[:500]
 
     @staticmethod
     def _looks_js_gated(result: AnalyzedCandidate) -> bool:
