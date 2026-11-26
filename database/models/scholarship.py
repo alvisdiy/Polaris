@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
-from sqlalchemy import DateTime, Float, ForeignKey, Index, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -107,6 +108,34 @@ class Scholarship(Base, TimestampMixin):
     review_notes: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, sort_order=22,
         comment="Latest reviewer rationale. Full history lives in scholarship_review_action.",
+    )
+
+    # --- Funding amount, as stated (semantics A, 2026-11-26) ---
+    # The amount is the figure the official page states, in the currency
+    # and for the period the page states. No FX conversion and no period
+    # conversion: both would publish a number the source never gave.
+    # NULL amount means the source stated no cash figure. A tuition waiver
+    # therefore keeps amount NULL (never 0, which would read as worthless);
+    # the waiver itself is carried by funding_type.
+    funding_amount: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(14, 2), nullable=True, sort_order=23,
+        comment="Cash figure exactly as stated by the source; NULL when unstated",
+    )
+    funding_currency: Mapped[Optional[str]] = mapped_column(
+        String(3), nullable=True, sort_order=24,
+        comment="ISO 4217 code as stated (EUR, USD); NULL when unstated; never converted",
+    )
+    funding_period: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, sort_order=25,
+        comment="Period the stated amount belongs to: total | per_year | per_month | per_semester | one_off",
+    )
+    funding_duration_months: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, sort_order=26,
+        comment="Funding duration in months, only when the source states a duration",
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, sort_order=27,
+        comment="Excerpt from the official page itself; never written by a model or a person at Polaris",
     )
 
     # Relationships — reference entities

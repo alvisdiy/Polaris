@@ -240,6 +240,44 @@ SCHOLARSHIP_TYPE_ALIASES: dict[str, str] = {
     "corporate": "Company",
 }
 
+# ---------------------------------------------------------------------------
+# Funding period (the period a stated funding amount belongs to)
+# ---------------------------------------------------------------------------
+# Funding semantics A (decided 2026-11-26): an amount is stored exactly as
+# the source states it, together with the period the source itself uses.
+# Polaris never converts between periods, because monthly x 12 or total /
+# years is arithmetic the source never did. "Unknown" is not a value here
+# either: a NULL funding_period means the source did not state a period,
+# and an amount without a stated period is not extracted at all.
+FUNDING_PERIODS: tuple[str, ...] = (
+    "total",
+    "per_year",
+    "per_month",
+    "per_semester",
+    "one_off",
+)
+FUNDING_PERIOD_VALUES: frozenset[str] = frozenset(FUNDING_PERIODS)
+
+FUNDING_PERIOD_ALIASES: dict[str, str] = {
+    "total": "total",
+    "in total": "total",
+    "per year": "per_year",
+    "per annum": "per_year",
+    "annually": "per_year",
+    "yearly": "per_year",
+    "a year": "per_year",
+    "per month": "per_month",
+    "monthly": "per_month",
+    "a month": "per_month",
+    "per semester": "per_semester",
+    "each semester": "per_semester",
+    "one_off": "one_off",
+    "one-off": "one_off",
+    "one off": "one_off",
+    "one-time": "one_off",
+    "one time": "one_off",
+}
+
 
 # ---------------------------------------------------------------------------
 # The registry every boundary consults
@@ -330,10 +368,14 @@ SCHOLARSHIP_TYPE = Vocabulary(
     "scholarship_type", SCHOLARSHIP_TYPE_VALUES, SCHOLARSHIP_TYPES,
     SCHOLARSHIP_TYPE_ALIASES, nullable=True, label="scholarship type",
 )
+FUNDING_PERIOD = Vocabulary(
+    "funding_period", FUNDING_PERIOD_VALUES, FUNDING_PERIODS,
+    FUNDING_PERIOD_ALIASES, nullable=True, label="funding period",
+)
 
 CONTROLLED_VOCABULARIES: dict[str, Vocabulary] = {
     vocabulary.name: vocabulary
-    for vocabulary in (DEGREE, FUNDING_TYPE, EXPERIENCE, SCHOLARSHIP_TYPE)
+    for vocabulary in (DEGREE, FUNDING_TYPE, EXPERIENCE, SCHOLARSHIP_TYPE, FUNDING_PERIOD)
 }
 
 # Alias so the schema field name and the registry key agree even though the
