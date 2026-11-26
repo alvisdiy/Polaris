@@ -866,6 +866,18 @@ class ReviewService:
     @classmethod
     def _coerce_proposed(cls, field: str, value: Any) -> Any:
         """Restore a proposed value to the type its column expects."""
+        if field == "funding_amount" and isinstance(value, str):
+            # Proposed changes round-trip through JSONB, where a Decimal
+            # amount comes back as a string. Restore the numeric type so
+            # the comparison and the write see the stated figure.
+            from decimal import Decimal, InvalidOperation
+
+            try:
+                return Decimal(value)
+            except InvalidOperation:
+                raise InvalidTransition(
+                    f"candidate proposed an unparseable funding_amount: {value!r}"
+                ) from None
         if field not in cls._DATE_PROPOSABLE_FIELDS or not isinstance(value, str):
             return value
         try:
@@ -969,6 +981,11 @@ class ReviewService:
         {
             "degree",
             "funding_type",
+            "funding_amount",
+            "funding_currency",
+            "funding_period",
+            "funding_duration_months",
+            "description",
             "field_of_study",
             "application_deadline",
             "deadline",
@@ -1524,6 +1541,11 @@ class ReviewService:
             "degree",
             "degree_levels",
             "funding_type",
+            "funding_amount",
+            "funding_currency",
+            "funding_period",
+            "funding_duration_months",
+            "description",
             "official_page_url",
             "application_url",
             "field_of_study",
@@ -1546,6 +1568,30 @@ class ReviewService:
             validate_controlled(target_name, value)
         except InvalidVocabularyValue as exc:
             raise InvalidFieldValue(str(exc)) from exc
+
+        # Funding amount fields are not vocabulary-controlled, but they
+        # have shapes a reviewer can get wrong and the database would
+        # otherwise report as a bare IntegrityError: a negative amount, a
+        # currency that is not an ISO code, a non-positive duration.
+        if target_name == "funding_amount" and value is not None:
+            from decimal import Decimal, InvalidOperation
+
+            try:
+                value = Decimal(str(value))
+            except InvalidOperation:
+                raise InvalidFieldValue(f"funding_amount {value!r} is not a number") from None
+            if value < 0:
+                raise InvalidFieldValue("funding_amount must not be negative")
+        if target_name == "funding_currency" and value is not None:
+            if not isinstance(value, str) or len(value) != 3 or not value.isalpha() or value.upper() != value:
+                raise InvalidFieldValue(
+                    f"funding_currency {value!r} is not an uppercase ISO 4217 code"
+                )
+        if target_name == "funding_duration_months" and value is not None:
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise InvalidFieldValue(
+                    "funding_duration_months must be a positive whole number of months"
+                )
 
         # The official link is the record's trust anchor, and this method is the
         # one place both `correct()` and `approve_candidate()` write it. The
@@ -1594,7 +1640,11 @@ class ReviewService:
                 )
         elif target_name == "degree_levels":
             previous = sorted(row.degree for row in (scholarship.degree_levels or []))
-        elif target_name in ("degree", "funding_type", "official_page_url", "application_url"):
+        elif target_name in (
+            "degree", "funding_type", "official_page_url", "application_url",
+            "funding_amount", "funding_currency", "funding_period",
+            "funding_duration_months", "description",
+        ):
             previous = getattr(scholarship, target_name, None)
         elif target_name == "field_of_study":
             previous = list(scholarship.field_of_study or [])
@@ -1641,7 +1691,11 @@ class ReviewService:
             scholarship.provider_id = _coerce_uuid(value)
         elif target_name == "country_id":
             scholarship.country_id = _coerce_uuid(value)
-        elif target_name in ("degree", "funding_type", "official_page_url", "application_url"):
+        elif target_name in (
+            "degree", "funding_type", "official_page_url", "application_url",
+            "funding_amount", "funding_currency", "funding_period",
+            "funding_duration_months", "description",
+        ):
             setattr(scholarship, target_name, value)
         elif target_name == "field_of_study":
             scholarship.field_of_study = list(value or [])
@@ -1792,6 +1846,11 @@ class ReviewService:
             "eligibility": {
                 "degree": scholarship.degree,
                 "funding_type": scholarship.funding_type,
+                "funding_amount": scholarship.funding_amount,
+                "funding_currency": scholarship.funding_currency,
+                "funding_period": scholarship.funding_period,
+                "funding_duration_months": scholarship.funding_duration_months,
+                "description": scholarship.description,
                 "field_of_study": list(scholarship.field_of_study or []),
                 "minimum_gpa": read(requirement, "minimum_gpa"),
                 "ielts_required": read(requirement, "ielts_required"),

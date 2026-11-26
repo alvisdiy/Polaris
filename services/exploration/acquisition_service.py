@@ -954,6 +954,14 @@ class AcquisitionService:
             observed["degree"] = fresh.degree
         if fresh.funding_type:
             observed["funding_type"] = fresh.funding_type
+        if fresh.funding_amount is not None:
+            observed["funding_amount"] = fresh.funding_amount
+            observed["funding_currency"] = fresh.funding_currency
+            observed["funding_period"] = fresh.funding_period
+        if fresh.funding_duration_months is not None:
+            observed["funding_duration_months"] = fresh.funding_duration_months
+        if fresh.description:
+            observed["description"] = fresh.description
         if fresh.field_of_study:
             observed["field_of_study"] = list(fresh.field_of_study)
 

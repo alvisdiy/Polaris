@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from decimal import Decimal
 from typing import Any, Dict
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -90,6 +91,16 @@ class ExtractedScholarship(BaseModel):
     # recorded here instead of collapsing into one level or into NULL.
     degree_levels: list[str] = Field(default_factory=list)
     funding_type: str | None = None  # Optional: unknown funding type allowed
+    # Funding amount as stated (semantics A): the figure, currency and
+    # period the source itself uses, never converted. All three stay None
+    # when the page states no cash figure with a period; a tuition waiver
+    # has no amount at all.
+    funding_amount: Decimal | None = None
+    funding_currency: str | None = None  # ISO 4217, as stated
+    funding_period: str | None = None  # total | per_year | per_month | per_semester | one_off
+    funding_duration_months: int | None = None  # Only when the source states a duration
+    # Excerpt of the official page itself, never written copy.
+    description: str | None = None
     field_of_study: list[str] = Field(default_factory=list)  # May be empty if not mentioned
     # These may be unknown when the page does not expose a clearly labelled
     # destination. The article itself is provenance, never a substitute URL.

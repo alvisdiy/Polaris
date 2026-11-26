@@ -301,6 +301,10 @@ def create_app() -> FastAPI:
                 country_name=record.country.name if record.country else None,
                 degree=record.degree,
                 funding_type=record.funding_type,
+                funding_amount=record.funding_amount,
+                funding_currency=record.funding_currency,
+                funding_period=record.funding_period,
+                description=record.description,
                 deadline=(
                     record.timeline.application_deadline if record.timeline else None
                 ),

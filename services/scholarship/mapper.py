@@ -182,6 +182,11 @@ class ScholarshipMapper:
             scholarship_name=extracted.scholarship_name,
             degree=extracted.degree,
             funding_type=extracted.funding_type,
+            funding_amount=extracted.funding_amount,
+            funding_currency=extracted.funding_currency,
+            funding_period=extracted.funding_period,
+            funding_duration_months=extracted.funding_duration_months,
+            description=extracted.description,
             field_of_study=extracted.field_of_study,
             application_url=extracted.application_url,
             official_page_url=official_page_url,
@@ -349,6 +354,7 @@ class ScholarshipMapper:
             "deadline": evidence_for("application_deadline", "timeline"),
             "degree": evidence_for("degree"),
             "funding_type": evidence_for("funding_type"),
+            "funding_amount": evidence_for("funding_amount"),
             "eligibility": evidence_for("eligibility"),
         }
         provenance["official_page_url"] = {
@@ -369,6 +375,9 @@ class ScholarshipMapper:
             "method": method,
             "origin": "machine_extracted_link",
         }
+        amount_evidence = meta.get("funding_amount_evidence")
+        if amount_evidence:
+            provenance["funding_amount"]["statement"] = amount_evidence.get("statement")
         _record_source_terms(provenance, scholarship, meta)
         scholarship.field_provenance = provenance
 

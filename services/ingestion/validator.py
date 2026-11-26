@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from services.domain.vocabulary import DEGREE, FUNDING_TYPE, SCHOLARSHIP_TYPE
+from services.domain.vocabulary import DEGREE, FUNDING_PERIOD, FUNDING_TYPE, SCHOLARSHIP_TYPE
 from services.ingestion.extractor import ExtractedDocument, ExtractedScholarship
 
 
@@ -114,6 +114,47 @@ def validate(doc: ExtractedDocument) -> ValidationReport:
             ValidationIssue(
                 field="funding_type",
                 message=(f"Invalid funding type '{s.funding_type}'. Must be one of {FUNDING_TYPE.describe()}"),
+            )
+        )
+
+    # Funding amount as stated (semantics A). The period is controlled for
+    # the same reason funding_type is: a free-text period cannot be rendered
+    # or compared. An amount without both a currency and a period is not a
+    # stated figure, it is half of one, so it is refused rather than stored.
+    if s.funding_period is not None and not FUNDING_PERIOD.is_valid(s.funding_period):
+        issues.append(
+            ValidationIssue(
+                field="funding_period",
+                message=(f"Invalid funding period '{s.funding_period}'. Must be one of {FUNDING_PERIOD.describe()}"),
+            )
+        )
+    if s.funding_amount is not None:
+        if s.funding_amount < 0:
+            issues.append(
+                ValidationIssue(field="funding_amount", message="Funding amount must not be negative")
+            )
+        if not s.funding_currency or not s.funding_period:
+            issues.append(
+                ValidationIssue(
+                    field="funding_amount",
+                    message="A funding amount requires the currency and period the source stated it in",
+                )
+            )
+    if s.funding_currency is not None and (
+        len(s.funding_currency) != 3
+        or not s.funding_currency.isalpha()
+        or s.funding_currency.upper() != s.funding_currency
+    ):
+        issues.append(
+            ValidationIssue(
+                field="funding_currency",
+                message=f"Invalid funding currency '{s.funding_currency}'. Must be an uppercase ISO 4217 code",
+            )
+        )
+    if s.funding_duration_months is not None and s.funding_duration_months <= 0:
+        issues.append(
+            ValidationIssue(
+                field="funding_duration_months", message="Funding duration must be a positive number of months"
             )
         )
 
