@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getScholarship, ApiError } from '../api/client'
 import type { ScholarshipDetail } from '../api/types'
-import { deadlineDisplay, formatDate } from '../lib/format'
+import { deadlineDisplay, formatDate, formatFundingAmount } from '../lib/format'
 import EmptyState from '../components/EmptyState.vue'
 import SkeletonBlock from '../components/SkeletonBlock.vue'
 import ErrorState from '../components/ErrorState.vue'
@@ -74,6 +74,12 @@ const rows: Row[] = [
   { label: 'Country', value: (item) => item.country ?? notRecorded },
   { label: 'Degree', value: (item) => item.degree ?? notRecorded },
   { label: 'Funding', value: (item) => item.funding_type },
+  {
+    label: 'Funding amount',
+    value: (item) =>
+      formatFundingAmount(item.funding_amount, item.funding_currency, item.funding_period) ??
+      'Not mentioned in the source',
+  },
   {
     label: 'Deadline',
     value: (item) => {

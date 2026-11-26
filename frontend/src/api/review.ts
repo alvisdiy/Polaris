@@ -67,6 +67,11 @@ export type ReviewPacket = {
   eligibility: {
     degree: string | null
     funding_type: string | null
+    funding_amount: number | null
+    funding_currency: string | null
+    funding_period: string | null
+    funding_duration_months: number | null
+    description: string | null
     field_of_study: string[]
     minimum_gpa: number | null
     ielts_required: boolean | null

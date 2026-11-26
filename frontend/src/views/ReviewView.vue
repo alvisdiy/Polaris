@@ -14,7 +14,7 @@ import {
 } from '../api/review'
 import { ApiError } from '../api/client'
 import { isSignedIn, reviewActor, reviewToken, signIn, signOut } from '../stores/reviewAuth'
-import { formatDate } from '../lib/format'
+import { formatDate, formatFundingAmount } from '../lib/format'
 
 /*
  * The reviewer surface. Until now curation ran through the API or CLI
@@ -28,6 +28,13 @@ import { formatDate } from '../lib/format'
 
 const DEGREES = ['Bachelor', 'Master', 'PhD', 'Exchange', 'Short Course']
 const FUNDING_TYPES = ['Fully Funded', 'Partial Funded', 'Tuition Only']
+const FUNDING_PERIODS = [
+  { value: 'total', label: 'Total' },
+  { value: 'per_year', label: 'Per year' },
+  { value: 'per_month', label: 'Per month' },
+  { value: 'per_semester', label: 'Per semester' },
+  { value: 'one_off', label: 'One-off' },
+]
 
 const signedIn = ref(isSignedIn())
 const tokenInput = ref('')
@@ -50,7 +57,17 @@ const evidenceUrl = ref('')
 const overrideQuality = ref(false)
 
 /* Correction form: prefilled from the packet, only diffs are sent. */
-const fix = ref({ deadline: '', degree: '', funding_type: '', official_page_url: '', minimum_gpa: '' })
+const fix = ref({
+  deadline: '',
+  degree: '',
+  funding_type: '',
+  funding_amount: '',
+  funding_currency: '',
+  funding_period: '',
+  funding_duration_months: '',
+  official_page_url: '',
+  minimum_gpa: '',
+})
 const fixReason = ref('')
 
 const countryField = computed(() => packet.value?.quality.fields['country'])
@@ -97,6 +114,16 @@ async function openRecord(id: string) {
       deadline: packet.value.timeline.application_deadline ?? '',
       degree: packet.value.eligibility.degree ?? '',
       funding_type: packet.value.eligibility.funding_type ?? '',
+      funding_amount:
+        packet.value.eligibility.funding_amount != null
+          ? String(packet.value.eligibility.funding_amount)
+          : '',
+      funding_currency: packet.value.eligibility.funding_currency ?? '',
+      funding_period: packet.value.eligibility.funding_period ?? '',
+      funding_duration_months:
+        packet.value.eligibility.funding_duration_months != null
+          ? String(packet.value.eligibility.funding_duration_months)
+          : '',
       official_page_url: packet.value.identity.official_url ?? '',
       minimum_gpa:
         packet.value.eligibility.minimum_gpa != null
@@ -218,6 +245,17 @@ async function doSaveCorrection() {
   if (fix.value.funding_type !== (p.eligibility.funding_type ?? '')) {
     changes.funding_type = fix.value.funding_type || null
   }
+  const amount = fix.value.funding_amount.trim() === '' ? null : Number(fix.value.funding_amount)
+  if (amount !== p.eligibility.funding_amount) changes.funding_amount = amount
+  if (fix.value.funding_currency !== (p.eligibility.funding_currency ?? '')) {
+    changes.funding_currency = fix.value.funding_currency.trim().toUpperCase() || null
+  }
+  if (fix.value.funding_period !== (p.eligibility.funding_period ?? '')) {
+    changes.funding_period = fix.value.funding_period || null
+  }
+  const duration =
+    fix.value.funding_duration_months.trim() === '' ? null : Number(fix.value.funding_duration_months)
+  if (duration !== p.eligibility.funding_duration_months) changes.funding_duration_months = duration
   if (fix.value.official_page_url !== (p.identity.official_url ?? '')) {
     changes.official_page_url = fix.value.official_page_url || null
   }
@@ -440,6 +478,10 @@ onMounted(() => {
             <dl class="facts">
               <div><dt>Degree</dt><dd>{{ displayValue(packet.eligibility.degree) }}</dd></div>
               <div><dt>Funding</dt><dd>{{ displayValue(packet.eligibility.funding_type) }}</dd></div>
+              <div>
+                <dt>Funding amount</dt>
+                <dd>{{ formatFundingAmount(packet.eligibility.funding_amount, packet.eligibility.funding_currency, packet.eligibility.funding_period) ?? 'Not mentioned in the source' }}</dd>
+              </div>
               <div><dt>Fields</dt><dd>{{ displayValue(packet.eligibility.field_of_study) }}</dd></div>
               <div><dt>Minimum GPA</dt><dd>{{ displayValue(packet.eligibility.minimum_gpa) }}</dd></div>
               <div>
@@ -479,6 +521,25 @@ onMounted(() => {
                   <option value="">Not stated</option>
                   <option v-for="f in FUNDING_TYPES" :key="f" :value="f">{{ f }}</option>
                 </select>
+              </label>
+              <label>
+                Funding amount (as stated)
+                <input v-model="fix.funding_amount" type="number" step="0.01" min="0" placeholder="e.g. 2100" />
+              </label>
+              <label>
+                Funding currency (ISO code)
+                <input v-model="fix.funding_currency" type="text" maxlength="3" placeholder="e.g. EUR" />
+              </label>
+              <label>
+                Funding period
+                <select v-model="fix.funding_period">
+                  <option value="">Not stated</option>
+                  <option v-for="p in FUNDING_PERIODS" :key="p.value" :value="p.value">{{ p.label }}</option>
+                </select>
+              </label>
+              <label>
+                Funding duration (months)
+                <input v-model="fix.funding_duration_months" type="number" step="1" min="1" placeholder="e.g. 24" />
               </label>
               <label>
                 Minimum GPA

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { formatDate, hostOf, isPastDeadline, deadlineDisplay } from '../lib/format'
+import { formatDate, formatFundingAmount, hostOf, isPastDeadline, deadlineDisplay } from '../lib/format'
 
 describe('formatDate', () => {
   it('formats an ISO date in a readable form', () => {
@@ -77,5 +77,20 @@ describe('deadlineDisplay', () => {
     vi.setSystemTime(new Date('2027-02-20T12:00:00Z'))
     expect(deadlineDisplay('2099-01-01').label).toBe('Active')
     vi.useRealTimers()
+  })
+})
+
+describe('formatFundingAmount', () => {
+  it('renders the amount as stated, with its period', () => {
+    expect(formatFundingAmount(2100, 'EUR', 'per_month')).toBe('€2,100/month')
+    expect(formatFundingAmount(10000, 'USD', 'per_year')).toBe('$10,000/year')
+    expect(formatFundingAmount(5000, 'USD', 'one_off')).toBe('$5,000 (one-off)')
+    expect(formatFundingAmount(3000, 'CHF', 'per_semester')).toBe('3,000 CHF/semester')
+  })
+
+  it('returns null when any part of the stated figure is missing', () => {
+    expect(formatFundingAmount(null, 'EUR', 'per_month')).toBeNull()
+    expect(formatFundingAmount(2100, null, 'per_month')).toBeNull()
+    expect(formatFundingAmount(2100, 'EUR', null)).toBeNull()
   })
 })

@@ -35,6 +35,44 @@ export function formatDate(iso: string | null | undefined): string | null {
   })
 }
 
+const FUNDING_CURRENCY_SYMBOLS: Record<string, string> = {
+  EUR: '€',
+  USD: '$',
+  GBP: '£',
+  JPY: '¥',
+}
+
+const FUNDING_PERIOD_SUFFIXES: Record<string, string> = {
+  per_month: '/month',
+  per_year: '/year',
+  per_semester: '/semester',
+  one_off: ' (one-off)',
+  total: ' (total)',
+}
+
+/**
+ * Render a funding amount exactly as the source stated it, e.g.
+ * "€2,100/month". Null unless amount, currency and period are all
+ * present: a figure without its currency or period is not the fact the
+ * source stated. Callers render the null case as "Not mentioned in the
+ * source" where the amount itself is the subject.
+ */
+export function formatFundingAmount(
+  amount: number | string | null | undefined,
+  currency: string | null | undefined,
+  period: string | null | undefined,
+): string | null {
+  if (amount === null || amount === undefined || amount === '' || !currency || !period) return null
+  const value = typeof amount === 'string' ? Number(amount) : amount
+  if (!Number.isFinite(value)) return null
+  const number = Number.isInteger(value)
+    ? value.toLocaleString('en-US')
+    : value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const symbol = FUNDING_CURRENCY_SYMBOLS[currency]
+  const rendered = symbol ? `${symbol}${number}` : `${number} ${currency}`
+  return rendered + (FUNDING_PERIOD_SUFFIXES[period] ?? '')
+}
+
 export function hostOf(url: string): string | null {
   try {
     return new URL(url).host

@@ -2,7 +2,7 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useScholarshipDetail } from '../api/composables'
-import { deadlineDisplay, formatDate, hostOf } from '../lib/format'
+import { deadlineDisplay, formatDate, formatFundingAmount, hostOf } from '../lib/format'
 import SourceCitation from '../components/SourceCitation.vue'
 import ErrorState from '../components/ErrorState.vue'
 import SkeletonBlock from '../components/SkeletonBlock.vue'
@@ -22,6 +22,15 @@ watch(id, (value) => {
 const scholarship = computed(() => data.value)
 
 const isExpired = computed(() => deadlineDisplay(scholarship.value?.deadline ?? null).state === 'expired')
+
+/* The amount as stated, or null when the source stated no figure. */
+const fundingAmountLabel = computed(() =>
+  formatFundingAmount(
+    scholarship.value?.funding_amount,
+    scholarship.value?.funding_currency,
+    scholarship.value?.funding_period,
+  ),
+)
 
 const timelineRows = computed(() => {
   const timeline = scholarship.value?.timeline
@@ -153,7 +162,8 @@ function retry() {
             </p>
             <ul class="head-meta" aria-label="Key details">
               <li>{{ scholarship.degree }}</li>
-              <li>{{ scholarship.funding_type }}</li>
+              <li v-if="fundingAmountLabel">{{ scholarship.funding_type }} · {{ fundingAmountLabel }}</li>
+              <li v-else>{{ scholarship.funding_type }}</li>
               <li v-for="field in scholarship.field_of_study" :key="field">{{ field }}</li>
             </ul>
           </div>
@@ -208,6 +218,13 @@ function retry() {
               <dd v-else class="fact-unknown">Funding not stated on the page</dd>
             </div>
             <div class="fact">
+              <dt>Funding amount</dt>
+              <dd v-if="fundingAmountLabel">
+                {{ fundingAmountLabel }}<template v-if="scholarship.funding_duration_months">, for {{ scholarship.funding_duration_months }} months</template>
+              </dd>
+              <dd v-else class="fact-unknown">Not mentioned in the source</dd>
+            </div>
+            <div class="fact">
               <dt>Deadline</dt>
               <dd>
                 <span
@@ -232,6 +249,12 @@ function retry() {
               <dd v-else class="fact-unknown">Not recorded</dd>
             </div>
           </dl>
+        </section>
+
+        <section v-if="scholarship.description" class="section" aria-labelledby="about-heading">
+          <h2 id="about-heading">About this scholarship</h2>
+          <p class="section-text">{{ scholarship.description }}</p>
+          <p class="section-note">Quoted from the official page.</p>
         </section>
 
         <section v-if="timelineRows.length" class="section" aria-labelledby="timeline-heading">
@@ -518,6 +541,19 @@ function retry() {
 }
 
 .section-empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-ink-secondary);
+  font-style: italic;
+}
+
+.section-text {
+  margin: 0;
+  max-width: 44rem;
+  line-height: 1.6;
+}
+
+.section-note {
+  margin: var(--space-2) 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-ink-secondary);
   font-style: italic;
