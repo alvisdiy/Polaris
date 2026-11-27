@@ -870,6 +870,100 @@ class DeterministicLLMClient(LLMClient):
             return (True, int(m.group(1)))
         return (False, None)
 
+    # IELTS band scores run 0-9 in half steps; the LLM Phase A house rules
+    # enforce the same range. A stated band is admitted only at a half
+    # step, so "IELTS 6.3" (a typo, or a section score) never becomes a
+    # minimum the matcher then enforces.
+    _IELTS_SCORE_RE = re.compile(
+        r"IELTS(?:\s+(?:overall|academic|general))?"
+        r"(?:\s+(?:band|score))?(?:\s+of)?\s*[:=]?\s*(\d+(?:\.\d+)?)",
+        re.IGNORECASE,
+    )
+    _IELTS_REQUIRED_RE = re.compile(
+        r"(?:IELTS[^.;]{0,60}?\b(?:required|mandatory|must|needed)\b"
+        r"|(?:must|required|mandatory)\b[^.;]{0,40}?\bIELTS\b)",
+        re.IGNORECASE,
+    )
+    _IELTS_NOT_REQUIRED_RE = re.compile(
+        r"(?:IELTS[^.;]{0,60}?\b(?:not\s+required|not\s+needed|waived|optional|exempt)\b"
+        r"|(?:no|not|without|exempt\s+from)\b[^.;]{0,40}?\bIELTS\b)",
+        re.IGNORECASE,
+    )
+    _GRE_REQUIRED_RE = re.compile(
+        r"(?:GRE[^.;]{0,60}?\b(?:required|mandatory|must|needed)\b"
+        r"|(?:must|required|mandatory)\b[^.;]{0,40}?\bGRE\b)",
+        re.IGNORECASE,
+    )
+    _GRE_NOT_REQUIRED_RE = re.compile(
+        r"(?:GRE[^.;]{0,60}?\b(?:not\s+required|not\s+needed|waived|optional|exempt)\b"
+        r"|(?:no|not|without|exempt\s+from)\b[^.;]{0,40}?\bGRE\b)",
+        re.IGNORECASE,
+    )
+
+    def _extract_ielts(self, text: str) -> tuple[bool | None, float | None]:
+        """IELTS requirement and minimum overall band, deterministically.
+
+        Mirrors ``_extract_toefl`` but with the house rules the LLM layer
+        already enforces (band 0-9, half steps), and with waivers read as
+        required=False instead of ignored. A band stated with an unusable
+        number ("IELTS 6.3") still says the test is required; only the
+        score stays unfilled.
+
+        Precedence is deliberate: a concrete band beats a waiver clause
+        (a page can waive IELTS for one group while stating a band for
+        everyone else), and an explicit "required" beats a waiver. When
+        the page never mentions IELTS, both stay None — the matcher then
+        treats the requirement as unknown, not as "not required".
+        """
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+|\n+", text) if "ielts" in s.lower()]
+        invalid_score_seen = False
+        for sentence in sentences:
+            m = self._IELTS_SCORE_RE.search(sentence)
+            if not m:
+                continue
+            raw = m.group(1)
+            try:
+                value = float(raw)
+            except ValueError:
+                continue
+            if len(raw) == 4 and "." not in raw:
+                # A year ("IELTS 2026"), not a band score.
+                continue
+            if not 0 <= value <= 9 or (value * 2) != int(value * 2):
+                invalid_score_seen = True
+                continue
+            return (True, value)
+        for sentence in sentences:
+            if self._IELTS_NOT_REQUIRED_RE.search(sentence):
+                continue
+            if self._IELTS_REQUIRED_RE.search(sentence):
+                return (True, None)
+        for sentence in sentences:
+            if self._IELTS_NOT_REQUIRED_RE.search(sentence):
+                return (False, None)
+        if invalid_score_seen:
+            return (True, None)
+        return (None, None)
+
+    def _extract_gre(self, text: str) -> bool | None:
+        """Whether the GRE is required, from explicit wording only.
+
+        A bare "GRE" mention ("Send your GRE scores to code 1234") says
+        nothing about a requirement, so it stays None. An explicit
+        "required" in any sentence beats a waiver elsewhere — the stricter
+        reading is the safe one for an applicant.
+        """
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+|\n+", text) if "gre" in s.lower()]
+        for sentence in sentences:
+            if self._GRE_NOT_REQUIRED_RE.search(sentence):
+                continue
+            if self._GRE_REQUIRED_RE.search(sentence):
+                return True
+        for sentence in sentences:
+            if self._GRE_NOT_REQUIRED_RE.search(sentence):
+                return False
+        return None
+
     # Negation cues that turn a benefit keyword into a statement that the
     # benefit is NOT provided: "tuition is not covered", "no accommodation
     # is provided", "travel must be borne by the student". A bare keyword
@@ -1348,6 +1442,8 @@ class DeterministicLLMClient(LLMClient):
         gpa = self._extract_gpa(clean_text)
         age = self._extract_age_limit(clean_text)
         toefl_required, toefl_score = self._extract_toefl(clean_text)
+        ielts_required, ielts_score = self._extract_ielts(clean_text)
+        gre_required = self._extract_gre(clean_text)
         benefits = self._extract_benefits(clean_text)
 
         # Heuristic extraction for missing fields
@@ -1405,11 +1501,11 @@ class DeterministicLLMClient(LLMClient):
             },
             "eligibility": {
                 "minimum_gpa": gpa,
-                "ielts_required": None,
-                "minimum_ielts": None,
+                "ielts_required": ielts_required,
+                "minimum_ielts": ielts_score,
                 "toefl_required": toefl_required if toefl_score else None,
                 "minimum_toefl": toefl_score,
-                "gre_required": None,
+                "gre_required": gre_required,
                 "age_limit": age,
                 "work_experience": None,
                 "research_experience": self._extract_research_experience(clean_text),

@@ -186,6 +186,58 @@ class TestResearchExperienceEvidence:
         )
 
 
+class TestIeltsExtraction:
+    def test_band_score_is_extracted(self, client):
+        assert client._extract_ielts("IELTS: 6.5") == (True, 6.5)
+
+    def test_overall_band_wording(self, client):
+        assert client._extract_ielts(
+            "Applicants need an IELTS overall band of 7.0."
+        ) == (True, 7.0)
+
+    def test_minimum_score_wording(self, client):
+        assert client._extract_ielts("Minimum IELTS score 6.0") == (True, 6.0)
+
+    def test_not_required_is_false_not_unknown(self, client):
+        assert client._extract_ielts(
+            "IELTS is not required for this scholarship."
+        ) == (False, None)
+
+    def test_waived_is_false(self, client):
+        assert client._extract_ielts("The IELTS requirement is waived.") == (
+            False,
+            None,
+        )
+
+    def test_unusable_band_keeps_required_but_no_score(self, client):
+        # 6.3 is not a half-step band, so no minimum is admitted — but the
+        # page did state an IELTS score, so the test is still required.
+        assert client._extract_ielts("IELTS 6.3") == (True, None)
+
+    def test_no_mention_is_unknown(self, client):
+        assert client._extract_ielts("TOEFL: 100") == (None, None)
+
+
+class TestGreExtraction:
+    def test_required(self, client):
+        assert client._extract_gre("GRE scores are required for all applicants.") is True
+
+    def test_must_submit_counts_as_required(self, client):
+        assert client._extract_gre("Applicants must submit GRE scores.") is True
+
+    def test_not_required(self, client):
+        assert client._extract_gre("GRE is not required.") is False
+
+    def test_waived(self, client):
+        assert client._extract_gre("GRE requirement waived for 2027 entry.") is False
+
+    def test_bare_mention_is_not_a_requirement(self, client):
+        assert (
+            client._extract_gre("Send your GRE scores to institution code 1234.")
+            is None
+        )
+
+
 class TestFullExtraction:
     def test_extraction_reports_its_provenance(self, client):
         clean_text = (
@@ -221,6 +273,19 @@ Benefits:
         assert data["eligibility"]["minimum_toefl"] == 100
         assert data["benefits"]["tuition_fee"] is True
         assert data["benefits"]["accommodation"] is True
+
+    def test_ielts_and_gre_flow_through_full_extraction(self, client):
+        clean_text = """# Global Tech Scholarship 2027
+
+deadline: September 30, 2024
+
+IELTS: 6.5
+GRE scores are required for all applicants.
+"""
+        data = client.extract_scholarship(clean_text, "https://example.com/scholarship")
+        assert data["eligibility"]["ielts_required"] is True
+        assert data["eligibility"]["minimum_ielts"] == 6.5
+        assert data["eligibility"]["gre_required"] is True
 
     def test_country_fallback_is_flagged_as_inferred(self, client):
         """A country taken from the source, not the page, is an assumption."""
