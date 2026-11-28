@@ -435,3 +435,31 @@ fields as measured Phase 1 precision work, Serper nightly yes/no,
 deploy decision + backups, develop→main baseline. PR #10 (coverage
 ratchet) merged into `develop` on 2026-11-28; this branch was rebased
 onto it the same day, keeping both STATUS sections.
+
+## Phase 1 slice: IELTS + GRE extraction (feat/phase1-ielts-gre, 2026-11-28)
+
+First slice of the Phase 1 precision work: the deterministic
+extractor no longer hardcodes IELTS and GRE to `None`.
+
+- **IELTS.** `_extract_ielts` mirrors `_extract_toefl` with the house
+  rules from LLM Phase A: band 0–9 in half steps; an explicit band
+  yields `(required=True, band)`; "not required" / "waived" yields
+  `(False, None)`; an unusable band (e.g. 6.3) yields `(True, None)`;
+  no mention stays `(None, None)` = unknown, never a guess.
+- **GRE.** `_extract_gre` admits only explicit wording (required /
+  must submit → True; not required / waived → False); a bare GRE
+  mention stays unknown.
+- **Known limit.** The mapper still coerces `ielts_required=None` to
+  False in the DB, so the concrete gains are `minimum_ielts` and
+  `gre_required=True`. No provenance evidence sentence is stored for
+  these two fields yet.
+
+Verification: 13 new unit tests; full backend suite on the rebased
+branch 2026 passed / 11 failed, where the 11 are byte-identical to
+clean `develop` in the same sandbox environment (the sandbox-DNS /
+network set); Ruff clean.
+
+Still open from the review queue: the remaining extractor fields
+(university, interview/result/study-start dates, work/publication
+experience, motivation/CV/passport), Serper nightly yes/no, deploy
+decision + backups, develop→main baseline.
