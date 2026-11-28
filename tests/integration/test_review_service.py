@@ -745,3 +745,88 @@ class TestInferredCountryGate:
                 changes={"country_id": str(uuid.uuid4())},
                 reason="guessing wildly",
             )
+
+
+# ------------------------------------------------------- funding amount (A)
+
+
+class TestFundingAmountCorrection:
+    """Semantics A fields are correctable through the same review boundary.
+
+    The amount is the figure as stated, so a reviewer fixing it needs the
+    amount, currency, period and duration as separate fields, and the
+    shapes the database enforces (ISO currency, controlled period,
+    non-negative amount) must be refused here with a readable error
+    rather than at flush time.
+    """
+
+    def test_correct_funding_amount_fields(self, service, session, jp_country):
+        from decimal import Decimal
+
+        scholarship = make_scholarship(session, jp_country)
+        sid = str(scholarship.scholarship_id)
+
+        outcome = service.correct(
+            sid, actor="carol",
+            changes={
+                "funding_amount": "2100",
+                "funding_currency": "EUR",
+                "funding_period": "per_month",
+                "funding_duration_months": 24,
+                "description": "Excerpt from the official page.",
+            },
+            reason="official page states the stipend figure",
+        )
+        session.commit()
+
+        assert scholarship.funding_amount == Decimal("2100")
+        assert scholarship.funding_currency == "EUR"
+        assert scholarship.funding_period == "per_month"
+        assert scholarship.funding_duration_months == 24
+        assert scholarship.description == "Excerpt from the official page."
+        changed = {change["field"] for change in outcome.field_changes}
+        assert {
+            "funding_amount", "funding_currency", "funding_period",
+            "funding_duration_months", "description",
+        } <= changed
+
+    def test_unknown_period_is_refused(self, service, session, jp_country):
+        scholarship = make_scholarship(session, jp_country)
+        with pytest.raises(InvalidFieldValue):
+            service.correct(
+                str(scholarship.scholarship_id), actor="carol",
+                changes={"funding_period": "weekly"},
+                reason="guessing the period",
+            )
+
+    def test_negative_amount_is_refused(self, service, session, jp_country):
+        scholarship = make_scholarship(session, jp_country)
+        with pytest.raises(InvalidFieldValue):
+            service.correct(
+                str(scholarship.scholarship_id), actor="carol",
+                changes={"funding_amount": -5},
+                reason="negative figure",
+            )
+
+    def test_non_iso_currency_is_refused(self, service, session, jp_country):
+        scholarship = make_scholarship(session, jp_country)
+        with pytest.raises(InvalidFieldValue):
+            service.correct(
+                str(scholarship.scholarship_id), actor="carol",
+                changes={"funding_currency": "eur"},
+                reason="lowercase currency",
+            )
+
+    def test_packet_carries_the_amount_fields(self, service, session, jp_country):
+        from decimal import Decimal
+
+        scholarship = make_scholarship(
+            session, jp_country,
+            funding_amount=Decimal("2100"), funding_currency="EUR",
+            funding_period="per_month", funding_duration_months=24,
+        )
+        packet = service.review_packet(str(scholarship.scholarship_id))
+        assert packet["eligibility"]["funding_amount"] == Decimal("2100")
+        assert packet["eligibility"]["funding_currency"] == "EUR"
+        assert packet["eligibility"]["funding_period"] == "per_month"
+        assert packet["eligibility"]["funding_duration_months"] == 24

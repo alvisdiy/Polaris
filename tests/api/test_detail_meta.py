@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -172,3 +173,19 @@ class TestDetailMetaHttp:
         response = client.get("/scholarships/not-a-uuid")
         assert response.status_code == 200
         assert "<title>Polaris | Scholarship Intelligence</title>" in response.text
+
+
+class TestFundingAmountMeta:
+    def test_amount_label_uses_the_stated_period(self):
+        meta = _meta(funding_amount=Decimal("2100"), funding_currency="EUR", funding_period="per_month")
+        assert "€2,100/month" in meta.description
+
+    def test_amount_without_period_is_not_rendered(self):
+        meta = _meta(funding_amount=Decimal("2100"), funding_currency="EUR", funding_period=None)
+        assert "2,100" not in meta.description
+
+    def test_source_description_leads(self):
+        meta = _meta(
+            description="This award supports graduate research in astrophysics at Japanese universities."
+        )
+        assert meta.description.startswith("This award supports graduate research")

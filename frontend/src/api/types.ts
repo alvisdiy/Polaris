@@ -16,6 +16,11 @@ export interface ScholarshipSummary {
   /** The award's levels when the page stated several. */
   degree_levels?: string[]
   funding_type: string
+  /** The amount as stated by the source, with its currency and period. Null when unstated. */
+  funding_amount?: number | null
+  funding_currency?: string | null
+  funding_period?: string | null
+  funding_duration_months?: number | null
   field_of_study: string[]
   deadline: string | null
   /** When the record was last checked against its official page. Null when never recorded. */
@@ -75,6 +80,12 @@ export interface ScholarshipDetail {
   /** The award's levels when the page stated several. */
   degree_levels?: string[]
   funding_type: string
+  funding_amount?: number | null
+  funding_currency?: string | null
+  funding_period?: string | null
+  funding_duration_months?: number | null
+  /** Excerpt of the official page itself, when one was recorded. */
+  description?: string | null
   field_of_study: string[]
   official_url: string
   application_url: string | null

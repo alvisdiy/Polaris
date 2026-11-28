@@ -392,6 +392,135 @@ def _claim_tier(in_title: bool, in_heading: bool, in_anchor: bool) -> int:
     return 4
 
 
+# ---------------------------------------------------------------------------
+# Funding amount as stated (semantics A)
+# ---------------------------------------------------------------------------
+# A bare "$" is read as USD and "¥" as JPY: the pages Polaris crawls use
+# them that way, and guessing a different currency from a symbol alone
+# would be inventing the fact this field exists to record. Prefixed
+# symbols (A$, S$, ...) keep their own currencies.
+_CURRENCY_BY_SYMBOL = {
+    "€": "EUR",
+    "£": "GBP",
+    "¥": "JPY",
+    "$": "USD",
+    "us$": "USD",
+    "a$": "AUD",
+    "nz$": "NZD",
+    "s$": "SGD",
+    "c$": "CAD",
+    "hk$": "HKD",
+}
+_CURRENCY_BY_WORD = {
+    "euro": "EUR",
+    "euros": "EUR",
+    "dollar": "USD",
+    "dollars": "USD",
+    "pound": "GBP",
+    "pounds": "GBP",
+    "yen": "JPY",
+    "franc": "CHF",
+    "francs": "CHF",
+}
+_MONEY_RE = re.compile(
+    r"(us\$|a\$|nz\$|s\$|c\$|hk\$|€|£|¥|\$)\s?(\d[\d.,]*)"
+    r"|(\d[\d.,]*)\s?(usd|eur|gbp|jpy|aud|cad|chf|sgd|nzd|hkd|sek|nok|dkk|pln|krw|cny|inr)\b"
+    r"|(\d[\d.,]*)\s+(euros?|dollars?|pounds?|yen|francs?)\b",
+    re.IGNORECASE,
+)
+_FUNDING_AMOUNT_CONTEXT = (
+    r"(?:stipend|allowance|grant|scholarship|award|bursary|fellowship|funding|funded|benefit)"
+)
+# Period wording, most specific first: "per semester" must win over any
+# shorter reading of the same sentence.
+_FUNDING_PERIOD_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"per\s+semester|each\s+semester", "per_semester"),
+    (r"per\s+month|monthly|/\s?month|a\s+month\b", "per_month"),
+    (r"per\s+year|per\s+annum|annually|yearly|/\s?year|a\s+year\b", "per_year"),
+    (r"one[-\s]off|one[-\s]time", "one_off"),
+    (r"\btotal\b|\bin\s+total\b", "total"),
+)
+_DURATION_RE = re.compile(
+    r"(?:for\s+(?:a\s+(?:period|duration)\s+of\s+)?|duration\s+of\s+|over\s+)"
+    r"(\d{1,3})\s*(months?|years?)",
+    re.IGNORECASE,
+)
+
+
+def _parse_money_number(raw: str):
+    """Parse a stated figure without changing its value.
+
+    Thousands separators differ by source locale: "2,100" and "2.100"
+    both state two thousand one hundred, and "2.100,50" states the same
+    with cents. A lone comma followed by one or two digits is a decimal
+    comma ("2100,50"). Anything unparseable returns None rather than a
+    best guess, because a wrong amount is worse than a missing one.
+    """
+    from decimal import Decimal, InvalidOperation
+
+    text = raw.strip().rstrip(".,")
+    try:
+        if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d{1,2})?", text):
+            text = text.replace(".", "").replace(",", ".")
+        elif re.fullmatch(r"\d{1,3}(,\d{3})+(\.\d{1,2})?", text):
+            text = text.replace(",", "")
+        elif re.fullmatch(r"\d+,\d{1,2}", text):
+            text = text.replace(",", ".")
+        return Decimal(text)
+    except InvalidOperation:
+        return None
+
+
+def _money_of_match(match):
+    """One money match, as (Decimal amount, ISO currency), or None."""
+    if match.group(1):
+        amount = _parse_money_number(match.group(2))
+        currency = _CURRENCY_BY_SYMBOL.get(match.group(1).lower())
+    elif match.group(3):
+        amount = _parse_money_number(match.group(3))
+        currency = match.group(4).upper()
+    else:
+        amount = _parse_money_number(match.group(5))
+        currency = _CURRENCY_BY_WORD.get(match.group(6).lower())
+    if amount is None or currency is None or amount <= 0:
+        return None
+    return amount, currency
+
+
+def _first_money(lowered: str):
+    """First money figure in a sentence, as (Decimal amount, ISO currency)."""
+    match = _MONEY_RE.search(lowered)
+    if not match:
+        return None
+    return _money_of_match(match)
+
+
+def _funding_period_of(lowered: str) -> str | None:
+    for pattern, period in _FUNDING_PERIOD_PATTERNS:
+        if re.search(pattern, lowered):
+            return period
+    return None
+
+
+def _funding_duration_months(text: str) -> int | None:
+    """A duration stated in a funding sentence, in months, or None.
+
+    Only sentences that are themselves about funding are read: a "for
+    2 years" describing the degree programme is not a funding duration,
+    and storing it as one would state a fact about the money that the
+    page stated about the course.
+    """
+    for part in re.split(r"(?<=[.!?])\s+|\n+", text):
+        lowered = part.lower()
+        if not re.search(_FUNDING_AMOUNT_CONTEXT, lowered):
+            continue
+        match = _DURATION_RE.search(lowered)
+        if match:
+            value = int(match.group(1))
+            return value * 12 if match.group(2).startswith("year") else value
+    return None
+
+
 class DeterministicLLMClient(LLMClient):
     """Parse clean text to extract scholarship data using heuristics.
 
@@ -1014,6 +1143,99 @@ class DeterministicLLMClient(LLMClient):
             "statement": statement,
         }
 
+    def _extract_funding_amount(self, text: str, funding_type: str | None) -> dict | None:
+        """A cash figure the page states, with its currency and period.
+
+        Semantics A: the figure is stored exactly as stated, never
+        converted between currencies or periods. A figure is admitted
+        only when one sentence carries all three pieces of evidence at
+        once: a money amount, period wording ("per month", "one-off"),
+        and a funding noun (stipend, grant, scholarship, ...). Anything
+        less is a number in search of a claim, and the fields stay NULL.
+
+        Two deliberate exclusions:
+        - A tuition waiver has no cash figure, so its amount stays NULL
+          even if the page mentions fee numbers nearby.
+        - A figure in a tuition or fee sentence is a cost, not an award,
+          unless the same sentence also names a cash benefit (stipend,
+          allowance). When a page states both tuition and a stipend, the
+          stipend figure wins and the two are never summed.
+        """
+        if funding_type == "Tuition Waiver":
+            return None
+        candidates: list[tuple[int, int, dict]] = []
+        sentences = [
+            " ".join(part.split())
+            for part in re.split(r"(?<=[.!?])\s+|\n+", text)
+            if part.strip()
+        ]
+        for index, sentence in enumerate(sentences):
+            lowered = sentence.lower()
+            if not re.search(_FUNDING_AMOUNT_CONTEXT, lowered):
+                continue
+            matches = list(_MONEY_RE.finditer(lowered))
+            for position, match in enumerate(matches):
+                # Each figure is judged on the words around it, not the
+                # whole sentence: the 50 characters before it name what
+                # the money is ("tuition fees are ...", "a living
+                # allowance of ..."), and the 50 after it state its period
+                # ("... per month"). A sentence stating both tuition and a
+                # stipend therefore yields two separate candidates instead
+                # of the tuition figure wearing the stipend's period.
+                prev_end = matches[position - 1].end() if position else 0
+                next_start = (
+                    matches[position + 1].start() if position + 1 < len(matches) else len(lowered)
+                )
+                before = lowered[max(prev_end, match.start() - 50) : match.start()]
+                after = lowered[match.end() : min(next_start, match.end() + 50)]
+                period = _funding_period_of(after) or _funding_period_of(before)
+                if period is None:
+                    continue
+                money = _money_of_match(match)
+                if money is None:
+                    continue
+                is_cost = "tuition" in before or "fee" in before
+                is_cash = bool(re.search(r"stipend|allowance|living|maintenance", before))
+                if is_cost and not is_cash:
+                    continue
+                amount, currency = money
+                candidates.append(
+                    (
+                        0 if is_cash else 1,
+                        index * 10 + position,
+                        {
+                            "amount": amount,
+                            "currency": currency,
+                            "period": period,
+                            "statement": sentence[:320],
+                        },
+                    )
+                )
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: (item[0], item[1]))
+        chosen = candidates[0][2]
+        chosen["duration_months"] = _funding_duration_months(text)
+        return chosen
+
+    @staticmethod
+    def _extract_description(text: str) -> str | None:
+        """The page's own first substantive paragraph, capped.
+
+        The description is an excerpt, not copy: it is lifted from the
+        cleaned official text and truncated at a word boundary. A page
+        with no paragraph long enough to describe itself gets None
+        rather than a stitched-together fragment.
+        """
+        for chunk in re.split(r"\n+", text):
+            cleaned = " ".join(chunk.split())
+            if len(cleaned) < 60:
+                continue
+            if len(cleaned) <= 500:
+                return cleaned
+            return cleaned[:499].rsplit(" ", 1)[0]
+        return None
+
     def _extract_country_heuristic(self, text: str) -> str | None:
         """Heuristic extraction of country from text using known ISO2 mappings.
 
@@ -1148,6 +1370,8 @@ class DeterministicLLMClient(LLMClient):
             [] if degree else declared_award_levels(clean_text)
         )
         funding_type = self._extract_funding_type(clean_text)  # None if unknown
+        funding_amount = self._extract_funding_amount(clean_text, funding_type)
+        description = self._extract_description(clean_text)
         country_from_page = self._extract_country_heuristic(clean_text)
         country = country_from_page or default_country
         country_inferred = country_from_page is None
@@ -1163,6 +1387,11 @@ class DeterministicLLMClient(LLMClient):
             "degree": degree,
             "degree_levels": degree_levels,
             "funding_type": funding_type,
+            "funding_amount": funding_amount["amount"] if funding_amount else None,
+            "funding_currency": funding_amount["currency"] if funding_amount else None,
+            "funding_period": funding_amount["period"] if funding_amount else None,
+            "funding_duration_months": funding_amount["duration_months"] if funding_amount else None,
+            "description": description,
             "field_of_study": field_of_study,
             "application_url": application_url,
             "official_source": official_source,
@@ -1217,6 +1446,19 @@ class DeterministicLLMClient(LLMClient):
                 # Why this funding verdict, in the page's own words. None when
                 # there is no classification to justify.
                 "funding_evidence": self._funding_evidence(clean_text, funding_type),
+                # The sentence the amount, currency and period were read
+                # from, in the page's own words. None when no figure was
+                # admitted, so a NULL amount needs no justification.
+                "funding_amount_evidence": (
+                    {
+                        "statement": funding_amount["statement"],
+                        "amount": str(funding_amount["amount"]),
+                        "currency": funding_amount["currency"],
+                        "period": funding_amount["period"],
+                    }
+                    if funding_amount
+                    else None
+                ),
                 "unmapped_qualification": self.last_unmapped_qualification,
                 # Present only when the page declared more than one level.
                 "degree_candidates": self.last_degree_candidates or None,

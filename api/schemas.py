@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -277,6 +278,13 @@ class ScholarshipSummaryResponse(BaseModel):
     # populated, which is how a multi-level programme stays filterable.
     degree_levels: list[str] = Field(default_factory=list)
     funding_type: str | None = None
+    # The amount as stated by the source, with its currency and period.
+    # Null when the source states no figure; the UI renders that as
+    # "Not mentioned in the source", never as zero.
+    funding_amount: Decimal | None = None
+    funding_currency: str | None = None
+    funding_period: str | None = None
+    funding_duration_months: int | None = None
     field_of_study: list[str] = Field(default_factory=list)
     deadline: date | None = None
     # When the record was last checked against its official page. Sent so
@@ -303,6 +311,12 @@ class ScholarshipDetailResponse(BaseModel):
     degree: str | None = None
     degree_levels: list[str] = Field(default_factory=list)
     funding_type: str | None = None
+    funding_amount: Decimal | None = None
+    funding_currency: str | None = None
+    funding_period: str | None = None
+    funding_duration_months: int | None = None
+    # Excerpt of the official page itself, when one was recorded.
+    description: str | None = None
     field_of_study: list[str] = Field(default_factory=list)
     official_url: str
     application_url: str | None = None
@@ -347,6 +361,11 @@ class ReviewIdentitySchema(BaseModel):
 class ReviewEligibilitySchema(BaseModel):
     degree: str | None = None
     funding_type: str | None = None
+    funding_amount: Decimal | None = None
+    funding_currency: str | None = None
+    funding_period: str | None = None
+    funding_duration_months: int | None = None
+    description: str | None = None
     field_of_study: list[str] = Field(default_factory=list)
     minimum_gpa: float | None = None
     ielts_required: bool | None = None
@@ -581,7 +600,8 @@ class ReviewPatchRequest(BaseModel):
         ...,
         description=(
             "Fields to correct. Editable: scholarship_name, provider_id, country_id, degree, "
-            "funding_type, field_of_study, official_page_url, application_url, "
+            "funding_type, funding_amount, funding_currency, funding_period, "
+            "funding_duration_months, description, field_of_study, official_page_url, application_url, "
             "deadline, application_open, application_cycle, interview_date, "
             "result_date, study_start, minimum_gpa, ielts_required, minimum_ielts, "
             "toefl_required, minimum_toefl, work_experience, research_experience, "

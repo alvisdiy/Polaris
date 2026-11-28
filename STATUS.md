@@ -389,7 +389,49 @@ assume an empty DB fail against it locally; on a fresh `*_scratch`
 database the suite is at the known 11 sandbox-DNS failures only.
 CI is unaffected (empty database).
 
-Still open: funding amounts + description (needs Saburo's
-amount-semantics decision), extractor language/eligibility fields
+Still open: extractor language/eligibility fields
 (Phase 1 precision), Serper nightly decision, deploy decision +
-backups, develop→main baseline.
+backups, develop→main baseline. Funding amounts + description were
+decided (semantics A) the next day and are recorded below.
+
+## Funding amounts as stated + description (feat/funding-amounts-a, 2026-11-26)
+
+Saburo decided funding semantics **A** on 2026-11-26: store the amount
+exactly as the official page states it. This closes the funding-amounts
++ description item from the review queue.
+
+- **Schema.** One migration (`a9b0c1d2e3f4`) adds `funding_amount`
+  (Numeric), `funding_currency` (ISO 4217 as stated, no FX conversion),
+  `funding_period` (`total` / `per_year` / `per_month` / `per_semester`
+  / `one_off`, a new controlled vocabulary in
+  `services/domain/vocabulary.py`), `funding_duration_months` (only when
+  stated), and `description` (Text), with the CHECK constraints landing
+  in the same migration as the columns, per the `e7f8a9b0c1d2` lesson.
+  Tuition waiver keeps amount NULL (never 0); unknown stays NULL.
+- **Extraction.** The deterministic extractor admits a figure only when
+  one sentence carries amount + period wording + a funding noun; each
+  figure is judged on the words around it, so a page stating both
+  tuition and a stipend yields the stipend figure, never a sum and
+  never the tuition figure with the stipend's period. The evidence
+  sentence is kept in provenance. `description` is the page's own first
+  substantive paragraph, capped at 500 characters, never written copy.
+- **Surfaces.** Public summary/detail schemas, detail-page meta (the
+  excerpt leads; the amount renders as e.g. "€2,100/month"), card,
+  detail and compare views (NULL amount reads "Not mentioned in the
+  source"), and the review boundary: amount/currency/period/duration/
+  description are correctable and proposable, with ISO-currency,
+  controlled-period, non-negative-amount and positive-duration
+  validation at `correct()` instead of an IntegrityError at flush.
+
+Verification: backend 1994 passed / 28 failed on a fresh local test DB,
+where the 28 are byte-identical to clean `develop` in the same
+environment (11 sandbox-DNS + 17 that need the pg_trgm extension the
+local test server lacks; CI's PostgreSQL 16 has it). 27 new backend
+tests + 2 new frontend tests; migration upgrade/downgrade cycle
+verified; frontend 29/29 + build + typecheck; Ruff clean.
+
+Still open from the review queue: extractor language/eligibility
+fields as measured Phase 1 precision work, Serper nightly yes/no,
+deploy decision + backups, develop→main baseline. PR #10 (coverage
+ratchet) merged into `develop` on 2026-11-28; this branch was rebased
+onto it the same day, keeping both STATUS sections.

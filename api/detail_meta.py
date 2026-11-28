@@ -39,6 +39,32 @@ def _truncate(text: str, limit: int = 200) -> str:
     return text[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
+_CURRENCY_SYMBOLS = {"EUR": "€", "USD": "$", "GBP": "£", "JPY": "¥"}
+_PERIOD_SUFFIXES = {
+    "per_month": "/month",
+    "per_year": "/year",
+    "per_semester": "/semester",
+    "one_off": " (one-off)",
+    "total": " (total)",
+}
+
+
+def format_funding_amount(amount, currency: str | None, period: str | None) -> str | None:
+    """Render an amount exactly as stated: "€2,100/month", "5000 USD (total)".
+
+    Returns None unless amount, currency and period are all present: a
+    figure without its currency or period is not the fact the source
+    stated, and rendering half of it would misstate the other half.
+    """
+    if amount is None or not currency or not period:
+        return None
+    value = float(amount)
+    number = f"{value:,.0f}" if value == int(value) else f"{value:,.2f}"
+    symbol = _CURRENCY_SYMBOLS.get(currency)
+    rendered = f"{symbol}{number}" if symbol else f"{number} {currency}"
+    return rendered + _PERIOD_SUFFIXES.get(period, "")
+
+
 def build_detail_meta(
     *,
     name: str,
@@ -47,6 +73,10 @@ def build_detail_meta(
     degree: str | None,
     funding_type: str | None,
     deadline: date | None,
+    funding_amount=None,
+    funding_currency: str | None = None,
+    funding_period: str | None = None,
+    description: str | None = None,
     field_of_study: list[str] | None,
     canonical_url: str,
 ) -> DetailMeta:
@@ -62,16 +92,25 @@ def build_detail_meta(
         lead += f" by {provider_name}"
     if country_name:
         lead += f" in {country_name}"
-    facts = [part for part in (degree, funding_type) if part]
+    amount_label = format_funding_amount(funding_amount, funding_currency, funding_period)
+    facts = [part for part in (degree, funding_type, amount_label) if part]
     if field_of_study:
         facts.append(", ".join(field_of_study[:3]))
-    description = lead + "."
-    if facts:
-        description += " " + " · ".join(facts) + "."
+    if description:
+        # The record carries the official page's own excerpt; it leads,
+        # because it is the source describing itself, and the composed
+        # facts follow it.
+        meta_description = " ".join(description.split())
+        if facts:
+            meta_description += " " + " · ".join(facts) + "."
+    else:
+        meta_description = lead + "."
+        if facts:
+            meta_description += " " + " · ".join(facts) + "."
     if deadline:
-        description += f" Application deadline: {deadline.isoformat()}."
-    description += " Details verified against the official provider page."
-    description = _truncate(description)
+        meta_description += f" Application deadline: {deadline.isoformat()}."
+    meta_description += " Details verified against the official provider page."
+    description = _truncate(meta_description)
 
     json_ld: dict = {
         "@context": "https://schema.org",

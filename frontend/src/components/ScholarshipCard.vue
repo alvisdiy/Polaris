@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ScholarshipSummary, Recommendation } from '../api/types'
-import { formatDate } from '../lib/format'
+import { formatDate, formatFundingAmount } from '../lib/format'
 import DeadlineBadge from './DeadlineBadge.vue'
 import SourceCitation from './SourceCitation.vue'
 import SaveButton from './SaveButton.vue'
@@ -22,6 +22,9 @@ interface CardItem {
   degree?: string | null
   degree_levels?: string[]
   funding_type?: string | null
+  funding_amount?: number | null
+  funding_currency?: string | null
+  funding_period?: string | null
   match_score?: number
   recommendation_category?: string
   explanation?: string
@@ -66,6 +69,18 @@ const degreeLabel = computed(() => {
   return levels.length ? levels.join(' · ') : null
 })
 
+/* The amount sits inside the funding chip, as stated: type first, then
+ * the figure with its period, e.g. "Fully Funded · €2,100/month". */
+const fundingLabel = computed(() => {
+  const amount = formatFundingAmount(
+    props.scholarship.funding_amount,
+    props.scholarship.funding_currency,
+    props.scholarship.funding_period,
+  )
+  if (props.scholarship.funding_type && amount) return `${props.scholarship.funding_type} · ${amount}`
+  return props.scholarship.funding_type ?? amount
+})
+
 const providerLine = computed(() => {
   const parts = [props.scholarship.provider_name, props.scholarship.country].filter(
     (part): part is string => Boolean(part),
@@ -106,7 +121,7 @@ const categoryLabel: Record<string, string> = {
     <ul class="meta" aria-label="Key details">
       <li v-if="degreeLabel" class="meta-item">{{ degreeLabel }}</li>
       <li v-else class="meta-item meta-absent">Level not stated</li>
-      <li v-if="scholarship.funding_type" class="meta-item">{{ scholarship.funding_type }}</li>
+      <li v-if="fundingLabel" class="meta-item">{{ fundingLabel }}</li>
       <li v-for="field in (scholarship.field_of_study ?? []).slice(0, 2)" :key="field" class="meta-item">
         {{ field }}
       </li>
