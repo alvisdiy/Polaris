@@ -368,3 +368,28 @@ Still open from the review queue: funding amounts + description
 extractor language/eligibility fields as measured Phase 1 precision
 work, coverage ratchet to 85, deploy decision + backups,
 develop→main baseline.
+
+## Coverage ratchet to 85 (feat/coverage-ratchet-85, 2026-11-25)
+
+The gate's own rule — raise 83 only in the same commit that adds
+tests for the two legacy ingestion modules — is now satisfied:
+`services/ingestion/discovery.py` 27% → 98% and
+`country_orchestrator.py` 38% → 96% (15 new integration tests, real
+DB, connector/pipeline seamed out), total coverage 85.47% measured
+locally on an empty test database, and `--cov-fail-under` in CI is
+85 with the comment updated. Behaviour pinned along the way: a
+freshly saved RawDocument stays `pending`, so the same discovery
+run's reprocess pass extracts it twice (downstream dedup makes it
+wasteful, not wrong) — recorded here rather than silently "fixed"
+in a coverage PR.
+
+Note for local runs: `polaris_scratch` currently holds the triage
+bootstrap corpus (47 reviewed records), and two catalogue tests that
+assume an empty DB fail against it locally; on a fresh `*_scratch`
+database the suite is at the known 11 sandbox-DNS failures only.
+CI is unaffected (empty database).
+
+Still open: funding amounts + description (needs Saburo's
+amount-semantics decision), extractor language/eligibility fields
+(Phase 1 precision), Serper nightly decision, deploy decision +
+backups, develop→main baseline.
